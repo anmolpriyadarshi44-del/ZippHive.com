@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZippHive — Doorstep Home & Phone Repairs in Patna</title>
+<meta name="description" content="ZippHive brings verified technicians to your door in Patna: mobile repair in 60 minutes, AC repair & AMC, washing machine, plumber, electrician and home cleaning. Book on WhatsApp.">
+<meta name="theme-color" content="#0B6E6E">
+<meta property="og:title" content="ZippHive — Doorstep Home Services in Patna">
+<meta property="og:description" content="Mobile repair in 60 min, AC, appliances, plumbing, electrical & cleaning. Book in one tap.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HomeAndConstructionBusiness",
+  "name": "ZippHive",
+  "description": "Doorstep mobile repair, AC, appliance, plumbing, electrical and cleaning services in Patna.",
+  "telephone": "+91-92204-00950",
+  "email": "ZippHive@gmail.com",
+  "areaServed": "Patna, Bihar",
+  "address": {"@type": "PostalAddress", "addressLocality": "Patna", "addressRegion": "Bihar", "addressCountry": "IN"}
+}
+</script>
+<style>
+:root{
+  --teal:#0B6E6E; --teal-d:#074848; --teal-l:#E6F4F3;
+  --yellow:#FFC93C; --yellow-d:#F2B200;
+  --ink:#0F1F1F; --muted:#506363; --line:#DCE8E7;
+  --bg:#FFFFFF; --soft:#F6FAF9; --card:#FFFFFF;
+  --radius:18px; --shadow:0 10px 30px rgba(7,72,72,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img,svg{display:block}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:700;font-size:15px;border:2px solid transparent;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn-y{background:var(--yellow);color:var(--ink);box-shadow:0 8px 20px rgba(242,178,0,.35)}
+.btn-y:hover{background:var(--yellow-d)}
+.btn-t{background:var(--teal);color:#fff}
+.btn-t:hover{background:var(--teal-d)}
+.btn-o{border-color:rgba(255,255,255,.5);color:#fff}
+.btn-o:hover{background:rgba(255,255,255,.1)}
+.tag{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal)}
+h1,h2,h3{line-height:1.15;letter-spacing:-.02em}
+h2{font-size:clamp(28px,4vw,40px);font-weight:800;margin:8px 0 14px}
+.sub{color:var(--muted);font-size:17px;max-width:620px}
+section{padding:84px 0}
+
+/* Header */
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;color:var(--teal-d)}
+.logo span b{color:var(--yellow-d)}
+.links{display:flex;gap:28px;align-items:center;font-weight:600;font-size:15px}
+.links a:not(.btn):hover{color:var(--teal)}
+.menu-btn{display:none;background:none;border:0;cursor:pointer;padding:8px}
+.menu-btn span{display:block;width:24px;height:2.5px;background:var(--ink);margin:5px 0;border-radius:2px}
+
+/* Hero */
+.hero{background:radial-gradient(1200px 500px at 85% -10%,rgba(255,201,60,.28),transparent 60%),linear-gradient(160deg,var(--teal) 0%,var(--teal-d) 100%);color:#fff;padding:80px 0 96px;overflow:hidden;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:7px 14px;border-radius:999px;font-size:14px;font-weight:600}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 4px rgba(255,201,60,.25)}
+.hero h1{font-size:clamp(36px,5.6vw,60px);font-weight:800;margin:20px 0 18px}
+.hero h1 em{font-style:normal;color:var(--yellow)}
+.hero p.lead{font-size:18px;opacity:.9;max-width:560px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin:30px 0 34px}
+.stats{display:flex;gap:34px;flex-wrap:wrap}
+.stats div b{display:block;font-size:26px;font-weight:800;color:var(--yellow)}
+.stats div{font-size:14px;opacity:.85}
+.hero-card{background:#fff;color:var(--ink);border-radius:24px;padding:26px;box-shadow:0 30px 60px rgba(0,0,0,.25)}
+.hero-card h3{font-size:20px;margin-bottom:4px}
+.hero-card p{color:var(--muted);font-size:14px;margin-bottom:16px}
+
+/* Form */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:15px;background:var(--soft);color:var(--ink)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--teal);background:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-btn{width:100%;justify-content:center;margin-top:6px}
+.err{color:#B42318;font-size:13px;margin-top:6px;display:none}
+.note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+
+/* Services */
+.services{background:var(--soft)}
+.svc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px}
+.svc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:transform .2s,box-shadow .2s,border-color .2s;display:flex;flex-direction:column}
+.svc:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:transparent}
+.ico{width:52px;height:52px;border-radius:14px;background:var(--teal-l);display:grid;place-items:center;margin-bottom:16px;color:var(--teal)}
+.svc h3{font-size:18px;margin-bottom:6px}
+.svc p{color:var(--muted);font-size:14px;flex:1}
+.svc .badge{align-self:flex-start;background:var(--yellow);font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;margin-bottom:10px;letter-spacing:.03em}
+.svc a.more{margin-top:14px;font-weight:700;font-size:14px;color:var(--teal);display:inline-flex;gap:6px;align-items:center}
+.svc a.more:hover{gap:10px}
+
+/* How */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:44px;counter-reset:s}
+.step{position:relative;padding-top:8px}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--yellow);font-weight:800;font-size:18px;margin-bottom:16px}
+.step h3{font-size:18px;margin-bottom:6px}
+.step p{color:var(--muted);font-size:15px}
+
+/* Why */
+.why{background:var(--teal-d);color:#fff}
+.why .tag{color:var(--yellow)}
+.why .sub{color:rgba(255,255,255,.75)}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.why-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:24px}
+.why-item h3{font-size:17px;margin:12px 0 6px}
+.why-item p{font-size:14px;color:rgba(255,255,255,.75)}
+.why-item svg{color:var(--yellow)}
+
+/* AMC */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.plan{border:1.5px solid var(--line);border-radius:22px;padding:28px;display:flex;flex-direction:column;background:#fff}
+.plan.hot{border-color:var(--teal);box-shadow:var(--shadow);position:relative}
+.plan.hot::after{content:"Most popular";position:absolute;top:-12px;left:24px;background:var(--yellow);font-size:12px;font-weight:800;padding:4px 12px;border-radius:999px}
+.plan h3{font-size:20px}
+.plan .price{font-size:15px;color:var(--muted);margin:6px 0 18px}
+.plan ul{list-style:none;flex:1;margin-bottom:22px}
+.plan li{padding:7px 0 7px 28px;position:relative;font-size:15px}
+.plan li::before{content:"";position:absolute;left:0;top:11px;width:18px;height:18px;border-radius:50%;background:var(--teal-l) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230B6E6E' stroke-width='3.5'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/11px no-repeat}
+.plan .btn{justify-content:center}
+
+/* Areas */
+.areas{background:var(--soft)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.chip{background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:999px;font-weight:600;font-size:14px}
+
+/* FAQ */
+.faq{max-width:820px;margin:36px auto 0}
+details{border-bottom:1px solid var(--line);padding:20px 0}
+summary{font-weight:700;font-size:17px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:24px;line-height:1;color:var(--teal);transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{color:var(--muted);margin-top:10px}
+
+/* CTA band */
+.band{background:var(--yellow);padding:56px 0}
+.band-in{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.band h2{margin:0;font-size:clamp(24px,3.4vw,34px)}
+.band p{font-weight:500}
+
+/* Footer */
+footer{background:var(--ink);color:rgba(255,255,255,.75);padding:60px 0 28px;font-size:14px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:30px}
+footer h4{color:#fff;font-size:15px;margin-bottom:14px}
+footer li{list-style:none;padding:4px 0}
+footer a:hover{color:var(--yellow)}
+footer .logo{color:#fff;margin-bottom:12px}
+.copy{border-top:1px solid rgba(255,255,255,.1);margin-top:40px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+/* Floating WhatsApp */
+.wa-float{position:fixed;right:18px;bottom:18px;z-index:60;width:58px;height:58px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 10px 25px rgba(0,0,0,.25);transition:transform .2s}
+.wa-float:hover{transform:scale(1.08)}
+
+/* Reveal */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+.rv.in{opacity:1;transform:none}
+
+/* Responsive */
+@media (max-width:980px){
+  .hero-grid{grid-template-columns:1fr}
+  .svc-grid{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .why-grid,.plans{grid-template-columns:1fr 1fr}
+  .foot{grid-template-columns:1fr 1fr}
+}
+@media (max-width:760px){
+  .links{position:fixed;inset:70px 0 auto 0;background:#fff;flex-direction:column;align-items:stretch;padding:16px 20px 24px;gap:4px;border-bottom:1px solid var(--line);transform:translateY(-130%);transition:transform .25s;box-shadow:var(--shadow)}
+  .links.open{transform:none}
+  .links a:not(.btn){padding:12px 0;border-bottom:1px solid var(--line)}
+  .links .btn{margin-top:10px;justify-content:center}
+  .menu-btn{display:block}
+  section{padding:64px 0}
+  .hero{padding:56px 0 72px}
+}
+@media (max-width:560px){
+  .svc-grid,.steps,.why-grid,.plans,.foot{grid-template-columns:1fr}
+  .row2{grid-template-columns:1fr}
+  .stats{gap:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="#top" class="logo" aria-label="ZippHive home">
+      <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 43 13v22L24 46 5 35V13z" fill="#0B6E6E"/><path d="M16 15h17l-11 11h9L18 35l3-8h-6l9-8h-8z" fill="#FFC93C"/></svg>
+      <span>Zipp<b>Hive</b></span>
+    </a>
+    <nav class="links" id="links">
+      <a href="#services">Services</a>
+      <a href="#how">How it works</a>
+      <a href="#plans">AMC Plans</a>
+      <a href="#faq">FAQ</a>
+      <a href="tel:+919220400950" class="btn btn-t">Call 92204 00950</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill"><i></i> Now serving across Patna</span>
+      <h1>Home &amp; phone repairs, <em>at your door</em> — fast.</h1>
+      <p class="lead">Mobile repair in 60 minutes, AC service, appliances, plumbing, electrical and deep cleaning. Verified technicians, upfront pricing, and a service warranty on every job.</p>
+      <div class="hero-cta">
+        <a class="btn btn-y" href="#book">Book a Technician
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-o" href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener">WhatsApp Us</a>
+      </div>
+      <div class="stats">
+        <div><b>60 min</b>Doorstep mobile repair</div>
+        <div><b>8+</b>Home services</div>
+        <div><b>Warranty</b>On every repair</div>
+      </div>
+    </div>
+
+    <div class="hero-card" id="book">
+      <h3>Book in 30 seconds</h3>
+      <p>Fill this and confirm on WhatsApp — we'll call you back right away.</p>
+      <form id="bookForm" novalidate>
+        <div class="field"><label for="name">Your name</label><input id="name" required placeholder="e.g. Rahul Kumar" autocomplete="name"></div>
+        <div class="row2">
+          <div class="field"><label for="phone">Mobile number</label><input id="phone" required inputmode="numeric" maxlength="10" placeholder="10-digit number" autocomplete="tel-national"></div>
+          <div class="field"><label for="service">Service</label>
+            <select id="service" required>
+              <option value="">Choose…</option>
+              <option>Mobile Repair (60 min)</option>
+              <option>AC Repair / Service</option>
+              <option>AC AMC Plan</option>
+              <option>AC Installation / Uninstallation</option>
+              <option>Washing Machine Repair / Install</option>
+              <option>Plumber</option>
+              <option>Electrician</option>
+              <option>Home Cleaning</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="area">Area / locality</label><input id="area" required placeholder="e.g. Boring Road"></div>
+          <div class="field"><label for="when">Preferred time</label>
+            <select id="when"><option>As soon as possible</option><option>Today – morning</option><option>Today – afternoon</option><option>Today – evening</option><option>Tomorrow</option></select>
+          </div>
+        </div>
+        <div class="field"><label for="issue">Issue (optional)</label><textarea id="issue" rows="2" placeholder="e.g. iPhone 12 screen cracked / AC not cooling"></textarea></div>
+        <button type="submit" class="btn btn-y form-btn">Confirm on WhatsApp</button>
+        <div class="err" id="err">Please fill your name, a valid 10-digit mobile number, service and area.</div>
+        <p class="note">Or call <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="wrap">
+    <span class="tag">Our services</span>
+    <h2>One call. Every home fix.</h2>
+    <p class="sub">Trained, background-verified technicians who carry genuine parts and the right tools.</p>
+    <div class="svc-grid" id="svcGrid"></div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="wrap">
+    <span class="tag">How it works</span>
+    <h2>Fixed in four simple steps</h2>
+    <div class="steps">
+      <div class="step rv"><h3>Book</h3><p>Use the form, WhatsApp or a quick call. Tell us what's wrong.</p></div>
+      <div class="step rv"><h3>Technician arrives</h3><p>A verified expert reaches your doorstep at your chosen time.</p></div>
+      <div class="step rv"><h3>Diagnose &amp; approve</h3><p>We check the issue and share the price. Work starts only after you say yes.</p></div>
+      <div class="step rv"><h3>Fixed &amp; warranted</h3><p>Pay after the job is done. Every repair is covered by our service warranty.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="why">
+  <div class="wrap">
+    <span class="tag">Why ZippHive</span>
+    <h2>Service you can trust in your home</h2>
+    <p class="sub">We built ZippHive on years of experience running device repair operations — quality checks, process and accountability on every job.</p>
+    <div class="why-grid">
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg><h3>Verified technicians</h3><p>ID and background checked, trained on our repair process.</p></div>
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h3>On-time, fast</h3><p>Mobile repairs done at your door in about 60 minutes.</p></div>
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="17" cy="14" r="1.5"/></svg><h3>Upfront pricing</h3><p>You approve the price before any work starts. No hidden charges.</p></div>
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg><h3>Genuine parts</h3><p>Quality-tested spares with a clear warranty on parts and labour.</p></div>
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h3>Final quality check</h3><p>Every job goes through a QC checklist before we leave.</p></div>
+      <div class="why-item rv"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h3>Real support</h3><p>Reach us on WhatsApp or phone — a real person answers.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section id="plans">
+  <div class="wrap">
+    <span class="tag">AC care plans</span>
+    <h2>Annual Maintenance (AMC) for your AC</h2>
+    <p class="sub">Beat Patna's summer with scheduled servicing and priority repairs. Ask us for the current price for your AC type.</p>
+    <div class="plans">
+      <div class="plan rv"><h3>Basic Care</h3><p class="price">1 AC · 2 services / year</p><ul><li>2 scheduled wet services</li><li>Filter &amp; coil cleaning</li><li>Gas pressure check</li><li>Discount on repairs</li></ul><a class="btn btn-t" data-plan="AC AMC – Basic Care" href="#book">Get a quote</a></div>
+      <div class="plan hot rv"><h3>Comfort Plus</h3><p class="price">1 AC · 3 services / year</p><ul><li>3 scheduled services</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Labour covered on repairs</li></ul><a class="btn btn-y" data-plan="AC AMC – Comfort Plus" href="#book">Get a quote</a></div>
+      <div class="plan rv"><h3>Family Pack</h3><p class="price">2–4 ACs · full home</p><ul><li>All ACs on one plan</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Best per-AC price</li></ul><a class="btn btn-t" data-plan="AC AMC – Family Pack" href="#book">Get a quote</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- AREAS -->
+<section class="areas">
+  <div class="wrap">
+    <span class="tag">Service areas</span>
+    <h2>Serving homes across Patna</h2>
+    <p class="sub">Don't see your locality? Message us — we're expanding every week.</p>
+    <div class="chips">
+      <span class="chip">Boring Road</span><span class="chip">Kankarbagh</span><span class="chip">Rajendra Nagar</span><span class="chip">Patliputra Colony</span><span class="chip">Bailey Road</span><span class="chip">Fraser Road</span><span class="chip">Ashiana Nagar</span><span class="chip">Danapur</span><span class="chip">Raja Bazar</span><span class="chip">Anisabad</span><span class="chip">Gardanibagh</span><span class="chip">Saguna More</span><span class="chip">Kurji</span><span class="chip">Gandhi Maidan</span>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <div style="text-align:center"><span class="tag">FAQ</span><h2>Questions, answered</h2></div>
+    <div class="faq">
+      <details><summary>Is there a visiting or inspection charge?</summary><p>A small inspection charge may apply if you choose not to go ahead with the repair. If you approve the repair, it's adjusted in your bill. We always tell you upfront.</p></details>
+      <details><summary>How fast can a technician reach me?</summary><p>For mobile repair we aim to finish at your doorstep in about 60 minutes. For home services we usually schedule the same day or the next day, at a time you choose.</p></details>
+      <details><summary>Do you give a warranty?</summary><p>Yes. Every repair comes with a service warranty on parts and labour. The exact period depends on the job and is mentioned on your bill.</p></details>
+      <details><summary>How do I pay?</summary><p>Pay after the work is done — UPI, card or cash.</p></details>
+      <details><summary>Is my phone data safe?</summary><p>Mobile repairs happen in front of you at your doorstep, so your phone never leaves your sight.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<div class="band">
+  <div class="wrap band-in">
+    <div><h2>Something broken at home?</h2><p>Book now — a ZippHive expert will be on the way.</p></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a class="btn btn-t" href="tel:+919220400950">Call +91 92204 00950</a>
+      <a class="btn" style="background:#fff" href="#book">Book online</a>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <div class="logo"><svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 43 13v22L24 46 5 35V13z" fill="#0B6E6E"/><path d="M16 15h17l-11 11h9L18 35l3-8h-6l9-8h-8z" fill="#FFC93C"/></svg>ZippHive</div>
+        <p>Doorstep mobile, AC, appliance, plumbing, electrical and cleaning services in Patna, Bihar.</p>
+      </div>
+      <div><h4>Services</h4><ul><li><a href="#services">Mobile Repair</a></li><li><a href="#services">AC Repair &amp; AMC</a></li><li><a href="#services">Washing Machine</a></li><li><a href="#services">Home Cleaning</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="#how">How it works</a></li><li><a href="#plans">AMC Plans</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+      <div><h4>Contact</h4><ul><li><a href="tel:+919220400950">+91 92204 00950</a></li><li><a href="https://wa.me/919220400950" target="_blank" rel="noopener">WhatsApp</a></li><li><a href="mailto:ZippHive@gmail.com">ZippHive@gmail.com</a></li><li>Patna, Bihar</li></ul></div>
+    </div>
+    <div class="copy"><span>© <span id="yr"></span> ZippHive. All rights reserved.</span><span>Made in Bihar ⚡</span></div>
+  </div>
+</footer>
+
+<a class="wa-float" href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2.1-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+</a>
+
+<script>
+const WA = "919220400950";
+const ic = {
+  phone:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+  snow:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M4.9 7l14.2 10M4.9 17 19.1 7"/><path d="m9 4 3 2 3-2M9 20l3-2 3 2"/></svg>',
+  ac:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="9" rx="2"/><path d="M6 9h12M7 17c0 1.5-1 2-1 3M12 17v3M17 17c0 1.5 1 2 1 3"/></svg>',
+  shield:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg>',
+  wash:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M7 6h.01M10 6h.01"/></svg>',
+  pipe:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6h8a2 2 0 0 1 2 2v4"/><path d="M4 10h6"/><path d="M20 20c0-1.5-1.5-3-1.5-3S17 18.5 17 20a1.5 1.5 0 0 0 3 0z"/></svg>',
+  bolt:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  clean:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8M8 10h8l1 4H7z"/><path d="M7 14l-1 8h12l-1-8"/><path d="M19 3l.5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5z"/></svg>'
+};
+const services = [
+  {i:'phone', t:'Mobile Repair', b:'60 MIN', d:'Screen, battery, charging port, speaker & more — repaired at your doorstep in about an hour.', s:'Mobile Repair (60 min)'},
+  {i:'ac', t:'AC Repair & Service', d:'Not cooling, gas refill, water leakage, noise — split & window ACs of all brands.', s:'AC Repair / Service'},
+  {i:'shield', t:'AC AMC Plans', b:'SAVE', d:'Yearly maintenance with scheduled services and priority breakdown support.', s:'AC AMC Plan'},
+  {i:'snow', t:'AC Install / Uninstall', d:'Safe installation, shifting and uninstallation with proper piping and testing.', s:'AC Installation / Uninstallation'},
+  {i:'wash', t:'Washing Machine', d:'Repair and installation for front-load, top-load and semi-automatic machines.', s:'Washing Machine Repair / Install'},
+  {i:'pipe', t:'Plumber', d:'Leaks, taps, blockages, fittings, motor & tank connections — fixed fast.', s:'Plumber'},
+  {i:'bolt', t:'Electrician', d:'Wiring, switches, fans, lights, MCB and inverter connections done safely.', s:'Electrician'},
+  {i:'clean', t:'Home Cleaning', d:'Full home, kitchen, bathroom, sofa & deep cleaning by trained teams.', s:'Home Cleaning'}
+];
+document.getElementById('svcGrid').innerHTML = services.map(x=>`
+  <div class="svc rv">
+    <div class="ico">${ic[x.i]}</div>
+    ${x.b?`<span class="badge">${x.b}</span>`:''}
+    <h3>${x.t}</h3><p>${x.d}</p>
+    <a class="more" href="#book" data-svc="${x.s}">Book now <span>→</span></a>
+  </div>`).join('');
+
+// Pre-select service when a "Book now" / plan button is clicked
+const sel = document.getElementById('service');
+document.addEventListener('click', e=>{
+  const a = e.target.closest('[data-svc],[data-plan]');
+  if(!a) return;
+  if(a.dataset.svc) sel.value = a.dataset.svc;
+  if(a.dataset.plan){ sel.value = 'AC AMC Plan'; document.getElementById('issue').value = 'Interested in: ' + a.dataset.plan; }
+  setTimeout(()=>document.getElementById('name').focus({preventScroll:true}), 500);
+});
+
+// Booking form -> WhatsApp
+document.getElementById('bookForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const v = id => document.getElementById(id).value.trim();
+  const phone = v('phone').replace(/\D/g,'');
+  const ok = v('name') && /^[6-9]\d{9}$/.test(phone) && v('service') && v('area');
+  document.getElementById('err').style.display = ok ? 'none' : 'block';
+  if(!ok) return;
+  const msg = `Hi ZippHive, I'd like to book a service.\n\nName: ${v('name')}\nMobile: ${phone}\nService: ${v('service')}\nArea: ${v('area')}\nPreferred time: ${v('when')}` + (v('issue') ? `\nIssue: ${v('issue')}` : '');
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+});
+document.getElementById('phone').addEventListener('input', e=>{ e.target.value = e.target.value.replace(/\D/g,'').slice(0,10); });
+
+// Mobile menu
+const links = document.getElementById('links'), mb = document.getElementById('menuBtn');
+mb.addEventListener('click', ()=>{ const o = links.classList.toggle('open'); mb.setAttribute('aria-expanded', o); });
+links.addEventListener('click', e=>{ if(e.target.closest('a')){ links.classList.remove('open'); mb.setAttribute('aria-expanded', false);} });
+
+// Reveal on scroll
+const io = new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} }), {threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
