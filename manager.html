@@ -10,11 +10,21 @@
 <script src="/zipphive-config.js"></script>
 <link rel="stylesheet" href="/zh-ops.css" />
 <style>
-.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
 .kpi b{display:block;font-family:Poppins,system-ui,sans-serif;font-size:26px;color:var(--deep);line-height:1.1}
 .kpi span{font-size:13px;color:var(--muted);font-weight:600}
 .kpi.k-new{border-left-color:var(--y)}.kpi.k-need{border-left-color:var(--red)}.kpi.k-wait{border-left-color:#E8A317}.kpi.k-act{border-left-color:var(--teal)}.kpi.k-done{border-left-color:var(--green)}
+.kpi.k-cash{border-left-color:#7B5CD6}.kpi small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.flag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:#FFF1E0;color:#8A4B00}
+.flag.red{background:var(--redlt);color:var(--red)}
+.flag.green{background:var(--greenlt);color:var(--green)}
+.phase{font-weight:700;color:var(--deep);font-size:13.5px;display:flex;align-items:center;gap:6px}
+.phase.live::before{content:"";width:8px;height:8px;border-radius:50%;background:#16B87A;animation:pulse 1.8s infinite;box-shadow:0 0 0 0 rgba(22,184,122,.6)}
+.phase.warn{color:var(--red)}
+details.js{margin-top:10px}
+details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13.5px}
 .kpi.sel{outline:2px solid var(--teal);outline-offset:-1px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
@@ -46,17 +56,18 @@
 .tech .st{font-size:12.5px;font-weight:600}
 .st.free{color:var(--green)}.st.busy{color:var(--teal)}.st.pend{color:#8A5A00}.st.off{color:var(--muted)}
 .empty{padding:28px;text-align:center;color:var(--muted)}
-@media (max-width:980px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
 @media (max-width:700px){.bk{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.bar .in{max-width:none;margin-left:0}}
 </style>
 </head>
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins } from "/zh-ops.js";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees } from "/zh-ops.js";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
-const S = { be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
+const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
 const app = document.getElementById("app");
 let unsub = null;
 
@@ -64,7 +75,7 @@ const isToday = (t) => t && new Date(t).toDateString() === new Date().toDateStri
 const isAdmin = () => S.user && admins().includes(S.user.email);
 
 function counts() {
-  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0 };
+  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0 };
   for (const b of S.bookings || []) {
     const s = stage(b);
     if (s === "new") c.new++;
@@ -72,6 +83,9 @@ function counts() {
     else if (s === "waiting") c.wait++;
     else if (s === "active") c.act++;
     else if (s === "done" && isToday(b.statusAt)) c.done++;
+    const p = b.payment;
+    if (p && p.status === "paid" && isToday(p.at)) { c.cash += Number(p.amount) || 0; c.modes[p.mode] = (c.modes[p.mode] || 0) + (Number(p.amount) || 0); }
+    if (p && p.status === "not_collected" && b.status !== "cancelled") c.unpaid++;
   }
   return c;
 }
@@ -135,11 +149,16 @@ function assignBox(b) {
     const i = FLOW.indexOf(b.status);
     const legacy = b.assignState !== "accepted";
     return `<div class="asg ok"><div class="t">✅ ${esc(b.techName || b.offerName || b.techEmail)} ${legacy ? "assigned" : "accepted"}</div>
-      <div class="note">${b.acceptedAt ? "Accepted " + ago(b.acceptedAt) + " · " : ""}${esc(STATUS[b.status] || b.status)}${b.techLoc && Date.now() - b.techLoc.at < 120000 ? " · 📍 live location on" : ""}</div>
+      <div class="phase ${jobPhase(b).tone}">${esc(jobPhase(b).label)}</div>
+      <div class="note">${b.acceptedAt ? "Accepted " + ago(b.acceptedAt) : ""}${b.times?.[b.status] ? " · this step " + ago(b.times[b.status]) : ""}${b.techLoc && Date.now() - b.techLoc.at < 120000 ? " · 📍 live location on" : ""}</div>
       <div class="steps" aria-hidden="true">${FLOW.slice(2).map((f, k) => `<i class="${k + 2 < i ? "on" : k + 2 === i ? "now" : ""}"></i>`).join("")}</div>
       ${["assigned"].includes(b.status) ? `<button class="btn link" data-act="unassign" data-id="${b.id}">Take job back</button>` : ""}</div>`;
   }
-  if (s === "done") return `<div class="asg ok"><div class="t">Completed ${when(b.statusAt)}</div><div class="note">by ${esc(b.techName || "—")}</div></div>`;
+  if (s === "done") {
+    const p = b.payment;
+    return `<div class="asg ${p && p.status !== "paid" ? "need" : "ok"}"><div class="t">Completed ${when(b.statusAt)}</div><div class="note">by ${esc(b.techName || "—")}</div>
+      <div class="note"><b>${p ? (p.status === "paid" ? `💰 ${rupees(p.amount)} · ${esc(p.mode)}` : "⚠ Payment not collected") : "No payment recorded"}</b></div></div>`;
+  }
   return `<div class="asg"><div class="t">Cancelled</div><div class="note">${when(b.statusAt)}</div></div>`;
 }
 
@@ -154,6 +173,8 @@ function card(b) {
       ${b.problem ? `<div class="muted">${esc(b.problem)}</div>` : ""}
       <div class="meta"><b>${esc(b.name)}</b> · <a href="tel:+91${esc(b.mobile)}">${esc(b.mobile)}</a> · ${esc(b.area)} · ${esc(b.time)}</div>
       ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
+      ${flags(b)}
+      ${b.preQc || b.postQc || b.payment || b.techRemarks ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
       ${open ? `<div class="foot">
         <input class="in" style="width:150px;min-height:34px" id="eta-${b.id}" data-eta="${b.id}" placeholder="ETA e.g. 4:30 PM" value="${esc(etaVal)}" aria-label="ETA for ${esc(b.code)}">
         <button class="btn sm g" data-act="eta" data-id="${b.id}">Save ETA</button>
@@ -165,6 +186,18 @@ function card(b) {
     </div>
     ${assignBox(b)}
   </div>`;
+}
+
+function flags(b) {
+  const f = [];
+  const pre = qcSum(b.preQc), post = qcSum(b.postQc), cmp = qcCompare(b.preQc, b.postQc);
+  if (b.preQc && pre.fault) f.push(`<span class="flag">${pre.fault} not OK before repair</span>`);
+  if (cmp.newIssues.length) f.push(`<span class="flag red">⚠ ${cmp.newIssues.length} new issue after repair</span>`);
+  else if (b.postQc?.doneAt && !post.fault) f.push(`<span class="flag green">✓ All OK after repair</span>`);
+  if (b.payment?.status === "not_collected") f.push(`<span class="flag red">Unpaid</span>`);
+  else if (b.payment && b.price && Number(b.payment.amount) !== Number(b.price)) f.push(`<span class="flag">Paid ${rupees(b.payment.amount)} vs quote ${rupees(b.price)}</span>`);
+  if (b.techRemarks) f.push(`<span class="flag">📝 Remarks</span>`);
+  return f.length ? `<div class="flags">${f.join("")}</div>` : "";
 }
 
 const trackMsg = (b) =>
@@ -206,7 +239,7 @@ function dashboard() {
     return f === "action" ? ["new", "unassigned", "declined"].includes(s) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : false;
   }).length;
   const chip = (f, label, count) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}${count != null ? `<em>${count}</em>` : ""}</button>`;
-  const kpi = (cls, f, num, label) => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span></button>`;
+  const kpi = (cls, f, num, label, sub = "") => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
   return `
   <header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span><span class="live"><i></i>Live</span>
     <span class="sp"></span><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
@@ -217,6 +250,7 @@ function dashboard() {
       ${kpi("k-wait", "waiting", c.wait, "Waiting for accept")}
       ${kpi("k-act", "active", c.act, "On the job")}
       ${kpi("k-done", "done", c.done, "Completed today")}
+      ${kpi("k-cash", "done", rupees(c.cash), "Collected today", [Object.entries(c.modes).map(([m, v]) => `${m} ${rupees(v)}`).join(" · "), c.unpaid ? `${c.unpaid} unpaid` : ""].filter(Boolean).join(" · "))}
     </div>
     <div class="layout">
       <main>
@@ -294,6 +328,7 @@ app.addEventListener("click", (e) => {
   if (act === "cancel") return confirm(`Cancel booking ${b.code} for ${b.name}?`) && run(actions.cancel(S.be, b), "Booking cancelled");
   if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
 });
+app.addEventListener("toggle", (e) => { const d = e.target; if (d.dataset?.sheet) d.open ? S.sheets.add(d.dataset.sheet) : S.sheets.delete(d.dataset.sheet); }, true);
 app.addEventListener("change", (e) => { if (e.target.dataset.pick) S.draft.pick[e.target.dataset.pick] = e.target.value; });
 app.addEventListener("input", (e) => {
   if (e.target.id === "q") { S.q = e.target.value; render(); }

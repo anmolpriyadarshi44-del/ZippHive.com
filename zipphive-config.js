@@ -8,5 +8,8 @@ window.ZIPPHIVE = {
     appId: "1:163283929882:web:31f027e32af94123337aa3"
   },
   admins: ["zipphive@gmail.com"],
-  siteUrl: "https://www.zipphive.com"
+  siteUrl: "https://www.zipphive.com",
+  // UPI for the payment QR technicians show customers (leave upiId empty to hide the QR)
+  upiId: "",
+  upiName: "ZippHive"
 };
