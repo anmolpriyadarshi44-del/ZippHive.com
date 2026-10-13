@@ -403,6 +403,10 @@ export function toast(msg, bad) {
     t.setAttribute("role", "status");
     document.body.appendChild(t);
   }
+  if (/permission|insufficient/i.test(msg)) {
+    msg = "Blocked by Firebase rules – the admin must publish the latest firestore.rules in Firebase console";
+    bad = true;
+  }
   t.textContent = msg;
   t.className = "show" + (bad ? " bad" : "");
   clearTimeout(t._h);
