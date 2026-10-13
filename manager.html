@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#053E40" />
+<title>ZippHive Store Manager</title>
+<link rel="icon" href="/zh-icon.png" />
+<script src="/zipphive-config.js"></script>
+<link rel="stylesheet" href="/zh-ops.css" />
+<style>
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
+.kpi b{display:block;font-family:Poppins,system-ui,sans-serif;font-size:26px;color:var(--deep);line-height:1.1}
+.kpi span{font-size:13px;color:var(--muted);font-weight:600}
+.kpi.k-new{border-left-color:var(--y)}.kpi.k-need{border-left-color:var(--red)}.kpi.k-wait{border-left-color:#E8A317}.kpi.k-act{border-left-color:var(--teal)}.kpi.k-done{border-left-color:var(--green)}
+.kpi.sel{outline:2px solid var(--teal);outline-offset:-1px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:999px;font-weight:600;font-size:13.5px}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip em{font-style:normal;opacity:.75;margin-left:4px}
+.bar .in{max-width:260px;margin-left:auto}
+.bk{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+.bk h3{margin:6px 0 2px}
+.bk .meta{margin-top:4px}
+.asg{border-radius:12px;padding:10px 12px;background:var(--tint);display:flex;flex-direction:column;gap:8px;align-self:start}
+.asg.need{background:var(--redlt)}
+.asg.wait{background:var(--ylt)}
+.asg.ok{background:var(--greenlt)}
+.asg.new{background:#FFF9E8}
+.asg .t{font-weight:700;font-size:13.5px;color:var(--deep)}
+.asg .t.red{color:var(--red)}
+.asg .note{font-size:13px;color:var(--muted)}
+.asg .note.warn{color:#8A5A00;font-weight:600}
+.pickrow{display:flex;gap:6px}
+.pickrow select{flex:1;min-width:0}
+.foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.side h2{display:flex;justify-content:space-between;align-items:center}
+.tech{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.tech:first-of-type{border-top:0}
+.tech .av{width:36px;height:36px;border-radius:50%;background:var(--tint);display:grid;place-items:center;font-size:18px;flex:none;overflow:hidden}
+.tech .av img{width:100%;height:100%;object-fit:cover}
+.tech .nm{font-weight:700;font-size:14px}
+.tech .st{font-size:12.5px;font-weight:600}
+.st.free{color:var(--green)}.st.busy{color:var(--teal)}.st.pend{color:#8A5A00}.st.off{color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+@media (max-width:980px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:700px){.bk{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.bar .in{max-width:none;margin-left:0}}
+</style>
+</head>
+<body>
+<div id="app"><div class="center muted">Loading…</div></div>
+<script type="module">
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins } from "/zh-ops.js";
+
+const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
+const S = { be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
+const app = document.getElementById("app");
+let unsub = null;
+
+const isToday = (t) => t && new Date(t).toDateString() === new Date().toDateString();
+const isAdmin = () => S.user && admins().includes(S.user.email);
+
+function counts() {
+  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0 };
+  for (const b of S.bookings || []) {
+    const s = stage(b);
+    if (s === "new") c.new++;
+    else if (s === "unassigned" || s === "declined") c.need++;
+    else if (s === "waiting") c.wait++;
+    else if (s === "active") c.act++;
+    else if (s === "done" && isToday(b.statusAt)) c.done++;
+  }
+  return c;
+}
+
+function techLoad(email) {
+  const mine = (S.bookings || []).filter((b) => b.techEmail === email && !CLOSED.includes(b.status));
+  return { pending: mine.filter((b) => b.assignState === "pending"), active: mine.filter((b) => b.assignState !== "pending") };
+}
+
+function visible() {
+  const order = { new: 0, declined: 1, unassigned: 2, waiting: 3, active: 4, done: 5, cancelled: 6 };
+  const q = S.q.trim().toLowerCase();
+  return (S.bookings || [])
+    .filter((b) => {
+      const s = stage(b);
+      switch (S.filter) {
+        case "action": return ["new", "unassigned", "declined"].includes(s);
+        case "waiting": return s === "waiting";
+        case "active": return s === "active";
+        case "done": return s === "done";
+        case "cancelled": return s === "cancelled";
+        default: return true;
+      }
+    })
+    .filter((b) => !q || `${b.code} ${b.name} ${b.mobile} ${b.area} ${b.device || ""} ${b.item || ""} ${b.service || ""} ${b.techName || b.offerName || ""}`.toLowerCase().includes(q))
+    .sort((a, b) => order[stage(a)] - order[stage(b)] || b.createdAt - a.createdAt);
+}
+
+function techOptions(b) {
+  const list = S.techs.filter((t) => t.active !== false).map((t) => ({ t, load: techLoad(t.email) }));
+  list.sort((x, y) => x.load.active.length - y.load.active.length || x.t.name.localeCompare(y.t.name));
+  const cur = S.draft.pick[b.id] ?? "";
+  return `<option value="">— Choose technician —</option>` + list
+    .filter(({ t }) => !(b.assignState === "pending" && t.email === b.techEmail))
+    .map(({ t, load }) => {
+      const st = load.active.length ? `${load.active.length} on job` : "Free";
+      return `<option value="${esc(t.email)}" ${cur === t.email ? "selected" : ""}>${esc(t.name)} · ${st}${t.skills ? " · " + esc(t.skills) : ""}</option>`;
+    }).join("");
+}
+
+function assignBox(b) {
+  const s = stage(b);
+  const pick = (label) => `
+    <div class="pickrow">
+      <select class="in" id="pick-${b.id}" data-pick="${b.id}" aria-label="Technician for ${esc(b.code)}">${techOptions(b)}</select>
+      <button class="btn sm" data-act="send" data-id="${b.id}">${label}</button>
+    </div>`;
+  if (s === "new") return `<div class="asg new"><div class="t">New booking — confirm and send to a technician</div>${pick("Send job")}<button class="btn sm o" data-act="confirm" data-id="${b.id}">Only confirm for now</button></div>`;
+  if (s === "unassigned") return `<div class="asg need"><div class="t red">No technician yet</div>${pick("Send job")}</div>`;
+  if (s === "declined") return `<div class="asg need"><div class="t red">✋ ${esc(b.declinedByName || "Technician")} declined${b.declineReason ? ` — “${esc(b.declineReason)}”` : ""}</div><div class="note">${ago(b.declinedAt)} · choose someone else</div>${pick("Send job")}</div>`;
+  if (s === "waiting") {
+    const t = S.techs.find((x) => x.email === b.techEmail);
+    const mins = (Date.now() - (b.offeredAt || 0)) / 60000;
+    const ping = t && t.phone ? `<a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(t.phone, `Hi ${t.name}, new ZippHive job ${b.code} (${b.item || b.service}, ${b.area}) is waiting for you. Please accept in the technician app: ${location.origin}/tech.html`)}">Ping on WhatsApp</a>` : "";
+    return `<div class="asg wait"><div class="t">⏳ Waiting for ${esc(b.offerName || b.techEmail)} to accept</div>
+      <div class="note ${mins > 10 ? "warn" : ""}">Sent ${ago(b.offeredAt)}${mins > 10 ? " — no response yet, give them a call" : ""}</div>
+      <div class="row">${ping}<button class="btn sm r" data-act="unassign" data-id="${b.id}">Withdraw</button></div>
+      <details><summary class="muted" style="cursor:pointer">Send to someone else</summary><div style="margin-top:6px">${pick("Send")}</div></details></div>`;
+  }
+  if (s === "active") {
+    const i = FLOW.indexOf(b.status);
+    const legacy = b.assignState !== "accepted";
+    return `<div class="asg ok"><div class="t">✅ ${esc(b.techName || b.offerName || b.techEmail)} ${legacy ? "assigned" : "accepted"}</div>
+      <div class="note">${b.acceptedAt ? "Accepted " + ago(b.acceptedAt) + " · " : ""}${esc(STATUS[b.status] || b.status)}${b.techLoc && Date.now() - b.techLoc.at < 120000 ? " · 📍 live location on" : ""}</div>
+      <div class="steps" aria-hidden="true">${FLOW.slice(2).map((f, k) => `<i class="${k + 2 < i ? "on" : k + 2 === i ? "now" : ""}"></i>`).join("")}</div>
+      ${["assigned"].includes(b.status) ? `<button class="btn link" data-act="unassign" data-id="${b.id}">Take job back</button>` : ""}</div>`;
+  }
+  if (s === "done") return `<div class="asg ok"><div class="t">Completed ${when(b.statusAt)}</div><div class="note">by ${esc(b.techName || "—")}</div></div>`;
+  return `<div class="asg"><div class="t">Cancelled</div><div class="note">${when(b.statusAt)}</div></div>`;
+}
+
+function card(b) {
+  const s = stage(b);
+  const open = !["done", "cancelled"].includes(s);
+  const etaVal = S.draft.eta[b.id] ?? b.eta ?? "";
+  return `<div class="card bk">
+    <div>
+      <div class="row"><b>${esc(b.code)}</b><span class="pill ${esc(b.status)}">${esc(STATUS[b.status] || b.status)}</span><span class="muted">${ago(b.createdAt)}</span></div>
+      <h3>${b.device ? esc(b.device) + " – " : ""}${esc(b.item || b.service)}${b.price ? ` · ₹${Number(b.price).toLocaleString("en-IN")}` : ""}</h3>
+      ${b.problem ? `<div class="muted">${esc(b.problem)}</div>` : ""}
+      <div class="meta"><b>${esc(b.name)}</b> · <a href="tel:+91${esc(b.mobile)}">${esc(b.mobile)}</a> · ${esc(b.area)} · ${esc(b.time)}</div>
+      ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
+      ${open ? `<div class="foot">
+        <input class="in" style="width:150px;min-height:34px" id="eta-${b.id}" data-eta="${b.id}" placeholder="ETA e.g. 4:30 PM" value="${esc(etaVal)}" aria-label="ETA for ${esc(b.code)}">
+        <button class="btn sm g" data-act="eta" data-id="${b.id}">Save ETA</button>
+        <a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, trackMsg(b))}">Send tracking link</a>
+        <button class="btn sm o" data-act="copy" data-id="${b.id}">Copy link</button>
+        <a class="btn sm g" href="${trackUrl(b.id)}" target="_blank" rel="noopener">Customer view</a>
+        <button class="btn sm r" data-act="cancel" data-id="${b.id}">Cancel</button>
+      </div>` : ""}
+    </div>
+    ${assignBox(b)}
+  </div>`;
+}
+
+const trackMsg = (b) =>
+  `Hi ${b.name}, your ZippHive booking ${b.code} is confirmed ✅${b.techName ? `\nTechnician: ${b.techName}${b.techPhone ? ` (${b.techPhone})` : ""}` : ""}${b.eta ? `\nExpected: ${b.eta}` : ""}\nTrack live: ${trackUrl(b.id)}`;
+
+function techPanel() {
+  const rows = S.techs.slice().sort((a, b) => (a.active === false) - (b.active === false) || a.name.localeCompare(b.name)).map((t) => {
+    const l = techLoad(t.email);
+    let st = `<span class="st free">● Free</span>`;
+    if (t.active === false) st = `<span class="st off">Inactive</span>`;
+    else if (l.active.length) st = `<span class="st busy">● ${esc(STATUS[l.active[0].status] || "On job")} · ${esc(l.active[0].code)}${l.active.length > 1 ? ` +${l.active.length - 1}` : ""}</span>`;
+    if (l.pending.length && t.active !== false) st += ` <span class="st pend">· ${l.pending.length} awaiting accept</span>`;
+    return `<div class="tech"><div class="av">${t.photo ? `<img src="${esc(t.photo)}" alt="">` : "👨‍🔧"}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${esc(t.name)}</div>${st}<div class="muted" style="font-size:12px">${esc(t.skills || "")}</div></div>
+      ${t.phone ? `<a class="btn sm g" href="tel:${esc(t.phone)}" aria-label="Call ${esc(t.name)}">📞</a>` : ""}</div>`;
+  }).join("");
+  return `<div class="card side"><h2>Technicians <button class="btn link" data-act="reload">Refresh</button></h2>
+    ${rows || `<p class="muted">No technicians yet. Add them in <a href="/admin.html">Admin → Technicians</a>.</p>`}
+    <p class="muted" style="margin:10px 0 0">Technicians sign in at <b>/tech.html</b> to accept jobs.</p></div>`;
+}
+
+function managerPanel() {
+  if (!isAdmin()) return "";
+  const rows = S.managers.map((m) => `<div class="tech"><div class="av">🧑‍💼</div><div style="flex:1;min-width:0"><div class="nm">${esc(m.name || m.email)}</div><div class="muted" style="font-size:12px">${esc(m.email)}</div></div><button class="btn sm r" data-act="delmgr" data-email="${esc(m.email)}">Remove</button></div>`).join("");
+  return `<div class="card side"><h2>Store managers</h2>
+    ${rows || `<p class="muted">Only admins so far.</p>`}
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+      <input class="in" id="mgr-name" placeholder="Name">
+      <input class="in" id="mgr-email" placeholder="Google email (Gmail)">
+      <button class="btn sm" data-act="addmgr">Add store manager</button>
+    </div></div>`;
+}
+
+function dashboard() {
+  const c = counts();
+  const v = visible();
+  const n = (f) => (S.bookings || []).filter((b) => {
+    const s = stage(b);
+    return f === "action" ? ["new", "unassigned", "declined"].includes(s) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : false;
+  }).length;
+  const chip = (f, label, count) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}${count != null ? `<em>${count}</em>` : ""}</button>`;
+  const kpi = (cls, f, num, label) => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span></button>`;
+  return `
+  <header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span><span class="live"><i></i>Live</span>
+    <span class="sp"></span><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
+  <div class="wrap">
+    <div class="kpis">
+      ${kpi("k-new", "action", c.new, "New bookings")}
+      ${kpi("k-need", "action", c.need, "Need a technician")}
+      ${kpi("k-wait", "waiting", c.wait, "Waiting for accept")}
+      ${kpi("k-act", "active", c.act, "On the job")}
+      ${kpi("k-done", "done", c.done, "Completed today")}
+    </div>
+    <div class="layout">
+      <main>
+        <div class="bar">
+          ${chip("action", "Needs action", n("action"))}${chip("waiting", "Waiting", n("waiting"))}${chip("active", "In progress", n("active"))}${chip("done", "Completed")}${chip("cancelled", "Cancelled")}${chip("all", "All")}
+          <input class="in" id="q" placeholder="Search name, mobile, code…" value="${esc(S.q)}" aria-label="Search bookings">
+        </div>
+        ${S.bookings === null ? `<div class="card empty">Loading bookings…</div>` : v.length ? v.map(card).join("") : `<div class="card empty">${S.filter === "action" ? "All caught up — nothing needs you right now." : "Nothing here."}</div>`}
+      </main>
+      <aside>${techPanel()}${managerPanel()}</aside>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const a = document.activeElement;
+  const focusId = a && a.id;
+  const sel = a && "selectionStart" in a ? [a.selectionStart, a.selectionEnd] : null;
+  const openDetails = [...app.querySelectorAll("details[open]")].map((d) => d.closest(".bk")?.querySelector("[data-pick]")?.dataset.pick);
+
+  if (S.be === undefined || S.user === undefined) app.innerHTML = `<div class="center muted">Loading…</div>`;
+  else if (S.be === null) app.innerHTML = `<div class="center"><div><h2>Not configured</h2><p class="muted">Firebase settings are missing in zipphive-config.js.</p></div></div>`;
+  else if (!S.user) app.innerHTML = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span></header>
+    <div class="card login"><h2>Store manager sign-in</h2><p class="muted">Use the Google account your admin added.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
+  else if (!S.ok) app.innerHTML = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="sp"></span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
+    <div class="card login"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive store manager. Ask the admin to add you.</p></div>`;
+  else app.innerHTML = dashboard();
+
+  openDetails.forEach((id) => id && document.getElementById("pick-" + id)?.closest("details")?.setAttribute("open", ""));
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) { el.focus(); if (sel && el.setSelectionRange) try { el.setSelectionRange(sel[0], sel[1]); } catch {} }
+  }
+}
+
+let deferred = false;
+function softRender() {
+  const a = document.activeElement;
+  if (a && a.tagName === "SELECT" && app.contains(a)) { deferred = true; return; }
+  render();
+}
+app.addEventListener("focusout", () => setTimeout(() => { if (deferred) { deferred = false; softRender(); } }, 0));
+
+const find = (id) => (S.bookings || []).find((b) => b.id === id);
+const run = (p, ok) => p.then(() => ok && toast(ok)).catch((e) => toast("Failed: " + (e.message || e), true));
+const loadTechs = () => S.be.listTechs().then((t) => { S.techs = t; softRender(); }).catch(() => {});
+const loadMgrs = () => isAdmin() && S.be.listManagers().then((m) => { S.managers = m; render(); }).catch(() => {});
+
+app.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, b = find(el.dataset.id);
+  if (act === "signin") return S.be.signIn().catch((x) => toast("Sign-in failed: " + (x.message || x), true));
+  if (act === "signout") return S.be.signOut();
+  if (act === "filter") { S.filter = el.dataset.f; return render(); }
+  if (act === "reload") return loadTechs();
+  if (act === "addmgr") {
+    const email = document.getElementById("mgr-email").value.trim().toLowerCase();
+    const name = document.getElementById("mgr-name").value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid Google email", true);
+    return run(S.be.saveManager({ email, name, addedAt: Date.now() }), "Store manager added").then(loadMgrs);
+  }
+  if (act === "delmgr") return confirm(`Remove ${el.dataset.email}?`) && run(S.be.deleteManager(el.dataset.email), "Removed").then(loadMgrs);
+  if (!b) return;
+  if (act === "confirm") return run(actions.confirm(S.be, b), `${b.code} confirmed`);
+  if (act === "send") {
+    const email = S.draft.pick[b.id];
+    const t = S.techs.find((x) => x.email === email);
+    if (!t) return toast("Choose a technician first", true);
+    delete S.draft.pick[b.id];
+    return run(actions.offer(S.be, b, t), `Sent to ${t.name} — waiting for them to accept`);
+  }
+  if (act === "unassign") return run(actions.unassign(S.be, b), "Job taken back");
+  if (act === "eta") { const v = S.draft.eta[b.id] ?? b.eta ?? ""; delete S.draft.eta[b.id]; return run(actions.setEta(S.be, b, v), "ETA saved — customer can see it"); }
+  if (act === "cancel") return confirm(`Cancel booking ${b.code} for ${b.name}?`) && run(actions.cancel(S.be, b), "Booking cancelled");
+  if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
+});
+app.addEventListener("change", (e) => { if (e.target.dataset.pick) S.draft.pick[e.target.dataset.pick] = e.target.value; });
+app.addEventListener("input", (e) => {
+  if (e.target.id === "q") { S.q = e.target.value; render(); }
+  else if (e.target.dataset.eta) S.draft.eta[e.target.dataset.eta] = e.target.value;
+});
+setInterval(() => S.ok && softRender(), 30000);
+setInterval(() => S.ok && loadTechs(), 120000);
+
+S.be = await backend();
+render();
+if (S.be) S.be.onUser(async (u) => {
+  unsub && unsub(); unsub = null;
+  S.user = u; S.ok = false; S.bookings = null;
+  if (u) {
+    S.ok = await S.be.isManager(u.email);
+    if (S.ok) {
+      unsub = S.be.watchAllBookings((list) => { S.bookings = list; softRender(); }, (err) => toast("Could not load bookings: " + (err.message || err), true));
+      loadTechs(); loadMgrs();
+    }
+  }
+  render();
+});
+</script>
+</body>
+</html>

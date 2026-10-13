@@ -8,11 +8,212 @@
 <title>ZippHive Technician</title>
 <link rel="icon" href="/zh-icon.png" />
 <script src="/zipphive-config.js"></script>
-  <script type="module" crossorigin src="/zh-assets/tech-CmYn1dMg.js"></script>
-  <link rel="modulepreload" crossorigin href="/zh-assets/common-D1YuPCQx.js">
-  <link rel="stylesheet" crossorigin href="/zh-assets/common-CQ4lB3Yt.css">
+<link rel="stylesheet" href="/zh-ops.css" />
+<style>
+.wrap{max-width:640px}
+.req{border:2px solid var(--y);background:#FFFDF5;box-shadow:0 6px 20px rgba(255,199,44,.18)}
+.req .tag{display:inline-flex;align-items:center;gap:6px;background:var(--y);color:var(--deep);font-weight:800;font-size:12.5px;padding:3px 10px;border-radius:999px}
+.req h2{margin:10px 0 4px;font-size:19px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0;font-size:14.5px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:12px}
+.reasons{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.reasons button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-weight:600;font-size:13.5px}
+.reasons button.on{background:var(--deep);color:#fff;border-color:var(--deep)}
+.job h2{margin:8px 0 4px}
+.sharing{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--dark);font-weight:600}
+.sharing i{width:9px;height:9px;border-radius:50%;background:#16B87A;animation:pulse 1.8s infinite;box-shadow:0 0 0 0 rgba(22,184,122,.6)}
+.sec{margin:20px 0 10px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.hello{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.hello .av{width:46px;height:46px;border-radius:50%;background:var(--tint);display:grid;place-items:center;font-size:24px;overflow:hidden;flex:none}
+.hello .av img{width:100%;height:100%;object-fit:cover}
+</style>
 </head>
 <body>
-<div id="root"></div>
+<div id="app"><div class="center muted">Loading…</div></div>
+<script type="module">
+import { backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast } from "/zh-ops.js";
+
+const NEXT = {
+  assigned: { to: "on_the_way", label: "🛵 Start trip (share live location)" },
+  on_the_way: { to: "arrived", label: "📍 I have arrived" },
+  arrived: { to: "in_progress", label: "🛠️ Start repair" },
+  in_progress: { to: "completed", label: "✅ Job completed" },
+};
+const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
+const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {} };
+const app = document.getElementById("app");
+const watchers = new Map(); // bookingId -> { id, last, wake, err }
+let seen = null, unsub = null, audio = null;
+
+const isReq = (j) => j.assignState === "pending";
+
+// ---- live location (same behaviour as before: sends on move > 25 m or every 20 s) ----
+function startShare(j) {
+  if (watchers.has(j.id) || !navigator.geolocation) return;
+  const w = { id: null, last: null, wake: null, err: "" };
+  watchers.set(j.id, w);
+  navigator.wakeLock?.request("screen").then((l) => (w.wake = l)).catch(() => {});
+  w.id = navigator.geolocation.watchPosition(
+    (p) => {
+      const { latitude: lat, longitude: lng, accuracy } = p.coords, t = Date.now(), l = w.last;
+      const moved = !l || Math.hypot((lat - l.lat) * 111e3, (lng - l.lng) * 98e3) > 25;
+      if (!l || moved || t - l.t > 2e4) {
+        w.last = { lat, lng, t };
+        S.be.updateBooking(j.id, { techLoc: { lat, lng, acc: Math.round(accuracy), at: t } }).catch(() => {});
+      }
+      if (w.err) { w.err = ""; render(); }
+    },
+    (e) => { w.err = e.code === 1 ? "Location permission denied – allow location for this site in your browser settings." : "Could not get location: " + e.message; render(); },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+  );
+}
+function stopShare(id) {
+  const w = watchers.get(id);
+  if (!w) return;
+  if (w.id != null) navigator.geolocation.clearWatch(w.id);
+  w.wake?.release().catch(() => {});
+  watchers.delete(id);
+}
+function syncSharing() {
+  const live = new Set(S.jobs.filter((j) => ["on_the_way", "arrived"].includes(j.status) && !isReq(j)).map((j) => j.id));
+  for (const id of [...watchers.keys()]) if (!live.has(id)) stopShare(id);
+  for (const j of S.jobs) if (live.has(j.id)) startShare(j);
+}
+
+// ---- new request alert ----
+function alertNew(list) {
+  const ids = list.filter(isReq).map((j) => j.id);
+  if (seen && ids.some((id) => !seen.has(id))) {
+    navigator.vibrate?.([250, 120, 250, 120, 250]);
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25].forEach((d) => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+        g.gain.setValueAtTime(0.25, audio.currentTime + d); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + d + 0.2);
+        o.start(audio.currentTime + d); o.stop(audio.currentTime + d + 0.22);
+      });
+    } catch {}
+  }
+  seen = new Set(ids);
+  document.title = ids.length ? `(${ids.length}) New job request – ZippHive` : "ZippHive Technician";
+}
+
+function reqCard(j) {
+  const dec = S.declining === j.id;
+  return `<div class="card req">
+    <span class="tag">⚡ New job request · ${ago(j.offeredAt)}</span>
+    <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
+    ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
+    <dl class="kv">
+      <dt>Area</dt><dd>${esc(j.area)}, Patna</dd>
+      <dt>Time</dt><dd>${esc(j.time)}</dd>
+      ${j.price ? `<dt>Price</dt><dd>₹${Number(j.price).toLocaleString("en-IN")}</dd>` : ""}
+      <dt>Booking</dt><dd>${esc(j.code)}</dd>
+      ${j.note ? `<dt>Note</dt><dd>${esc(j.note)}</dd>` : ""}
+    </dl>
+    ${dec ? `
+      <b>Why can't you take it?</b>
+      <div class="reasons">${REASONS.map((r) => `<button class="${S.reason === r ? "on" : ""}" data-act="reason" data-r="${esc(r)}">${esc(r)}</button>`).join("")}</div>
+      <input class="in" id="other" placeholder="Other reason (optional)" value="${esc(S.other)}">
+      <div class="two"><button class="btn g big" data-act="back">Back</button><button class="btn r big" data-act="decline-yes" data-id="${j.id}" ${S.busy[j.id] ? "disabled" : ""}>Decline job</button></div>`
+    : `<div class="two"><button class="btn o big" data-act="decline" data-id="${j.id}">Decline</button><button class="btn y big" data-act="accept" data-id="${j.id}" ${S.busy[j.id] ? "disabled" : ""}>✅ Accept job</button></div>
+       <p class="muted" style="margin:8px 0 0;text-align:center">Customer's contact details appear after you accept.</p>`}
+  </div>`;
+}
+
+function jobCard(j) {
+  const n = NEXT[j.status], w = watchers.get(j.id);
+  return `<div class="card job">
+    <div class="row" style="justify-content:space-between"><b>${esc(j.code)}</b><span class="pill ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span></div>
+    <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
+    ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
+    <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)}, Patna · ${esc(j.time)}${j.price ? ` · ₹${Number(j.price).toLocaleString("en-IN")}` : ""}</p>
+    ${j.note ? `<p class="muted">Note: ${esc(j.note)}</p>` : ""}
+    <div class="row">
+      <a class="btn sm o" href="tel:+91${esc(j.mobile)}">📞 Call customer</a>
+      <a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, `Hi ${j.name}, I'm your ZippHive technician for booking ${j.code}.`)}">WhatsApp</a>
+      <a class="btn sm g" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(`${j.area}, Patna`)}">🗺️ Area on map</a>
+    </div>
+    ${n ? `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="${n.to}" ${S.busy[j.id] ? "disabled" : ""}>${n.label}</button>` : ""}
+    ${w ? `<div class="sharing"><i></i>Sharing live location${j.techLoc ? ` · updated ${ago(j.techLoc.at)}` : ""} – keep this page open</div>` : ""}
+    ${w && w.err ? `<p style="color:var(--red)">${esc(w.err)}</p>` : ""}
+  </div>`;
+}
+
+function render() {
+  const a = document.activeElement, fid = a && a.id;
+  const top = (right = "") => `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Technician</span><span class="sp"></span>${right}</header>`;
+  const out = `<button class="btn sm ghost" data-act="signout">Sign out</button>`;
+  if (S.be === undefined || S.user === undefined) app.innerHTML = `<div class="center muted">Loading…</div>`;
+  else if (S.be === null) app.innerHTML = `<div class="center"><div><h2>Not configured</h2></div></div>`;
+  else if (!S.user) app.innerHTML = top() + `<div class="card login"><h2>Technician sign-in</h2><p class="muted">Sign in with the Google account ZippHive registered for you.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
+  else if (S.me === undefined) app.innerHTML = top(out) + `<div class="center muted">Loading…</div>`;
+  else if (!S.me || S.me.active === false) app.innerHTML = top(out) + `<div class="card login"><h2>Not registered</h2><p class="muted">${esc(S.user.email)} is not an active ZippHive technician. Ask the store manager to add you.</p></div>`;
+  else {
+    const reqs = S.jobs.filter((j) => isReq(j) && !CLOSED.includes(j.status));
+    const active = S.jobs.filter((j) => !isReq(j) && !CLOSED.includes(j.status));
+    const done = S.jobs.filter((j) => j.status === "completed").slice(0, 10);
+    app.innerHTML = top(out) + `<div class="wrap">
+      <div class="hello"><div class="av">${S.me.photo ? `<img src="${esc(S.me.photo)}" alt="">` : "👨‍🔧"}</div><div><h1 style="margin:0">Hi ${esc((S.me.name || "").split(" ")[0])}</h1><span class="live" style="color:var(--teal)"><i></i>Online – new jobs appear here instantly</span></div></div>
+      ${reqs.length ? `<div class="sec">Job requests (${reqs.length})</div>` + reqs.map(reqCard).join("") : ""}
+      <div class="sec">My jobs</div>
+      ${active.length ? active.map(jobCard).join("") : `<div class="card muted">No active jobs right now.</div>`}
+      ${done.length ? `<div class="sec">Recently completed</div>` + done.map((j) => `<div class="card muted">${esc(j.code)} · ${esc(j.name)} · ${esc(j.item || j.service)} · ${when(j.statusAt)}</div>`).join("") : ""}
+    </div>`;
+  }
+  if (fid) document.getElementById(fid)?.focus();
+}
+
+const find = (id) => S.jobs.find((j) => j.id === id);
+async function act(id, p, ok) {
+  S.busy[id] = true; render();
+  try { await p; toast(ok); } catch (e) { toast("Update failed: " + (e.message || e), true); }
+  delete S.busy[id]; render();
+}
+
+app.addEventListener("click", (e) => {
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume?.(); } catch {}
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const a = el.dataset.act, j = find(el.dataset.id);
+  if (a === "signin") return S.be.signIn().catch((x) => toast("Sign-in failed: " + (x.message || x), true));
+  if (a === "signout") return S.be.signOut();
+  if (a === "decline") { S.declining = j.id; S.reason = ""; S.other = ""; return render(); }
+  if (a === "back") { S.declining = null; return render(); }
+  if (a === "reason") { S.reason = S.reason === el.dataset.r ? "" : el.dataset.r; return render(); }
+  if (!j) return;
+  if (a === "accept") return act(j.id, actions.accept(S.be, j, S.me), "Job accepted – the customer can now see you");
+  if (a === "decline-yes") {
+    const r = [S.reason, S.other.trim()].filter(Boolean).join(" – ");
+    S.declining = null;
+    return act(j.id, actions.decline(S.be, j, S.me, r), "Declined – the store manager will reassign it");
+  }
+  if (a === "step") return act(j.id, actions.step(S.be, j, el.dataset.to), STATUS[el.dataset.to]);
+});
+app.addEventListener("input", (e) => { if (e.target.id === "other") S.other = e.target.value; });
+setInterval(() => S.me && !document.activeElement?.matches?.("input") && render(), 30000);
+
+S.be = await backend();
+render();
+if (S.be) S.be.onUser(async (u) => {
+  unsub && unsub(); unsub = null; seen = null;
+  for (const id of [...watchers.keys()]) stopShare(id);
+  S.user = u; S.me = undefined; S.jobs = [];
+  render();
+  if (!u) return;
+  try { S.me = await S.be.getTech(u.email); } catch { S.me = null; }
+  if (S.me && S.me.active !== false) {
+    S.me = { ...S.me, email: u.email };
+    unsub = S.be.watchJobs(u.email, (list) => {
+      S.jobs = list;
+      if (S.declining && !list.some((j) => j.id === S.declining && isReq(j))) S.declining = null;
+      alertNew(list); syncSharing(); render();
+    }, (err) => toast("Could not load jobs: " + (err.message || err), true));
+  }
+  render();
+});
+</script>
 </body>
 </html>

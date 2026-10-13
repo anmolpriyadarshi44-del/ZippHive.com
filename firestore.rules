@@ -1,0 +1,64 @@
+rules_version = '2';
+// ZippHive Firestore security rules.
+// Paste into Firebase console → Firestore Database → Rules → Publish.
+// Keep the admin email list in sync with "admins" in zipphive-config.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function email() { return request.auth.token.email.lower(); }
+    function isAdmin() { return signedIn() && email() in ['zipphive@gmail.com']; }
+    function isManager() {
+      return isAdmin() || (signedIn() && exists(/databases/$(database)/documents/managers/$(email())));
+    }
+    function isTech() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/technicians/$(email()))
+        && get(/databases/$(database)/documents/technicians/$(email())).data.get('active', true) != false;
+    }
+
+    // Website content and prices: public read, admin write
+    match /content/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /prices/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Store managers list: admins manage it; managers can read it
+    match /managers/{mgr} {
+      allow read: if isManager();
+      allow write: if isAdmin();
+    }
+
+    // Technicians: staff manage; any signed-in user can read (technicians read their own profile)
+    match /technicians/{tech} {
+      allow read: if signedIn();
+      allow write: if isManager();
+    }
+
+    match /bookings/{id} {
+      // Customers open their tracking link without signing in (the booking id is the secret)
+      allow get: if true;
+      // New bookings from the website
+      allow create: if request.resource.data.status == 'new';
+      // Store managers / admins see and edit everything
+      allow list, update, delete: if isManager();
+      // Technicians see jobs offered or assigned to them
+      allow list: if isTech() && resource.data.techEmail == email();
+      // Technicians can accept, decline, move the job forward and share location — nothing else
+      allow update: if isTech()
+        && resource.data.techEmail == email()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'status', 'statusAt', 'techLoc',
+             'assignState', 'acceptedAt', 'techName', 'techPhone', 'techPhoto',
+             'techEmail', 'offerName', 'declinedByName', 'declineReason', 'declinedAt'
+           ])
+        && request.resource.data.status in ['assigned', 'on_the_way', 'arrived', 'in_progress', 'completed', 'confirmed', 'new']
+        && (request.resource.data.techEmail == email()
+            || (request.resource.data.techEmail == '' && request.resource.data.assignState == 'declined'));
+    }
+  }
+}
