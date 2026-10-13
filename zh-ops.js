@@ -219,6 +219,7 @@ export const actions = {
       techPhoto: me.photo || "",
       status: "assigned",
       statusAt: Date.now(),
+      times: { ...(b.times || {}), assigned: Date.now() },
     }),
   // Technician → decline (goes back to the manager)
   decline: (be, b, me, reason) =>
@@ -230,8 +231,157 @@ export const actions = {
       declineReason: reason || "",
       declinedAt: Date.now(),
     }),
-  step: (be, b, to) => be.updateBooking(b.id, { status: to, statusAt: Date.now() }),
+  step: (be, b, to) => {
+    const now = Date.now();
+    return be.updateBooking(b.id, { status: to, statusAt: now, times: { ...(b.times || {}), [to]: now } });
+  },
+  // Technician → save a quality check (pre or post). Called on every tap so the manager sees it live.
+  saveQc: (be, b, which, qc) => be.updateBooking(b.id, { [which]: qc }),
+  // Technician → record payment
+  pay: (be, b, payment) =>
+    be.updateBooking(b.id, { payment, times: { ...(b.times || {}), paid: payment.at } }),
+  saveRemarks: (be, b, text) => be.updateBooking(b.id, { techRemarks: text }),
 };
+
+// ---------- Quality-check lists ----------
+const L = (pairs) => pairs.map(([k, l]) => ({ k, l }));
+export const CHECKLISTS = {
+  phone: { name: "Phone", items: L([
+    ["power", "Powers on / boots normally"], ["display", "Display – no lines, spots or flicker"],
+    ["touch", "Touch works on full screen"], ["frontcam", "Front camera (photo + focus)"],
+    ["rearcam", "Rear camera(s) + flash"], ["earpiece", "Earpiece (call audio)"],
+    ["speaker", "Loudspeaker"], ["mic", "Microphone (call + recording)"],
+    ["charging", "Charging port & charging"], ["battery", "Battery – no fast drain / swelling"],
+    ["buttons", "Power & volume buttons"], ["network", "SIM, network & calling"],
+    ["wifi", "Wi-Fi & Bluetooth"], ["biometric", "Fingerprint / Face unlock"],
+    ["sensors", "Proximity & auto-rotate sensors"], ["vibration", "Vibration"],
+    ["body", "Body, frame & back glass condition"],
+  ]) },
+  ac: { name: "AC", items: L([
+    ["power", "Powers on"], ["cooling", "Cooling at vent"], ["airflow", "Indoor fan & airflow"],
+    ["remote", "Remote & display"], ["outdoor", "Outdoor unit – compressor & fan"], ["gas", "Gas pressure"],
+    ["drain", "No water leakage / drain OK"], ["noise", "No abnormal noise or vibration"],
+    ["wiring", "Wiring, plug & stabiliser"], ["filter", "Filters & coil condition"],
+  ]) },
+  washing: { name: "Washing machine", items: L([
+    ["power", "Powers on"], ["inlet", "Water inlet"], ["wash", "Wash / agitation"], ["spin", "Spin"],
+    ["drain", "Drain"], ["door", "Door / lid lock"], ["leak", "No leakage"], ["noise", "No abnormal noise"],
+    ["controls", "Controls & display"],
+  ]) },
+  plumbing: { name: "Plumbing", items: L([
+    ["flow", "Water flow & pressure"], ["joints", "No leakage at joints"], ["drainage", "Drainage clear"],
+    ["fittings", "Fittings secure"], ["area", "Work area cleaned"],
+  ]) },
+  electrical: { name: "Electrical", items: L([
+    ["supply", "Power at points"], ["switches", "Switches & sockets work"], ["mcb", "MCB / earthing"],
+    ["heat", "No sparking or heating"], ["insulation", "Wiring insulated & secured"], ["area", "Work area cleaned"],
+  ]) },
+  cleaning: { name: "Cleaning", items: L([
+    ["scope", "All booked areas covered"], ["stains", "Stains / dirt removed"],
+    ["damage", "No damage to items / surfaces"], ["dry", "Area dry & tidy"],
+  ]) },
+  appliance: { name: "Appliance", items: L([
+    ["power", "Powers on"], ["function", "Main function works"], ["controls", "Controls & display"],
+    ["noise", "No abnormal noise"], ["leak", "No leakage / physical damage"], ["wiring", "Wiring & plug"],
+  ]) },
+};
+export function qcType(b) {
+  if (b.kind === "phone" || b.device) return "phone";
+  const s = `${b.service || ""} ${b.item || ""}`.toLowerCase();
+  if (/\bac\b|air ?condition/.test(s)) return "ac";
+  if (/wash/.test(s)) return "washing";
+  if (/plumb|tap|pipe|leak/.test(s)) return "plumbing";
+  if (/electric|wiring|switch|fan|light/.test(s)) return "electrical";
+  if (/clean/.test(s)) return "cleaning";
+  return "appliance";
+}
+export function newQc(b) {
+  const t = qcType(b);
+  return { type: t, items: CHECKLISTS[t].items.map((x) => ({ ...x, s: "", r: "" })), remark: "", startedAt: Date.now(), doneAt: 0 };
+}
+export function qcSum(qc) {
+  const s = { total: 0, checked: 0, ok: 0, fault: 0, na: 0 };
+  for (const i of qc?.items || []) { s.total++; if (i.s) { s.checked++; s[i.s]++; } }
+  return s;
+}
+// Compare pre vs post: items that broke during repair, and faults still not fixed
+export function qcCompare(pre, post) {
+  const p = Object.fromEntries((pre?.items || []).map((i) => [i.k, i.s]));
+  const out = { newIssues: [], stillFaulty: [] };
+  for (const i of post?.items || []) {
+    if (i.s !== "fault") continue;
+    (p[i.k] === "fault" ? out.stillFaulty : out.newIssues).push(i);
+  }
+  return out;
+}
+
+// ---------- Payments ----------
+export const PAY_MODES = ["UPI", "Cash", "Card"];
+export const rupees = (n) => (n == null || n === "" ? "—" : "₹" + Number(n).toLocaleString("en-IN"));
+export function upiLink(amount, code) {
+  const id = cfg().upiId;
+  if (!id) return "";
+  const p = new URLSearchParams({ pa: id, pn: cfg().upiName || "ZippHive", cu: "INR", tn: `ZippHive ${code}` });
+  if (amount) p.set("am", Number(amount).toFixed(2));
+  return "upi://pay?" + p.toString();
+}
+export function qrSvg(text) {
+  if (!text || !window.qrcode) return "";
+  const q = window.qrcode(0, "M");
+  q.addData(text);
+  q.make();
+  return q.createSvgTag({ cellSize: 5, margin: 2, scalable: true });
+}
+
+// What the technician is doing right now (manager view)
+export function jobPhase(b) {
+  const pre = qcSum(b.preQc), post = qcSum(b.postQc);
+  switch (b.status) {
+    case "assigned": return { label: "Accepted · not started", tone: "" };
+    case "on_the_way": return { label: "On the way to customer", tone: "" };
+    case "arrived":
+      if (b.preQc?.doneAt) return { label: "Pre-repair check done · starting repair", tone: "" };
+      if (b.preQc) return { label: `Pre-repair check in progress · ${pre.checked}/${pre.total}`, tone: "live" };
+      return { label: "Arrived · pre-repair check not started", tone: "" };
+    case "in_progress":
+      if (b.payment) return { label: b.payment.status === "paid" ? `Payment received ${rupees(b.payment.amount)} · finishing` : "Payment not collected · finishing", tone: b.payment.status === "paid" ? "" : "warn" };
+      if (b.postQc?.doneAt) return { label: "Post-repair check done · collecting payment", tone: "live" };
+      if (b.postQc) return { label: `Post-repair check in progress · ${post.checked}/${post.total}`, tone: "live" };
+      return { label: "Repair in progress", tone: "live" };
+    case "completed": return { label: "Completed", tone: "" };
+    default: return { label: STATUS[b.status] || b.status, tone: "" };
+  }
+}
+
+// Shared read-only job sheet (manager portal)
+export function jobSheetHtml(b) {
+  const icon = { ok: '<span class="qi ok" title="OK">✓</span>', fault: '<span class="qi bad" title="Not OK">✕</span>', na: '<span class="qi na" title="N/A">–</span>', "": '<span class="qi" title="Not checked">·</span>' };
+  const pre = b.preQc, post = b.postQc;
+  const cmp = qcCompare(pre, post);
+  const newKeys = new Set(cmp.newIssues.map((i) => i.k));
+  const rows = (pre?.items || post?.items || []).map((x) => {
+    const a = pre?.items?.find((i) => i.k === x.k), z = post?.items?.find((i) => i.k === x.k);
+    const rem = [a?.r && `Before: ${esc(a.r)}`, z?.r && `After: ${esc(z.r)}`].filter(Boolean).join("<br>");
+    return `<tr class="${newKeys.has(x.k) ? "newbad" : ""}"><td>${esc(x.l)}</td><td>${icon[a?.s || ""]}</td><td>${post ? icon[z?.s || ""] : ""}</td><td class="rm">${rem}</td></tr>`;
+  }).join("");
+  const t = b.times || {};
+  const tl = [["Accepted", b.acceptedAt], ["On the way", t.on_the_way], ["Arrived", t.arrived], ["Pre-check done", pre?.doneAt], ["Repair started", t.in_progress], ["Post-check done", post?.doneAt], ["Payment", t.paid], ["Completed", t.completed]]
+    .filter(([, v]) => v).map(([k, v]) => `<li><b>${k}</b> ${when(v)}</li>`).join("");
+  const pay = b.payment;
+  const payHtml = pay
+    ? pay.status === "paid"
+      ? `<div class="pay ok"><b>${rupees(pay.amount)} received · ${esc(pay.mode)}</b>${pay.ref ? ` · Ref ${esc(pay.ref)}` : ""}${b.price && Number(pay.amount) !== Number(b.price) ? `<div class="muted">Quoted ${rupees(b.price)}${pay.note ? ` — ${esc(pay.note)}` : ""}</div>` : pay.note ? `<div class="muted">${esc(pay.note)}</div>` : ""}</div>`
+      : `<div class="pay bad"><b>Payment not collected</b>${pay.note ? ` — ${esc(pay.note)}` : ""}</div>`
+    : `<div class="muted">Not collected yet${b.price ? ` · due ${rupees(b.price)}` : ""}</div>`;
+  return `<div class="sheet">
+    ${pre || post ? `<table class="qc"><thead><tr><th>Check (${esc(CHECKLISTS[(pre || post).type]?.name || "")})</th><th>Before</th><th>After</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table>
+      ${pre?.remark ? `<p class="rmk"><b>Before repair:</b> ${esc(pre.remark)}</p>` : ""}${post?.remark ? `<p class="rmk"><b>After repair:</b> ${esc(post.remark)}</p>` : ""}
+      ${cmp.newIssues.length ? `<p class="alert">⚠ Not OK after repair but OK before: ${cmp.newIssues.map((i) => esc(i.l)).join(", ")}</p>` : ""}`
+      : `<p class="muted">Quality check not started yet.</p>`}
+    ${b.techRemarks ? `<p class="rmk"><b>Technician remarks:</b> ${esc(b.techRemarks)}</p>` : ""}
+    <div class="sheet-row"><div><h4>Payment</h4>${payHtml}</div><div><h4>Timeline</h4><ul class="tl">${tl || '<li class="muted">—</li>'}</ul></div></div>
+  </div>`;
+}
 
 // Which bucket a booking is in, from the manager's point of view
 export function stage(b) {

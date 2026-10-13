@@ -48,3 +48,26 @@ a{color:var(--teal)}
 .steps i.on{background:var(--teal)}
 .steps i.now{background:var(--y)}
 @media (max-width:560px){.top .who{display:none}.wrap{padding:12px}}
+/* quality check + job sheet */
+.qi{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-weight:800;font-size:12px;background:#eef3f3;color:#9aa}
+.qi.ok{background:var(--greenlt);color:var(--green)}
+.qi.bad{background:var(--redlt);color:var(--red)}
+.qi.na{background:#eee;color:#777}
+.sheet{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13.5px}
+.sheet h4{margin:10px 0 4px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+table.qc{width:100%;border-collapse:collapse}
+table.qc th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.qc td{padding:5px 6px;border-bottom:1px solid #eef3f3;vertical-align:top}
+table.qc td:nth-child(2),table.qc td:nth-child(3),table.qc th:nth-child(2),table.qc th:nth-child(3){text-align:center;width:52px}
+table.qc td.rm{color:#8A3B00;font-size:12.5px}
+table.qc tr.newbad td{background:#FFF1F1}
+.rmk{margin:8px 0 0;background:#FFF8EC;border-left:3px solid #E8A317;padding:6px 10px;border-radius:6px}
+.alert{margin:8px 0 0;background:var(--redlt);color:var(--red);font-weight:700;padding:6px 10px;border-radius:6px}
+.sheet-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pay{padding:8px 10px;border-radius:8px}
+.pay.ok{background:var(--greenlt);color:var(--green)}
+.pay.bad{background:var(--redlt);color:var(--red)}
+ul.tl{list-style:none;margin:0;padding:0}
+ul.tl li{padding:2px 0;font-size:12.5px}
+ul.tl b{display:inline-block;min-width:108px;font-weight:600;color:var(--ink)}
+@media (max-width:560px){.sheet-row{grid-template-columns:1fr}}

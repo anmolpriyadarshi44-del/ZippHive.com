@@ -54,3 +54,18 @@ Use `/manager.html` for bookings from now on — the old *Admin → Bookings* ta
 
 ### Testing without touching real data
 Set `firebase: "mock"` in `zipphive-config.js` locally (don't commit it). All pages then share data through the browser's local storage; sign in by typing any email.
+
+## Quality checks, payment & remarks (technician app)
+
+Each job now goes: Trip → **Pre-repair check** → Repair → **Post-repair check** → **Payment** → Done.
+
+- **Pre-repair check** (after "I have arrived"): every function is marked OK / Not OK / N/A. A Not OK item needs a remark. "Start repair" unlocks only after it's submitted.
+- **Post-repair check**: the same list again, showing the "before" result beside each item. Anything OK before but Not OK after is flagged red for the manager.
+- **Payment**: UPI / Cash / Card, amount collected (a reason is required if it differs from the quote), optional UTR / slip number, or "Customer couldn't pay now" with a reason. "Job completed" unlocks only after payment is recorded. One tap sends the customer a WhatsApp receipt.
+- **Job remarks**: free text, saved automatically.
+
+Checklists change with the service (phone, AC, washing machine, plumbing, electrical, cleaning, other appliances) — edit `CHECKLISTS` in `zh-ops.js`.
+
+The store manager sees all of it live in `/manager.html`: current step ("Pre-repair check in progress · 6/17"), flags, and a **Job sheet** with before/after results, remarks, payment and a timeline, plus a **Collected today** total.
+
+**UPI QR:** set `upiId` (e.g. `zipphive@ybl`) in `zipphive-config.js` and technicians will show a QR with the exact amount.

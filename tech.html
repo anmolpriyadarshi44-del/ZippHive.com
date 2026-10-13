@@ -8,6 +8,7 @@
 <title>ZippHive Technician</title>
 <link rel="icon" href="/zh-icon.png" />
 <script src="/zipphive-config.js"></script>
+<script src="/zh-qr.js"></script>
 <link rel="stylesheet" href="/zh-ops.css" />
 <style>
 .wrap{max-width:640px}
@@ -27,28 +28,62 @@
 .hello{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .hello .av{width:46px;height:46px;border-radius:50%;background:var(--tint);display:grid;place-items:center;font-size:24px;overflow:hidden;flex:none}
 .hello .av img{width:100%;height:100%;object-fit:cover}
+/* steps strip */
+.flow{display:flex;gap:4px;margin:12px 0 4px}
+.flow span{flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding-top:6px;border-top:4px solid var(--line)}
+.flow span.done{border-color:var(--teal);color:var(--teal)}
+.flow span.now{border-color:var(--y);color:var(--deep)}
+/* QC form */
+.panel{margin-top:12px;border:2px solid var(--teal);border-radius:14px;padding:12px;background:#FBFEFE}
+.panel h3{margin:0 0 2px}
+.prog{font-size:13px;color:var(--muted);margin-bottom:8px}
+.prog b{color:var(--deep)}
+.prog .bad{color:var(--red);font-weight:700}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.qrow{padding:9px 0;border-top:1px solid var(--line)}
+.qrow .lab{font-weight:600;font-size:14.5px}
+.qrow .was{font-size:12px;color:var(--muted);margin-top:1px}
+.qrow .was.bad{color:var(--red)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.seg button{min-height:40px;border-radius:10px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:14px}
+.seg button.ok.on{background:var(--green);border-color:var(--green);color:#fff}
+.seg button.fault.on{background:var(--red);border-color:var(--red);color:#fff}
+.seg button.na.on{background:#777;border-color:#777;color:#fff}
+.qrow .in{margin-top:6px;min-height:38px}
+.qrow.isbad{background:#FFF7F7;margin:0 -12px;padding:9px 12px}
+.addnote{background:none;border:0;color:var(--teal);font-size:12.5px;font-weight:600;padding:4px 0 0;cursor:pointer}
+textarea.in{min-height:64px;resize:vertical}
+.paybox .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.paybox .modes button{min-height:44px;border-radius:10px;border:2px solid var(--line);background:#fff;font-weight:700}
+.paybox .modes button.on{background:var(--deep);border-color:var(--deep);color:#fff}
+.paybox label{display:block;font-weight:600;font-size:13.5px;margin-top:8px}
+.qrbox{text-align:center;margin:10px 0;padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.qrbox svg{width:200px;height:200px}
+.due{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+.due b{font-family:Poppins,system-ui,sans-serif;font-size:24px;color:var(--deep)}
+.donebox{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--greenlt);color:var(--green);font-weight:600;font-size:14px}
+.donebox.bad{background:var(--redlt);color:var(--red)}
+.donebox .row{margin-top:6px}
+details.remarks{margin-top:12px}
+details.remarks summary{cursor:pointer;font-weight:600;color:var(--teal);font-size:14px}
 </style>
 </head>
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast } from "/zh-ops.js";
+import { backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg } from "/zh-ops.js";
 
-const NEXT = {
-  assigned: { to: "on_the_way", label: "🛵 Start trip (share live location)" },
-  on_the_way: { to: "arrived", label: "📍 I have arrived" },
-  arrived: { to: "in_progress", label: "🛠️ Start repair" },
-  in_progress: { to: "completed", label: "✅ Job completed" },
-};
 const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
-const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {} };
+const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {}, qc: {}, pay: {}, notes: {}, rem: {} };
 const app = document.getElementById("app");
-const watchers = new Map(); // bookingId -> { id, last, wake, err }
+const watchers = new Map();
+const timers = {};
 let seen = null, unsub = null, audio = null;
 
 const isReq = (j) => j.assignState === "pending";
+const debounce = (key, fn, ms = 700) => { clearTimeout(timers[key]); timers[key] = setTimeout(fn, ms); };
 
-// ---- live location (same behaviour as before: sends on move > 25 m or every 20 s) ----
+// ---- live location (sends on move > 25 m or every 20 s) ----
 function startShare(j) {
   if (watchers.has(j.id) || !navigator.geolocation) return;
   const w = { id: null, last: null, wake: null, err: "" };
@@ -100,6 +135,16 @@ function alertNew(list) {
   document.title = ids.length ? `(${ids.length}) New job request – ZippHive` : "ZippHive Technician";
 }
 
+// ---- QC drafts: local copy is the source of truth while editing, saved to the server live ----
+const getQc = (j, w) => S.qc[j.id]?.[w] ?? j[w] ?? null;
+function setQc(j, w, qc, now) {
+  (S.qc[j.id] ||= {})[w] = qc;
+  // always save the latest draft, so a delayed save can't overwrite a newer one (e.g. after Submit)
+  const save = () => actions.saveQc(S.be, j, w, S.qc[j.id][w]).catch((e) => toast("Could not save check: " + (e.message || e), true));
+  if (now) { clearTimeout(timers[j.id + w]); save(); } else debounce(j.id + w, save);
+}
+const getPay = (j) => (S.pay[j.id] ||= { amount: j.price ?? "", mode: "UPI", ref: "", note: "" });
+
 function reqCard(j) {
   const dec = S.declining === j.id;
   return `<div class="card req">
@@ -109,7 +154,7 @@ function reqCard(j) {
     <dl class="kv">
       <dt>Area</dt><dd>${esc(j.area)}, Patna</dd>
       <dt>Time</dt><dd>${esc(j.time)}</dd>
-      ${j.price ? `<dt>Price</dt><dd>₹${Number(j.price).toLocaleString("en-IN")}</dd>` : ""}
+      ${j.price ? `<dt>Price</dt><dd>${rupees(j.price)}</dd>` : ""}
       <dt>Booking</dt><dd>${esc(j.code)}</dd>
       ${j.note ? `<dt>Note</dt><dd>${esc(j.note)}</dd>` : ""}
     </dl>
@@ -123,29 +168,128 @@ function reqCard(j) {
   </div>`;
 }
 
+function qcPanel(j, w) {
+  const qc = getQc(j, w), s = qcSum(qc), pre = w === "postQc" ? getQc(j, "preQc") : null;
+  const title = w === "preQc" ? "Pre-repair check" : "Post-repair check";
+  const help = w === "preQc" ? "Test every function <b>before</b> you open the device. Mark anything not working and write what you see." : "Test every function again <b>after</b> the repair.";
+  const preMap = Object.fromEntries((pre?.items || []).map((i) => [i.k, i]));
+  const rows = qc.items.map((it, n) => {
+    const was = preMap[it.k];
+    const showNote = it.s === "fault" || it.r || S.notes[j.id + w + it.k];
+    return `<div class="qrow ${it.s === "fault" ? "isbad" : ""}">
+      <div class="lab">${esc(it.l)}</div>
+      ${was ? `<div class="was ${was.s === "fault" ? "bad" : ""}">Before: ${was.s === "ok" ? "OK" : was.s === "fault" ? "Not OK" : was.s === "na" ? "N/A" : "—"}${was.r ? " · " + esc(was.r) : ""}</div>` : ""}
+      <div class="seg" role="group" aria-label="${esc(it.l)}">
+        <button class="ok ${it.s === "ok" ? "on" : ""}" data-act="qc" data-id="${j.id}" data-w="${w}" data-n="${n}" data-s="ok">✓ OK</button>
+        <button class="fault ${it.s === "fault" ? "on" : ""}" data-act="qc" data-id="${j.id}" data-w="${w}" data-n="${n}" data-s="fault">✕ Not OK</button>
+        <button class="na ${it.s === "na" ? "on" : ""}" data-act="qc" data-id="${j.id}" data-w="${w}" data-n="${n}" data-s="na">N/A</button>
+      </div>
+      ${showNote ? `<input class="in" id="qr-${j.id}-${w}-${n}" data-qcr="${n}" data-id="${j.id}" data-w="${w}" placeholder="${it.s === "fault" ? "What's wrong? (required)" : "Remark"}" value="${esc(it.r)}">`
+        : `<button class="addnote" data-act="note" data-id="${j.id}" data-w="${w}" data-k="${esc(it.k)}">+ Add remark</button>`}
+    </div>`;
+  }).join("");
+  return `<div class="panel">
+    <h3>${title}</h3>
+    <div class="prog"><b>${s.checked}/${s.total}</b> checked${s.fault ? ` · <span class="bad">${s.fault} not OK</span>` : ""}${s.na ? ` · ${s.na} N/A` : ""}</div>
+    <p class="muted" style="margin:0 0 8px">${help}</p>
+    <div class="quick">
+      <button class="btn sm g" data-act="qc-rest" data-id="${j.id}" data-w="${w}" data-s="ok">Mark remaining OK</button>
+      ${w === "preQc" ? `<button class="btn sm g" data-act="qc-rest" data-id="${j.id}" data-w="${w}" data-s="na">Device dead – rest N/A</button>` : ""}
+    </div>
+    ${rows}
+    <label class="muted" style="display:block;margin-top:10px;font-weight:600">Overall remarks ${w === "preQc" ? "(scratches, dents, missing parts, customer's complaint…)" : "(what was replaced, anything the customer should know)"}</label>
+    <textarea class="in" id="qcrem-${j.id}-${w}" data-qcrem="1" data-id="${j.id}" data-w="${w}" placeholder="Write here…">${esc(qc.remark || "")}</textarea>
+    <button class="btn y big" style="margin-top:10px" data-act="qc-submit" data-id="${j.id}" data-w="${w}">${w === "preQc" ? "Submit pre-repair check" : "Submit post-repair check"}</button>
+  </div>`;
+}
+
+function payPanel(j) {
+  const p = getPay(j);
+  const diff = j.price != null && p.amount !== "" && Number(p.amount) !== Number(j.price);
+  const upi = p.mode === "UPI" ? upiLink(p.amount, j.code) : "";
+  return `<div class="panel paybox">
+    <h3>Collect payment</h3>
+    <div class="due"><span class="muted">Quoted price</span><b>${rupees(j.price)}</b></div>
+    <div class="modes">${PAY_MODES.map((m) => `<button class="${p.mode === m ? "on" : ""}" data-act="mode" data-id="${j.id}" data-m="${m}">${m === "UPI" ? "📱 UPI" : m === "Cash" ? "💵 Cash" : "💳 Card"}</button>`).join("")}</div>
+    <label for="amt-${j.id}">Amount collected (₹)</label>
+    <input class="in" id="amt-${j.id}" data-pay="amount" data-id="${j.id}" inputmode="numeric" value="${esc(p.amount)}">
+    ${upi ? `<div class="qrbox">${qrSvg(upi)}<div class="muted">Customer scans to pay ${rupees(p.amount)} to ${esc(cfg().upiId)}</div><a class="btn sm o" style="margin-top:6px" href="${esc(upi)}">Open UPI app</a></div>` : ""}
+    ${p.mode !== "Cash" ? `<label for="ref-${j.id}">${p.mode === "UPI" ? "UPI reference / last 4 digits of UTR" : "Card slip / last 4 digits"} (optional)</label>
+    <input class="in" id="ref-${j.id}" data-pay="ref" data-id="${j.id}" value="${esc(p.ref)}">` : ""}
+    <label for="pnote-${j.id}">${diff ? "Why is the amount different? (required)" : "Payment note (optional)"}</label>
+    <input class="in" id="pnote-${j.id}" data-pay="note" data-id="${j.id}" placeholder="${diff ? "e.g. extra part – back glass ₹500 / discount" : ""}" value="${esc(p.note)}">
+    <button class="btn y big" style="margin-top:12px" data-act="paid" data-id="${j.id}" ${S.busy[j.id] ? "disabled" : ""}>✅ Payment received ${p.amount !== "" ? rupees(p.amount) : ""}</button>
+    <button class="btn link" style="display:block;margin:10px auto 0" data-act="unpaid" data-id="${j.id}">Customer couldn't pay now</button>
+  </div>`;
+}
+
+const FLOW_LABELS = [["Trip", ["on_the_way"]], ["Pre-check", ["arrived"]], ["Repair", ["in_progress:repair"]], ["Post-check", ["in_progress:post"]], ["Payment", ["in_progress:pay"]], ["Done", ["completed"]]];
+function phaseKey(j) {
+  if (j.status === "assigned") return 0;
+  if (j.status === "on_the_way") return 0;
+  if (j.status === "arrived") return 1;
+  if (j.status === "in_progress") { const post = getQc(j, "postQc"); return !post ? 2 : !post.doneAt ? 3 : !j.payment ? 4 : 5; }
+  return 6;
+}
+
 function jobCard(j) {
-  const n = NEXT[j.status], w = watchers.get(j.id);
+  const w = watchers.get(j.id), k = phaseKey(j);
+  const pre = getQc(j, "preQc"), post = getQc(j, "postQc");
+  const busy = S.busy[j.id] ? "disabled" : "";
+  let action = "";
+  if (j.status === "assigned") action = `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="on_the_way" ${busy}>🛵 Start trip (share live location)</button>`;
+  else if (j.status === "on_the_way") action = `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="arrived" ${busy}>📍 I have arrived</button>`;
+  else if (j.status === "arrived") {
+    if (!pre) action = `<button class="btn y big" style="margin-top:12px" data-act="qc-start" data-id="${j.id}" data-w="preQc">🔍 Start pre-repair check</button>`;
+    else if (!pre.doneAt) action = qcPanel(j, "preQc");
+    else action = `<div class="donebox">✓ Pre-repair check done · ${qcSum(pre).fault} not OK <button class="btn link" data-act="qc-edit" data-id="${j.id}" data-w="preQc">Edit</button></div>
+      <button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="in_progress" ${busy}>🛠️ Start repair</button>`;
+  } else if (j.status === "in_progress") {
+    if (!post) action = `<div class="donebox">✓ Pre-repair check done</div><button class="btn y big" style="margin-top:12px" data-act="qc-start" data-id="${j.id}" data-w="postQc">🔍 Repair finished – start post-repair check</button>`;
+    else if (!post.doneAt) action = qcPanel(j, "postQc");
+    else {
+      const cmp = qcCompare(pre, post);
+      const qcLine = `<div class="donebox ${cmp.newIssues.length ? "bad" : ""}">✓ Post-repair check done${cmp.newIssues.length ? ` · ⚠ ${cmp.newIssues.length} item(s) not OK that were OK before` : qcSum(post).fault ? ` · ${qcSum(post).fault} not OK` : " · all OK"} <button class="btn link" data-act="qc-edit" data-id="${j.id}" data-w="postQc">Edit</button></div>`;
+      if (!j.payment) action = qcLine + payPanel(j);
+      else {
+        const p = j.payment;
+        const receipt = `Hi ${j.name}, thank you for choosing ZippHive! ✅\nBooking ${j.code}: ${j.device ? j.device + " – " : ""}${j.item || j.service}\nPaid: ${rupees(p.amount)} via ${p.mode}${p.ref ? ` (Ref ${p.ref})` : ""}\nTechnician: ${S.me.name}`;
+        action = qcLine + (p.status === "paid"
+          ? `<div class="donebox">💰 ${rupees(p.amount)} received via ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""}
+              <div class="row"><a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, receipt)}">Send receipt on WhatsApp</a><button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div></div>`
+          : `<div class="donebox bad">Payment not collected${p.note ? ` — ${esc(p.note)}` : ""} <button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div>`)
+          + `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="completed" ${busy}>✅ Job completed</button>`;
+      }
+    }
+  }
+  const remVal = S.rem[j.id] ?? j.techRemarks ?? "";
   return `<div class="card job">
     <div class="row" style="justify-content:space-between"><b>${esc(j.code)}</b><span class="pill ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span></div>
     <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
     ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
-    <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)}, Patna · ${esc(j.time)}${j.price ? ` · ₹${Number(j.price).toLocaleString("en-IN")}` : ""}</p>
+    <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)}, Patna · ${esc(j.time)}${j.price ? ` · ${rupees(j.price)}` : ""}</p>
     ${j.note ? `<p class="muted">Note: ${esc(j.note)}</p>` : ""}
     <div class="row">
       <a class="btn sm o" href="tel:+91${esc(j.mobile)}">📞 Call customer</a>
       <a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, `Hi ${j.name}, I'm your ZippHive technician for booking ${j.code}.`)}">WhatsApp</a>
-      <a class="btn sm g" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(`${j.area}, Patna`)}">🗺️ Area on map</a>
+      <a class="btn sm g" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(`${j.area}, Patna`)}">🗺️ Map</a>
     </div>
-    ${n ? `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="${n.to}" ${S.busy[j.id] ? "disabled" : ""}>${n.label}</button>` : ""}
+    <div class="flow" aria-hidden="true">${FLOW_LABELS.map(([l], i) => `<span class="${i < k ? "done" : i === k ? "now" : ""}">${l}</span>`).join("")}</div>
+    ${action}
     ${w ? `<div class="sharing"><i></i>Sharing live location${j.techLoc ? ` · updated ${ago(j.techLoc.at)}` : ""} – keep this page open</div>` : ""}
     ${w && w.err ? `<p style="color:var(--red)">${esc(w.err)}</p>` : ""}
+    <details class="remarks" ${remVal ? "open" : ""}><summary>📝 Job remarks for the store</summary>
+      <textarea class="in" style="margin-top:6px" id="trm-${j.id}" data-trm="${j.id}" placeholder="Anything abnormal — extra part needed, customer request, device condition…">${esc(remVal)}</textarea>
+      <div class="muted">Saved automatically · the store manager sees this live</div></details>
   </div>`;
 }
 
 function render() {
   const a = document.activeElement, fid = a && a.id;
+  const sel = a && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null;
   const top = (right = "") => `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Technician</span><span class="sp"></span>${right}</header>`;
   const out = `<button class="btn sm ghost" data-act="signout">Sign out</button>`;
+  const openDetails = [...app.querySelectorAll("details.remarks")].map((d) => [d.querySelector("textarea")?.id, d.open]);
   if (S.be === undefined || S.user === undefined) app.innerHTML = `<div class="center muted">Loading…</div>`;
   else if (S.be === null) app.innerHTML = `<div class="center"><div><h2>Not configured</h2></div></div>`;
   else if (!S.user) app.innerHTML = top() + `<div class="card login"><h2>Technician sign-in</h2><p class="muted">Sign in with the Google account ZippHive registered for you.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
@@ -160,16 +304,20 @@ function render() {
       ${reqs.length ? `<div class="sec">Job requests (${reqs.length})</div>` + reqs.map(reqCard).join("") : ""}
       <div class="sec">My jobs</div>
       ${active.length ? active.map(jobCard).join("") : `<div class="card muted">No active jobs right now.</div>`}
-      ${done.length ? `<div class="sec">Recently completed</div>` + done.map((j) => `<div class="card muted">${esc(j.code)} · ${esc(j.name)} · ${esc(j.item || j.service)} · ${when(j.statusAt)}</div>`).join("") : ""}
+      ${done.length ? `<div class="sec">Recently completed</div>` + done.map((j) => `<div class="card muted">${esc(j.code)} · ${esc(j.name)} · ${esc(j.item || j.service)} · ${j.payment?.status === "paid" ? rupees(j.payment.amount) + " " + esc(j.payment.mode) + " · " : ""}${when(j.statusAt)}</div>`).join("") : ""}
     </div>`;
   }
-  if (fid) document.getElementById(fid)?.focus();
+  for (const [id, open] of openDetails) { const t = id && document.getElementById(id); if (t && open) t.closest("details").open = true; }
+  if (fid) {
+    const el = document.getElementById(fid);
+    if (el) { el.focus({ preventScroll: true }); if (sel && el.setSelectionRange) try { el.setSelectionRange(sel[0], sel[1]); } catch {} }
+  }
 }
 
 const find = (id) => S.jobs.find((j) => j.id === id);
 async function act(id, p, ok) {
   S.busy[id] = true; render();
-  try { await p; toast(ok); } catch (e) { toast("Update failed: " + (e.message || e), true); }
+  try { await p; ok && toast(ok); } catch (e) { toast("Update failed: " + (e.message || e), true); }
   delete S.busy[id]; render();
 }
 
@@ -177,7 +325,7 @@ app.addEventListener("click", (e) => {
   try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume?.(); } catch {}
   const el = e.target.closest("[data-act]");
   if (!el) return;
-  const a = el.dataset.act, j = find(el.dataset.id);
+  const a = el.dataset.act, j = find(el.dataset.id), w = el.dataset.w;
   if (a === "signin") return S.be.signIn().catch((x) => toast("Sign-in failed: " + (x.message || x), true));
   if (a === "signout") return S.be.signOut();
   if (a === "decline") { S.declining = j.id; S.reason = ""; S.other = ""; return render(); }
@@ -190,10 +338,66 @@ app.addEventListener("click", (e) => {
     S.declining = null;
     return act(j.id, actions.decline(S.be, j, S.me, r), "Declined – the store manager will reassign it");
   }
-  if (a === "step") return act(j.id, actions.step(S.be, j, el.dataset.to), STATUS[el.dataset.to]);
+  if (a === "step") {
+    if (el.dataset.to === "completed" && !j.payment) return toast("Record the payment first", true);
+    return act(j.id, actions.step(S.be, j, el.dataset.to), STATUS[el.dataset.to]);
+  }
+  // quality checks
+  if (a === "qc-start") { setQc(j, w, newQc(j), true); render(); return toast(w === "preQc" ? "Pre-repair check started" : "Post-repair check started"); }
+  if (a === "qc" || a === "qc-rest" || a === "note" || a === "qc-edit") {
+    const qc = structuredClone(getQc(j, w));
+    if (a === "qc") { const it = qc.items[+el.dataset.n]; it.s = it.s === el.dataset.s ? "" : el.dataset.s; }
+    if (a === "qc-rest") qc.items.forEach((it) => { if (!it.s) it.s = el.dataset.s; });
+    if (a === "note") { S.notes[j.id + w + el.dataset.k] = true; render(); return; }
+    if (a === "qc-edit") qc.doneAt = 0;
+    setQc(j, w, qc); render(); return;
+  }
+  if (a === "qc-submit") {
+    const qc = structuredClone(getQc(j, w)), s = qcSum(qc);
+    if (s.checked < s.total) return toast(`Check all items first (${s.total - s.checked} left)`, true);
+    const missing = qc.items.filter((i) => i.s === "fault" && !i.r.trim());
+    if (missing.length) return toast(`Write what's wrong for: ${missing.map((i) => i.l).join(", ")}`, true);
+    qc.doneAt = Date.now(); qc.by = S.me.name;
+    setQc(j, w, qc, true); render();
+    return toast(w === "preQc" ? "Pre-repair check saved – you can start the repair" : "Post-repair check saved – collect payment");
+  }
+  // payments
+  if (a === "mode") { getPay(j).mode = el.dataset.m; return render(); }
+  if (a === "paid" || a === "unpaid") {
+    const p = getPay(j), amt = Number(String(p.amount).replace(/[^\d.]/g, ""));
+    if (a === "paid") {
+      if (!amt) return toast("Enter the amount collected", true);
+      if (j.price != null && amt !== Number(j.price) && !p.note.trim()) return toast("Write why the amount is different from the quote", true);
+      return act(j.id, actions.pay(S.be, j, { status: "paid", amount: amt, mode: p.mode, ref: p.ref.trim(), note: p.note.trim(), at: Date.now(), by: S.me.name }), `${rupees(amt)} recorded`);
+    }
+    if (!p.note.trim()) { document.getElementById("pnote-" + j.id)?.focus(); return toast("Write the reason in the payment note first", true); }
+    return act(j.id, actions.pay(S.be, j, { status: "not_collected", amount: 0, mode: "", ref: "", note: p.note.trim(), at: Date.now(), by: S.me.name }), "Marked as not collected – the store will follow up");
+  }
+  if (a === "pay-edit") {
+    const p = j.payment || {};
+    S.pay[j.id] = { amount: p.amount || j.price || "", mode: p.mode || "UPI", ref: p.ref || "", note: p.note || "" };
+    return act(j.id, S.be.updateBooking(j.id, { payment: null }), "");
+  }
 });
-app.addEventListener("input", (e) => { if (e.target.id === "other") S.other = e.target.value; });
-setInterval(() => S.me && !document.activeElement?.matches?.("input") && render(), 30000);
+
+app.addEventListener("input", (e) => {
+  const t = e.target, d = t.dataset;
+  if (t.id === "other") S.other = t.value;
+  else if (d.qcr != null) {
+    const j = find(d.id), qc = structuredClone(getQc(j, d.w));
+    qc.items[+d.qcr].r = t.value; setQc(j, d.w, qc);
+  } else if (d.qcrem) {
+    const j = find(d.id), qc = structuredClone(getQc(j, d.w));
+    qc.remark = t.value; setQc(j, d.w, qc);
+  } else if (d.pay) {
+    const j = find(d.id); getPay(j)[d.pay] = t.value;
+    if (d.pay === "amount" || (d.pay === "note")) render();
+  } else if (d.trm) {
+    const j = find(d.trm); S.rem[j.id] = t.value;
+    debounce("rem" + j.id, () => actions.saveRemarks(S.be, j, t.value).catch((x) => toast("Could not save remarks: " + (x.message || x), true)), 900);
+  }
+});
+setInterval(() => S.me && !document.activeElement?.matches?.("input,textarea") && render(), 30000);
 
 S.be = await backend();
 render();

@@ -1,11 +1,8 @@
 rules_version = '2';
-// ZippHive Firestore security rules.
-// Paste into Firebase console → Firestore Database → Rules → Publish.
-// Keep the admin email list in sync with "admins" in zipphive-config.js.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
     function email() { return request.auth.token.email.lower(); }
     function isAdmin() { return signedIn() && email() in ['zipphive@gmail.com']; }
     function isManager() {
@@ -14,51 +11,71 @@ service cloud.firestore {
     function isTech() {
       return signedIn()
         && exists(/databases/$(database)/documents/technicians/$(email()))
-        && get(/databases/$(database)/documents/technicians/$(email())).data.get('active', true) != false;
+        && get(/databases/$(database)/documents/technicians/$(email())).data.active == true;
     }
+    function okStr(v, n) { return v is string && v.size() <= n; }
 
-    // Website content and prices: public read, admin write
-    match /content/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /prices/{doc} {
+    match /content/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Store managers list: admins manage it; managers can read it
-    match /managers/{mgr} {
+    match /prices/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Store managers: added/removed by the admin from manager.html
+    match /managers/{mgrEmail} {
       allow read: if isManager();
       allow write: if isAdmin();
     }
 
-    // Technicians: staff manage; any signed-in user can read (technicians read their own profile)
-    match /technicians/{tech} {
-      allow read: if signedIn();
-      allow write: if isManager();
+    match /technicians/{techEmail} {
+      allow read: if isManager() || (signedIn() && techEmail == email());
+      allow write: if isAdmin();
     }
 
-    match /bookings/{id} {
-      // Customers open their tracking link without signing in (the booking id is the secret)
+    match /bookings/{bookingId} {
       allow get: if true;
-      // New bookings from the website
-      allow create: if request.resource.data.status == 'new';
-      // Store managers / admins see and edit everything
-      allow list, update, delete: if isManager();
-      // Technicians see jobs offered or assigned to them
-      allow list: if isTech() && resource.data.techEmail == email();
-      // Technicians can accept, decline, move the job forward and share location — nothing else
+      allow list: if isManager() || (isTech() && resource.data.techEmail == email());
+
+      allow create: if bookingId.size() >= 16
+        && request.resource.data.keys().hasOnly(['code', 'createdAt', 'statusAt', 'status', 'kind', 'service', 'device', 'problem', 'item', 'price', 'name', 'mobile', 'area', 'time', 'note'])
+        && request.resource.data['status'] == 'new'
+        && request.resource.data['kind'] in ['phone', 'service']
+        && okStr(request.resource.data['code'], 12)
+        && request.resource.data['createdAt'] is int
+        && okStr(request.resource.data['service'], 80)
+        && okStr(request.resource.data['name'], 60)
+        && request.resource.data['mobile'] is string && request.resource.data['mobile'].matches('^[6-9][0-9]{9}$')
+        && okStr(request.resource.data['area'], 60)
+        && okStr(request.resource.data['time'], 40)
+        && (!('device' in request.resource.data) || okStr(request.resource.data['device'], 80))
+        && (!('problem' in request.resource.data) || okStr(request.resource.data['problem'], 200))
+        && (!('item' in request.resource.data) || okStr(request.resource.data['item'], 120))
+        && (!('note' in request.resource.data) || okStr(request.resource.data['note'], 300))
+        && (!('price' in request.resource.data) || request.resource.data['price'] == null || request.resource.data['price'] is number);
+
+      // Admin and store managers can edit any booking (assign, confirm, ETA, cancel)
+      allow update: if isManager();
+
+      // Technician: accept / decline, move the job forward, share location, quality checks, payment, remarks
       allow update: if isTech()
         && resource.data.techEmail == email()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'status', 'statusAt', 'techLoc',
              'assignState', 'acceptedAt', 'techName', 'techPhone', 'techPhoto',
-             'techEmail', 'offerName', 'declinedByName', 'declineReason', 'declinedAt'
+             'techEmail', 'offerName', 'declinedByName', 'declineReason', 'declinedAt',
+             'preQc', 'postQc', 'payment', 'times', 'techRemarks'
            ])
-        && request.resource.data.status in ['assigned', 'on_the_way', 'arrived', 'in_progress', 'completed', 'confirmed', 'new']
-        && (request.resource.data.techEmail == email()
-            || (request.resource.data.techEmail == '' && request.resource.data.assignState == 'declined'));
+        && (!('techRemarks' in request.resource.data) || okStr(request.resource.data['techRemarks'], 2000))
+        && (!('status' in request.resource.data.diff(resource.data).affectedKeys())
+            || request.resource.data['status'] in ['assigned', 'on_the_way', 'arrived', 'in_progress', 'completed'])
+        && (request.resource.data['techEmail'] == email()
+            || (request.resource.data['techEmail'] == '' && request.resource.data['assignState'] == 'declined'));
+
+      allow delete: if isAdmin();
     }
   }
 }
