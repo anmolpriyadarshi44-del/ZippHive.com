@@ -28,6 +28,14 @@ export const cfg = () => window.ZIPPHIVE || {};
 export const admins = () => (cfg().admins || ["zipphive@gmail.com"]).map((e) => e.toLowerCase());
 export const siteUrl = () => (cfg().siteUrl || location.origin).replace(/\/$/, "");
 export const trackUrl = (id) => `${siteUrl()}/track.html?b=${id}`;
+export const invoiceUrl = (id) => `${siteUrl()}/invoice.html?b=${id}`;
+export const business = () => ({
+  name: "ZippHive", tagline: "Doorstep phone & home repairs", address: "Patna, Bihar",
+  phone: "+91 92204 00950", email: "ZippHive@gmail.com", web: "www.zipphive.com", gstin: "",
+  ...(cfg().business || {}),
+});
+// Invoice number from the booking code: ZH-QE4YM -> INV-QE4YM
+export const invoiceNo = (b) => "INV-" + String(b.code || b.id).replace(/^ZH-/, "");
 export const waLink = (mobile, text) => {
   const d = String(mobile || "").replace(/\D/g, "");
   const n = d.length === 10 ? "91" + d : d;
@@ -88,6 +96,8 @@ async function firebaseBackend(conf) {
         err
       ),
     updateBooking: (id, patch) => fs.updateDoc(bk(id), patch),
+    // single booking, no sign-in needed (customers open it by its secret link)
+    watchBooking: (id, cb, err) => fs.onSnapshot(bk(id), (d) => cb(d.exists() ? { ...d.data(), id: d.id } : null), err),
     listTechs: async () => (await fs.getDocs(fs.collection(db, "technicians"))).docs.map((d) => d.data()),
     getTech: async (email) => {
       const d = await fs.getDoc(fs.doc(db, "technicians", email.toLowerCase()));
@@ -146,6 +156,7 @@ function mockBackend() {
     watchAllBookings: (cb) => watch([K.bk], () => cb(all().sort((a, b) => b.createdAt - a.createdAt))),
     watchJobs: (email, cb) =>
       watch([K.bk], () => cb(all().filter((b) => b.techEmail === email.toLowerCase()).sort((a, b) => b.createdAt - a.createdAt))),
+    watchBooking: (id, cb) => watch([K.bk], () => cb(get(K.bk, {})[id] || null)),
     updateBooking: async (id, patch) => {
       const m = get(K.bk, {});
       if (m[id]) {

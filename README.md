@@ -69,3 +69,11 @@ Checklists change with the service (phone, AC, washing machine, plumbing, electr
 The store manager sees all of it live in `/manager.html`: current step ("Pre-repair check in progress · 6/17"), flags, and a **Job sheet** with before/after results, remarks, payment and a timeline, plus a **Collected today** total.
 
 **UPI QR:** set `upiId` (e.g. `zipphive@ybl`) in `zipphive-config.js` and technicians will show a QR with the exact amount.
+
+## Customer invoice & quality-check report
+
+- `/invoice.html?b=<booking id>` — invoice (auto-numbered `INV-<booking code>`, PAID / DUE stamp, extra charges or discount as a separate line) plus the full before/after quality-check report. "Download / Print PDF" uses the browser's Save as PDF.
+- The customer's tracking page (`track.html`) now shows a **Payment received** card with the invoice link and a **Quality check report** summary as soon as the technician records them (`zh-track-extra.js`, no change to the tracker itself).
+- The technician's WhatsApp receipt and the manager's "Send invoice" button include the invoice link.
+- Business details on the invoice (address, phone, GSTIN) can be set in `zipphive-config.js` as `business: { address: "...", gstin: "..." }`. GSTIN is hidden while empty.
+- No Firestore rule change needed: customers read the booking by its secret link, exactly like tracking.

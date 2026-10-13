@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Technician</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=4"></script>
-<script src="/zh-qr.js?v=4"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=4" />
+<script src="/zipphive-config.js?v=5"></script>
+<script src="/zh-qr.js?v=5"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=5" />
 <style>
 .wrap{max-width:640px}
 .req{border:2px solid var(--y);background:#FFFDF5;box-shadow:0 6px 20px rgba(255,199,44,.18)}
@@ -71,7 +71,7 @@ details.remarks summary{cursor:pointer;font-weight:600;color:var(--teal);font-si
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg } from "/zh-ops.js?v=4";
+import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg } from "/zh-ops.js?v=5";
 
 const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
 const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {}, qc: {}, pay: {}, notes: {}, rem: {} };
@@ -253,10 +253,10 @@ function jobCard(j) {
       if (!j.payment) action = qcLine + payPanel(j);
       else {
         const p = j.payment;
-        const receipt = `Hi ${j.name}, thank you for choosing ZippHive! ✅\nBooking ${j.code}: ${j.device ? j.device + " – " : ""}${j.item || j.service}\nPaid: ${rupees(p.amount)} via ${p.mode}${p.ref ? ` (Ref ${p.ref})` : ""}\nTechnician: ${S.me.name}`;
+        const receipt = `Hi ${j.name}, thank you for choosing ZippHive! ✅\nBooking ${j.code}: ${j.device ? j.device + " – " : ""}${j.item || j.service}\nPaid: ${rupees(p.amount)} via ${p.mode}${p.ref ? ` (Ref ${p.ref})` : ""}\nTechnician: ${S.me.name}\n\nYour invoice & quality check report: ${invoiceUrl(j.id)}`;
         action = qcLine + (p.status === "paid"
           ? `<div class="donebox">💰 ${rupees(p.amount)} received via ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""}
-              <div class="row"><a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, receipt)}">Send receipt on WhatsApp</a><button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div></div>`
+              <div class="row"><a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, receipt)}">Send invoice on WhatsApp</a><button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div></div>`
           : `<div class="donebox bad">Payment not collected${p.note ? ` — ${esc(p.note)}` : ""} <button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div>`)
           + `<button class="btn y big" style="margin-top:12px" data-act="step" data-id="${j.id}" data-to="completed" ${busy}>✅ Job completed</button>`;
       }

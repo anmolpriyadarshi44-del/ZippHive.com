@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Store Manager</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=4"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=4" />
+<script src="/zipphive-config.js?v=5"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=5" />
 <style>
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
@@ -64,7 +64,7 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees } from "/zh-ops.js?v=4";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees } from "/zh-ops.js?v=5";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
@@ -174,6 +174,7 @@ function card(b) {
       <div class="meta"><b>${esc(b.name)}</b> · <a href="tel:+91${esc(b.mobile)}">${esc(b.mobile)}</a> · ${esc(b.area)} · ${esc(b.time)}</div>
       ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
       ${flags(b)}
+      ${b.preQc || b.payment ? `<div class="row" style="margin-top:8px"><a class="btn sm o" href="${invoiceUrl(b.id)}" target="_blank" rel="noopener">🧾 ${b.payment ? "Invoice & QC report" : "QC report"}</a>${b.payment ? `<a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, `Hi ${b.name}, your ZippHive invoice & quality check report for booking ${b.code}: ${invoiceUrl(b.id)}`)}">Send invoice</a>` : ""}</div>` : ""}
       ${b.preQc || b.postQc || b.payment || b.techRemarks ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
       ${open ? `<div class="foot">
         <input class="in" style="width:150px;min-height:34px" id="eta-${b.id}" data-eta="${b.id}" placeholder="ETA e.g. 4:30 PM" value="${esc(etaVal)}" aria-label="ETA for ${esc(b.code)}">
