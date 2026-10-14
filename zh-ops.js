@@ -35,6 +35,10 @@ export const business = () => ({
   ...(cfg().business || {}),
 });
 // Invoice number from the booking code: ZH-QE4YM -> INV-QE4YM
+const rnd = (n, abc) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (x) => abc[x % abc.length]).join("");
+const newId = () => rnd(20, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+const newCode = () => "ZH-" + rnd(5, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
+export const isWarranty = (b) => b && b.kind === "warranty";
 export const invoiceNo = (b) => "INV-" + String(b.code || b.id).replace(/^ZH-/, "");
 export const waLink = (mobile, text) => {
   const d = String(mobile || "").replace(/\D/g, "");
@@ -96,6 +100,12 @@ async function firebaseBackend(conf) {
         err
       ),
     updateBooking: (id, patch) => fs.updateDoc(bk(id), patch),
+    // new booking (used by the warranty claim page); customers may only create, never edit
+    createBooking: async (data) => {
+      const id = newId(), code = newCode(), now = Date.now();
+      await fs.setDoc(bk(id), { ...data, code, status: "new", createdAt: now, statusAt: now });
+      return { id, code };
+    },
     // single booking, no sign-in needed (customers open it by its secret link)
     watchBooking: (id, cb, err) => fs.onSnapshot(bk(id), (d) => cb(d.exists() ? { ...d.data(), id: d.id } : null), err),
     listTechs: async () => (await fs.getDocs(fs.collection(db, "technicians"))).docs.map((d) => d.data()),
@@ -157,6 +167,12 @@ function mockBackend() {
     watchJobs: (email, cb) =>
       watch([K.bk], () => cb(all().filter((b) => b.techEmail === email.toLowerCase()).sort((a, b) => b.createdAt - a.createdAt))),
     watchBooking: (id, cb) => watch([K.bk], () => cb(get(K.bk, {})[id] || null)),
+    createBooking: async (data) => {
+      const id = newId(), code = newCode(), now = Date.now(), m = get(K.bk, {});
+      m[id] = { ...data, id, code, status: "new", createdAt: now, statusAt: now };
+      put(K.bk, m);
+      return { id, code };
+    },
     updateBooking: async (id, patch) => {
       const m = get(K.bk, {});
       if (m[id]) {
@@ -329,6 +345,22 @@ export function qcCompare(pre, post) {
 // ---------- Payments ----------
 export const PAY_MODES = ["UPI", "Cash", "Card"];
 export const rupees = (n) => (n == null || n === "" ? "—" : "₹" + Number(n).toLocaleString("en-IN"));
+// One view of a payment, old or new format:
+//   new: { status: "paid" | "free" | "not_collected", charge, discount, discountType, reason, amount, mode, ref, note, at, by }
+//   old: { status: "paid" | "not_collected", amount, mode, ref, note }
+export function payInfo(b) {
+  const p = b && b.payment;
+  if (!p) return { state: "none" };
+  const amount = Number(p.amount) || 0;
+  const charge = p.charge != null ? Number(p.charge) || 0 : p.status === "paid" ? amount : Number(b.price) || 0;
+  const discount = p.discount != null ? Number(p.discount) || 0 : 0;
+  const state = p.status === "not_collected" ? "unpaid" : p.status === "free" || (p.status === "paid" && amount === 0) ? "free" : "paid";
+  const reason = p.reason || "";
+  const label = state === "paid" ? `${rupees(amount)} · ${p.mode || ""}`.replace(/ · $/, "")
+    : state === "free" ? (p.discountType === "warranty" || isWarranty(b) ? "No charge · warranty" : "No charge · 100% discount")
+    : "Payment not collected";
+  return { state, amount, charge, discount, reason, discountType: p.discountType || "", mode: p.mode || "", ref: p.ref || "", note: p.note || "", at: p.at, by: p.by || "", label };
+}
 export function upiLink(amount, code) {
   const id = cfg().upiId;
   if (!id) return "";
@@ -355,7 +387,7 @@ export function jobPhase(b) {
       if (b.preQc) return { label: `Pre-repair check in progress · ${pre.checked}/${pre.total}`, tone: "live" };
       return { label: "Arrived · pre-repair check not started", tone: "" };
     case "in_progress":
-      if (b.payment) return { label: b.payment.status === "paid" ? `Payment received ${rupees(b.payment.amount)} · finishing` : "Payment not collected · finishing", tone: b.payment.status === "paid" ? "" : "warn" };
+      if (b.payment) { const pi = payInfo(b); return { label: pi.state === "paid" ? `Payment received ${rupees(pi.amount)} · finishing` : pi.state === "free" ? `${pi.label} · finishing` : "Payment not collected · finishing", tone: pi.state === "unpaid" ? "warn" : "" }; }
       if (b.postQc?.doneAt) return { label: "Post-repair check done · collecting payment", tone: "live" };
       if (b.postQc) return { label: `Post-repair check in progress · ${post.checked}/${post.total}`, tone: "live" };
       return { label: "Repair in progress", tone: "live" };
@@ -378,13 +410,17 @@ export function jobSheetHtml(b) {
   const t = b.times || {};
   const tl = [["Accepted", b.acceptedAt], ["On the way", t.on_the_way], ["Arrived", t.arrived], ["Pre-check done", pre?.doneAt], ["Repair started", t.in_progress], ["Post-check done", post?.doneAt], ["Payment", t.paid], ["Completed", t.completed]]
     .filter(([, v]) => v).map(([k, v]) => `<li><b>${k}</b> ${when(v)}</li>`).join("");
-  const pay = b.payment;
-  const payHtml = pay
-    ? pay.status === "paid"
-      ? `<div class="pay ok"><b>${rupees(pay.amount)} received · ${esc(pay.mode)}</b>${pay.ref ? ` · Ref ${esc(pay.ref)}` : ""}${b.price && Number(pay.amount) !== Number(b.price) ? `<div class="muted">Quoted ${rupees(b.price)}${pay.note ? ` — ${esc(pay.note)}` : ""}</div>` : pay.note ? `<div class="muted">${esc(pay.note)}</div>` : ""}</div>`
-      : `<div class="pay bad"><b>Payment not collected</b>${pay.note ? ` — ${esc(pay.note)}` : ""}</div>`
-    : `<div class="muted">Not collected yet${b.price ? ` · due ${rupees(b.price)}` : ""}</div>`;
+  const pi = payInfo(b);
+  const extra = [pi.charge !== pi.amount && pi.state !== "unpaid" ? `Charge ${rupees(pi.charge)}${pi.discount ? ` − discount ${rupees(pi.discount)}` : ""}` : "",
+    b.price != null && pi.charge !== Number(b.price) && pi.state !== "unpaid" ? `Quoted ${rupees(b.price)}` : "", pi.reason, pi.note].filter(Boolean).map(esc).join(" — ");
+  const payHtml = pi.state === "paid"
+    ? `<div class="pay ok"><b>${rupees(pi.amount)} received · ${esc(pi.mode)}</b>${pi.ref ? ` · Ref ${esc(pi.ref)}` : ""}${extra ? `<div class="muted">${extra}</div>` : ""}</div>`
+    : pi.state === "free" ? `<div class="pay ok"><b>${esc(pi.label)}</b>${extra ? `<div class="muted">${extra}</div>` : ""}</div>`
+    : pi.state === "unpaid" ? `<div class="pay bad"><b>Payment not collected</b>${pi.note ? ` — ${esc(pi.note)}` : ""}</div>`
+    : `<div class="muted">Not collected yet${b.price ? ` · due ${rupees(b.price)}` : isWarranty(b) ? " · warranty job" : ""}</div>`;
+  const w = b.warranty;
   return `<div class="sheet">
+    ${w ? `<p class="rmk"><b>🛡️ Warranty claim ${esc(w.claimId || "")}</b> — original ${w.origBookingId ? `<a href="${invoiceUrl(w.origBookingId)}" target="_blank" rel="noopener">${esc(w.invoiceNo || w.origCode || "invoice")}</a>` : esc(w.invoiceNo || w.origCode || "repair not linked")}${w.repairDate ? ` · repaired ${esc(w.repairDate)}` : ""}${w.technician ? ` by ${esc(w.technician)}` : ""}${w.since ? ` · problem since: ${esc(w.since)}` : ""}${w.photo ? `<br><a href="${esc(w.photo)}" target="_blank" rel="noopener"><img src="${esc(w.photo)}" alt="Customer photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;margin-top:6px"></a>` : ""}</p>` : ""}
     ${pre || post ? `<table class="qc"><thead><tr><th>Check (${esc(CHECKLISTS[(pre || post).type]?.name || "")})</th><th>Before</th><th>After</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table>
       ${pre?.remark ? `<p class="rmk"><b>Before repair:</b> ${esc(pre.remark)}</p>` : ""}${post?.remark ? `<p class="rmk"><b>After repair:</b> ${esc(post.remark)}</p>` : ""}
       ${cmp.newIssues.length ? `<p class="alert">⚠ Not OK after repair but OK before: ${cmp.newIssues.map((i) => esc(i.l)).join(", ")}</p>` : ""}`

@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum } from "/zh-ops.js?v=6";
+import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty } from "/zh-ops.js?v=7";
 
 const id = new URLSearchParams(location.search).get("b");
 
@@ -22,13 +22,13 @@ function view(b) {
   const p = b.payment, pre = b.preQc, post = b.postQc;
   const parts = [];
   if (p) {
-    const paid = p.status === "paid";
+    const pi = payInfo(b), paid = pi.state === "paid", free = pi.state === "free";
     parts.push(`<div class="card">
-      <h3>${paid ? "Payment received" : "Payment pending"}</h3>
-      <div class="paid"><span class="amt">${rupees(paid ? p.amount : b.price)}</span>
-        ${paid ? `<span class="ok">✓ Paid by ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""}</span>` : `<span class="due">Not paid yet</span>`}</div>
-      <div class="muted">${when(p.at)}${paid && p.by ? ` · collected by ${esc(p.by)}` : ""}</div>
-      <div class="row"><a class="btn" href="${invoiceUrl(b.id)}">🧾 View / download invoice</a>${b.status === "completed" ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Warranty claim</a>` : ""}</div>
+      <h3>${free ? (isWarranty(b) ? "Covered under warranty" : "No charge") : paid ? "Payment received" : "Payment pending"}</h3>
+      <div class="paid"><span class="amt">${rupees(paid || free ? pi.amount : Math.max(0, pi.charge - pi.discount))}</span>
+        ${free ? `<span class="ok">✓ Nothing to pay</span>` : paid ? `<span class="ok">✓ Paid by ${esc(pi.mode)}${pi.ref ? ` · Ref ${esc(pi.ref)}` : ""}</span>` : `<span class="due">Not paid yet</span>`}</div>
+      <div class="muted">${pi.discount && !free ? `Includes discount of ${rupees(pi.discount)} · ` : ""}${when(pi.at)}${paid && pi.by ? ` · collected by ${esc(pi.by)}` : ""}</div>
+      <div class="row"><a class="btn" href="${invoiceUrl(b.id)}">🧾 View / download invoice</a>${b.status === "completed" && !isWarranty(b) ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Warranty claim</a>` : ""}</div>
     </div>`);
   }
   if (pre?.doneAt) {

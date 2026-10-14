@@ -40,10 +40,12 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isManager() || (isTech() && resource.data.techEmail == email());
 
+      // New bookings from the website. kind "warranty" = a warranty claim from /warranty.html:
+      // a free job (price 0) carrying the claim details and an optional small photo.
       allow create: if bookingId.size() >= 16
-        && request.resource.data.keys().hasOnly(['code', 'createdAt', 'statusAt', 'status', 'kind', 'service', 'device', 'problem', 'item', 'price', 'name', 'mobile', 'area', 'time', 'note'])
+        && request.resource.data.keys().hasOnly(['code', 'createdAt', 'statusAt', 'status', 'kind', 'service', 'device', 'problem', 'item', 'price', 'name', 'mobile', 'area', 'time', 'note', 'warranty'])
         && request.resource.data['status'] == 'new'
-        && request.resource.data['kind'] in ['phone', 'service']
+        && request.resource.data['kind'] in ['phone', 'service', 'warranty']
         && okStr(request.resource.data['code'], 12)
         && request.resource.data['createdAt'] is int
         && okStr(request.resource.data['service'], 80)
@@ -55,7 +57,14 @@ service cloud.firestore {
         && (!('problem' in request.resource.data) || okStr(request.resource.data['problem'], 200))
         && (!('item' in request.resource.data) || okStr(request.resource.data['item'], 120))
         && (!('note' in request.resource.data) || okStr(request.resource.data['note'], 300))
-        && (!('price' in request.resource.data) || request.resource.data['price'] == null || request.resource.data['price'] is number);
+        && (!('price' in request.resource.data) || request.resource.data['price'] == null || request.resource.data['price'] is number)
+        && (request.resource.data['kind'] != 'warranty' || (request.resource.data['price'] == 0 && 'warranty' in request.resource.data))
+        && (!('warranty' in request.resource.data) || (
+              request.resource.data['kind'] == 'warranty'
+              && request.resource.data['warranty'] is map
+              && request.resource.data['warranty'].keys().hasOnly(['claimId', 'origBookingId', 'origCode', 'invoiceNo', 'repairDate', 'technician', 'since', 'photo'])
+              && okStr(request.resource.data['warranty'].get('claimId', ''), 12)
+              && okStr(request.resource.data['warranty'].get('photo', ''), 400000)));
 
       // Admin and store managers can edit any booking (assign, confirm, ETA, cancel)
       allow update: if isManager();

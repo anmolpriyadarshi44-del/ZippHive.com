@@ -87,3 +87,8 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 ## Homepage layout
 - The booking form now lives in its own section further down (`#book`); the hero shows the "start to finish" promise card. All "Book" buttons still scroll to the form.
 - "Ask ZippHive AI" is on the bottom-right (`data-position="right"` on the widget script); the WhatsApp button moved to the bottom-left.
+
+## Warranty jobs & discounts
+- A claim on `/warranty.html` now **creates a job** (`kind: "warranty"`, price ₹0) in the same `bookings` collection, so it appears on `/manager.html` (🛡️ Warranty filter), is assigned and accepted like any booking, and the customer gets the normal tracking link. The claim is also copied to the Google Sheet (with the job code and tracking link) when `warrantySheetUrl` is set.
+- Technician payment step: total charge → discount (**No discount / ₹ Discount / 100% free**, reason required) → "Customer pays". When it's ₹0 the technician taps "Confirm — no payment needed" and the invoice shows ₹0 (stamp "WARRANTY · ₹0" or "NO CHARGE"). Warranty jobs default to free.
+- Needs the updated `firestore.rules` published (allows `kind: "warranty"` bookings from the website).
