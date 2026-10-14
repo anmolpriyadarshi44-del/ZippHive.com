@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="/zipphive-config.js?v=6"></script>
+<script src="/zipphive-config.js?v=7"></script>
 <style>
 :root{--teal:#0B6E6E;--teal-d:#074F4F;--deep:#053E40;--yellow:#FFC93C;--ink:#0F2424;--muted:#5B6F6F;--line:#DCE8E7;--soft:#F3F8F7;--red:#B42318;--green:#1E8E3E}
 *{box-sizing:border-box}
@@ -133,24 +133,27 @@ header{background:#fff;border-bottom:1px solid var(--line)}
 </div>
 
 <script type="module">
+import { backend, invoiceNo, trackUrl } from "/zh-ops.js?v=7";
 const C = window.ZIPPHIVE || {};
 const SHEET = (C.warrantySheetUrl || "").trim();
 const WA = "919220400950";
 const $ = (id) => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
 const bookingId = qs.get("b");
-let booking = null, photoData = "";
+let booking = null, photoBig = "", photoSmall = "";
+const bePromise = backend().catch(() => null);
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const fmtDate = (t) => new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const claimId = () => "WC-" + Array.from(crypto.getRandomValues(new Uint8Array(6)), (n) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[n % 32]).join("");
+const cut = (s, n) => String(s || "").slice(0, n);
 
 $("mobile").addEventListener("input", (e) => (e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10)));
+$("problem").maxLength = 200;
 
 // Prefill from a ZippHive invoice / tracking link (warranty.html?b=<booking id>)
 if (bookingId) {
-  import("/zh-ops.js?v=6").then(async ({ backend, invoiceNo }) => {
-    const be = await backend();
+  bePromise.then((be) => {
     if (!be) return;
     const stop = be.watchBooking(bookingId, (b) => {
       try { stop && stop(); } catch {}
@@ -164,24 +167,29 @@ if (bookingId) {
       if (!$("name").value) $("name").value = b.name || "";
       if (!$("area").value) $("area").value = b.area || "";
     }, () => {});
-  }).catch(() => {});
+  });
 }
 
-// Photo: shrink on the phone before sending (keeps uploads fast on mobile data)
+// Photo: shrink on the phone before sending (a large copy for the sheet, a small one for the technician's job card)
+function shrink(img, max, q) {
+  const s = Math.min(1, max / Math.max(img.width, img.height));
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", q);
+}
 $("photoIn").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   if (!f) return;
   try {
     const img = await createImageBitmap(f);
-    const s = Math.min(1, 1600 / Math.max(img.width, img.height));
-    const cv = document.createElement("canvas");
-    cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
-    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-    photoData = cv.toDataURL("image/jpeg", 0.8);
-    $("photoPrev").src = photoData; $("photoPrev").style.display = "block";
+    photoBig = shrink(img, 1600, 0.8);
+    photoSmall = shrink(img, 720, 0.6);
+    if (photoSmall.length > 380000) photoSmall = shrink(img, 520, 0.5);
+    $("photoPrev").src = photoSmall; $("photoPrev").style.display = "block";
     $("photoT").textContent = "✓ Photo added";
   } catch {
-    photoData = ""; $("photoT").textContent = "Couldn't read that photo – try another";
+    photoBig = photoSmall = ""; $("photoT").textContent = "Couldn't read that photo – try another";
   }
 });
 
@@ -200,9 +208,46 @@ function collect() {
     repairDate: booking ? fmtDate(booking.times?.completed || booking.payment?.at || booking.statusAt) : (v("repairDate") ? fmtDate(v("repairDate")) : ""),
     technician: booking ? (booking.techName || "") : "",
     problem: v("problem"), since: v("since"),
-    photo: photoData, website: v("website"),
+    photo: photoBig, website: v("website"),
     page: location.href.slice(0, 200),
   };
+}
+
+// The claim becomes a normal ZippHive job (status "new", kind "warranty", price 0):
+// it appears on the store manager dashboard, gets a technician and a tracking link like any booking.
+async function createJob(d) {
+  const be = await bePromise;
+  if (!be || !be.createBooking) throw new Error("offline");
+  return be.createBooking({
+    kind: "warranty",
+    service: "Warranty claim",
+    device: cut(d.device, 80),
+    item: cut(d.repair ? `Warranty – ${d.repair}` : "Warranty check", 120),
+    problem: cut(d.problem, 200),
+    price: 0,
+    name: cut(d.name, 60), mobile: d.mobile, area: cut(d.area || "—", 60),
+    time: "As soon as possible",
+    note: cut(`Warranty claim ${d.claimId}${d.since ? " · problem since: " + d.since : ""}`, 300),
+    warranty: {
+      claimId: d.claimId,
+      origBookingId: booking ? booking.id : "",
+      origCode: cut(d.bookingCode, 12), invoiceNo: cut(d.invoiceNo, 20),
+      repairDate: cut(d.repairDate, 20), technician: cut(d.technician, 60), since: cut(d.since, 40),
+      photo: photoSmall,
+    },
+  });
+}
+
+async function toSheet(d) {
+  if (!SHEET) return false;
+  try {
+    // text/plain keeps this a "simple" request, which Google Apps Script accepts from any website
+    const r = await fetch(SHEET, { method: "POST", body: JSON.stringify(d) });
+    const j = await r.json().catch(() => ({ ok: r.ok }));
+    return !!j.ok;
+  } catch {
+    try { await fetch(SHEET, { method: "POST", mode: "no-cors", body: JSON.stringify(d) }); return true; } catch { return false; }
+  }
 }
 
 function waText(d) {
@@ -211,15 +256,17 @@ function waText(d) {
     `${d.repair ? `\nRepaired: ${d.repair}` : ""}${d.repairDate ? ` (${d.repairDate})` : ""}\nProblem now: ${d.problem}${d.since ? `\nSince: ${d.since}` : ""}`;
 }
 
-function success(d, viaSheet) {
-  const follow = `https://wa.me/${WA}?text=${encodeURIComponent(viaSheet ? `Hi ZippHive, following up on my warranty claim ${d.claimId}.` : waText(d))}`;
+function success(d, job, saved) {
+  saved = saved || !!job;
+  const track = job ? trackUrl(job.id) : "";
+  const follow = `https://wa.me/${WA}?text=${encodeURIComponent(saved ? `Hi ZippHive, following up on my warranty claim ${d.claimId}${job ? ` (job ${job.code})` : ""}.` : waText(d))}`;
   $("formCard").innerHTML = `<div class="done"><div class="tick">✓</div>
-    <h2>${viaSheet ? "Claim received" : "Almost done"}</h2>
-    <p class="lead" style="margin:6px 0 0">${viaSheet ? "Our team will call you on <b>" + esc(d.mobile) + "</b>, usually the same day." : "Tap below to send your claim to us on WhatsApp."}</p>
-    <div class="id">${esc(d.claimId)}</div><div class="lead" style="margin:0">Your claim ID — keep it for reference</div>
-    <div class="row"><a class="btn btn-wa" href="${follow}" target="_blank" rel="noopener">${viaSheet ? "Follow up on WhatsApp" : "Send on WhatsApp"}</a><a class="btn btn-t" href="/">Back to home</a></div></div>`;
+    <h2>${saved ? "Claim received" : "Almost done"}</h2>
+    <p class="lead" style="margin:6px 0 0">${saved ? "Our team will call you on <b>" + esc(d.mobile) + "</b>, usually the same day." + (job ? " Track your technician just like a normal booking." : "") : "Tap below to send your claim to us on WhatsApp."}</p>
+    <div class="id">${esc(d.claimId)}</div><div class="lead" style="margin:0">Your claim ID${job ? " · job " + esc(job.code) : ""} — keep it for reference</div>
+    <div class="row">${job ? `<a class="btn btn-y" style="width:auto" href="${track}">📍 Track your warranty job</a>` : ""}<a class="btn btn-wa" href="${follow}" target="_blank" rel="noopener">${saved ? "WhatsApp us" : "Send on WhatsApp"}</a><a class="btn btn-t" href="/">Home</a></div></div>`;
   window.scrollTo({ top: 0, behavior: "smooth" });
-  if (!viaSheet) window.open(follow, "_blank", "noopener");
+  if (!saved) window.open(follow, "_blank", "noopener");
 }
 
 $("wf").addEventListener("submit", async (e) => {
@@ -228,30 +275,14 @@ $("wf").addEventListener("submit", async (e) => {
   if (!d.name || !/^[6-9]\d{9}$/.test(d.mobile) || !d.problem || !d.device) {
     return showErr("Please fill your name, a valid 10-digit mobile number, the device / service and the problem.");
   }
+  if (d.website) return success(d, null, true); // spam trap: pretend it worked
   showErr("");
-  if (!SHEET) return success(d, false);
   const btn = $("submitBtn"); btn.disabled = true; btn.textContent = "Sending…";
-  let j = null;
-  try {
-    // text/plain keeps this a "simple" request, which Google Apps Script accepts from any website
-    const r = await fetch(SHEET, { method: "POST", body: JSON.stringify(d) });
-    j = await r.json().catch(() => ({ ok: r.ok }));
-  } catch {}
-  if (j && j.ok) return success({ ...d, claimId: j.id || d.claimId }, true);
-  if (j && j.error) {
-    btn.disabled = false; btn.textContent = "Submit warranty claim";
-    return showErr(j.error);
-  }
-  {
-    try {
-      // Fallback for browsers that block reading the reply: send anyway, then confirm on screen
-      await fetch(SHEET, { method: "POST", mode: "no-cors", body: JSON.stringify(d) });
-      success(d, true);
-    } catch {
-      btn.disabled = false; btn.textContent = "Submit warranty claim";
-      showErr("Couldn't send right now. Please try again, or WhatsApp us on +91 92204 00950.");
-    }
-  }
+  let job = null;
+  try { job = await createJob(d); } catch (err) { console.warn("warranty job not created:", err); }
+  const sheetOk = await toSheet({ ...d, jobCode: job ? job.code : "", trackUrl: job ? trackUrl(job.id) : "" });
+  btn.disabled = false; btn.textContent = "Submit warranty claim";
+  success(d, job, sheetOk);
 });
 </script>
 </body>

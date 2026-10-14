@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Invoice</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=6"></script>
+<script src="/zipphive-config.js?v=7"></script>
 <style>
 :root{--teal:#0B7F7D;--deep:#053E40;--y:#FFC72C;--ink:#0F2424;--muted:#5B6F6F;--line:#DCE8E7;--bg:#F5FAF9;--tint:#E8F5F4;--red:#C62828;--redlt:#FDECEC;--green:#1E8E3E;--greenlt:#E6F4EA;--wa:#1FAF54}
 *{box-sizing:border-box}
@@ -67,7 +67,7 @@ table{width:100%;border-collapse:collapse}
 <body>
 <div id="app"><div class="msg">Loading…</div></div>
 <script type="module">
-import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare } from "/zh-ops.js?v=6";
+import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare, payInfo, isWarranty } from "/zh-ops.js?v=7";
 
 const app = document.getElementById("app");
 const id = new URLSearchParams(location.search).get("b");
@@ -103,32 +103,40 @@ function qcSection(b) {
 }
 
 function invoiceSection(b, biz) {
-  const p = b.payment;
-  if (!p) return `<div class="payline due">Invoice will appear here automatically once the technician records the payment.</div>`;
-  const paid = p.status === "paid";
-  const amt = paid ? Number(p.amount) || 0 : Number(b.price) || 0;
-  const quote = b.price != null ? Number(b.price) : null;
-  const desc = `${b.device ? esc(b.device) + " – " : ""}${esc(b.item || b.service)}`;
+  if (!b.payment) return `<div class="payline due">Invoice will appear here automatically once the technician records the payment.</div>`;
+  const pi = payInfo(b), W = isWarranty(b);
+  const desc = `${b.device ? esc(b.device) + " – " : ""}${esc(b.item || b.service)}<small>${W ? `Warranty claim ${esc(b.warranty?.claimId || "")}${b.warranty?.invoiceNo || b.warranty?.origCode ? ` · original ${esc(b.warranty.invoiceNo || b.warranty.origCode)}` : ""}` : esc(b.service || "Repair service")}</small>`;
+  const quote = b.price != null && !W ? Number(b.price) : null;
   const lines = [];
-  if (quote != null && paid && amt !== quote) {
-    lines.push([desc + `<small>${esc(b.service || "Repair service")}</small>`, quote]);
-    lines.push([(amt > quote ? "Additional charges" : "Discount") + (p.note ? `<small>${esc(p.note)}</small>` : ""), amt - quote]);
-  } else lines.push([desc + `<small>${esc(b.service || "Repair service")}</small>`, amt]);
+  if (pi.state === "unpaid") {
+    lines.push([desc, pi.charge]);
+    if (pi.discount) lines.push([`Discount<small>${esc(pi.reason)}</small>`, -pi.discount]);
+  } else {
+    // charge (split out extra charges vs the quote), then any discount / warranty cover
+    if (quote != null && pi.charge !== quote && !(pi.discount && pi.charge === quote)) {
+      lines.push([desc, quote]);
+      lines.push([(pi.charge > quote ? "Additional charges" : "Price adjustment") + (pi.reason && !pi.discount ? `<small>${esc(pi.reason)}</small>` : ""), pi.charge - quote]);
+    } else lines.push([desc, pi.charge]);
+    if (pi.discount) lines.push([(pi.discountType === "warranty" || (W && pi.state === "free") ? "Covered under warranty" : pi.discountType === "full" ? "Discount (100%)" : "Discount") + (pi.reason ? `<small>${esc(pi.reason)}</small>` : ""), -pi.discount]);
+  }
+  const total = pi.state === "unpaid" ? Math.max(0, pi.charge - pi.discount) : pi.amount;
   return `
     <table class="items"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>
       ${lines.map(([d, v]) => `<tr><td>${d}</td><td>${v < 0 ? "− " + rupees(-v) : rupees(v)}</td></tr>`).join("")}
-      <tr class="total"><td>${paid ? "Total paid" : "Amount due"}</td><td>${rupees(amt)}</td></tr>
+      <tr class="total"><td>${pi.state === "unpaid" ? "Amount due" : pi.state === "free" ? "Total payable" : "Total paid"}</td><td>${rupees(total)}</td></tr>
     </tbody></table>
-    ${paid
-      ? `<div class="payline">✓ Paid ${rupees(amt)} by ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""} · ${when(p.at)}${p.by ? ` · collected by ${esc(p.by)}` : ""}</div>`
-      : `<div class="payline due">Payment pending${p.note ? ` — ${esc(p.note)}` : ""}. Please contact ZippHive on ${esc(biz.phone)}.</div>`}`;
+    ${pi.state === "paid"
+      ? `<div class="payline">✓ Paid ${rupees(pi.amount)} by ${esc(pi.mode)}${pi.ref ? ` · Ref ${esc(pi.ref)}` : ""} · ${when(pi.at)}${pi.by ? ` · collected by ${esc(pi.by)}` : ""}</div>`
+      : pi.state === "free"
+      ? `<div class="payline">✓ No payment needed — ${W || pi.discountType === "warranty" ? "covered under ZippHive warranty" : "100% discount"} · ${when(pi.at)}${pi.by ? ` · ${esc(pi.by)}` : ""}</div>`
+      : `<div class="payline due">Payment pending${pi.note ? ` — ${esc(pi.note)}` : ""}. Please contact ZippHive on ${esc(biz.phone)}.</div>`}`;
 }
 
 function render(b) {
   if (!id) { app.innerHTML = `<div class="msg"><h2>Invoice not found</h2><p>Please open the link ZippHive sent you.</p></div>`; return; }
   if (b === null) { app.innerHTML = `<div class="msg"><h2>Invoice not found</h2><p>This link may be wrong. Please contact ZippHive.</p></div>`; return; }
   const biz = business();
-  const p = b.payment, paid = p?.status === "paid";
+  const p = b.payment, pst = payInfo(b).state, paid = pst === "paid" || pst === "free";
   const title = p ? "Invoice" : "Service report";
   document.title = `${p ? "ZippHive Invoice " + invoiceNo(b) : "ZippHive Service Report " + b.code}`;
   const share = `Hi, here is the ZippHive ${p ? "invoice" : "service report"} for booking ${b.code}: ${invoiceUrl(b.id)}`;
@@ -137,7 +145,7 @@ function render(b) {
     <button class="btn" onclick="window.print()">⬇️ Download / Print PDF</button>
     <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">Share on WhatsApp</a>
     <a class="btn o" href="${trackUrl(b.id)}">← Back to tracking</a>
-    ${b.status === "completed" ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Raise warranty claim</a>` : ""}
+    ${b.status === "completed" && !isWarranty(b) ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Raise warranty claim</a>` : ""}
   </div>
   <div class="doc">
     <div class="head">
@@ -145,7 +153,7 @@ function render(b) {
       <div class="meta"><h2>${title.toUpperCase()}</h2>
         ${p ? `<div>Invoice no: <b>${esc(invoiceNo(b))}</b></div><div>Date: <b>${when(p.at)}</b></div>` : ""}
         <div>Booking: <b>${esc(b.code)}</b></div>
-        ${p ? `<div class="stamp ${paid ? "" : "due"}">${paid ? "PAID" : "DUE"}</div>` : ""}</div>
+        ${p ? `<div class="stamp ${paid ? "" : "due"}">${pst === "free" ? (isWarranty(b) ? "WARRANTY · ₹0" : "NO CHARGE") : paid ? "PAID" : "DUE"}</div>` : ""}</div>
     </div>
     <div class="cols">
       <div class="box"><h3>Billed to</h3><p><b>${esc(b.name)}</b></p><p>${esc(mask(b.mobile))}</p><p>${esc(b.area)}, Patna</p></div>

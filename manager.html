@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Store Manager</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=6"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=6" />
+<script src="/zipphive-config.js?v=7"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=7" />
 <style>
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
@@ -16,6 +16,7 @@
 .kpi span{font-size:13px;color:var(--muted);font-weight:600}
 .kpi.k-new{border-left-color:var(--y)}.kpi.k-need{border-left-color:var(--red)}.kpi.k-wait{border-left-color:#E8A317}.kpi.k-act{border-left-color:var(--teal)}.kpi.k-done{border-left-color:var(--green)}
 .kpi.k-cash{border-left-color:#7B5CD6}.kpi small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.pill.wty{background:#053E40;color:#FFC72C}
 .flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .flag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:#FFF1E0;color:#8A4B00}
 .flag.red{background:var(--redlt);color:var(--red)}
@@ -64,7 +65,7 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees } from "/zh-ops.js?v=6";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty } from "/zh-ops.js?v=7";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
@@ -75,7 +76,7 @@ const isToday = (t) => t && new Date(t).toDateString() === new Date().toDateStri
 const isAdmin = () => S.user && admins().includes(S.user.email);
 
 function counts() {
-  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0 };
+  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0, free: 0 };
   for (const b of S.bookings || []) {
     const s = stage(b);
     if (s === "new") c.new++;
@@ -84,6 +85,7 @@ function counts() {
     else if (s === "active") c.act++;
     else if (s === "done" && isToday(b.statusAt)) c.done++;
     const p = b.payment;
+    if (p && p.status === "free" && isToday(p.at)) c.free++;
     if (p && p.status === "paid" && isToday(p.at)) { c.cash += Number(p.amount) || 0; c.modes[p.mode] = (c.modes[p.mode] || 0) + (Number(p.amount) || 0); }
     if (p && p.status === "not_collected" && b.status !== "cancelled") c.unpaid++;
   }
@@ -107,6 +109,7 @@ function visible() {
         case "active": return s === "active";
         case "done": return s === "done";
         case "cancelled": return s === "cancelled";
+        case "warranty": return isWarranty(b) && s !== "cancelled";
         default: return true;
       }
     })
@@ -155,9 +158,9 @@ function assignBox(b) {
       ${["assigned"].includes(b.status) ? `<button class="btn link" data-act="unassign" data-id="${b.id}">Take job back</button>` : ""}</div>`;
   }
   if (s === "done") {
-    const p = b.payment;
-    return `<div class="asg ${p && p.status !== "paid" ? "need" : "ok"}"><div class="t">Completed ${when(b.statusAt)}</div><div class="note">by ${esc(b.techName || "—")}</div>
-      <div class="note"><b>${p ? (p.status === "paid" ? `💰 ${rupees(p.amount)} · ${esc(p.mode)}` : "⚠ Payment not collected") : "No payment recorded"}</b></div></div>`;
+    const pi = payInfo(b);
+    return `<div class="asg ${pi.state === "unpaid" ? "need" : "ok"}"><div class="t">Completed ${when(b.statusAt)}</div><div class="note">by ${esc(b.techName || "—")}</div>
+      <div class="note"><b>${pi.state === "paid" ? `💰 ${rupees(pi.amount)} · ${esc(pi.mode)}` : pi.state === "free" ? `🛡️ ${esc(pi.label)}` : pi.state === "unpaid" ? "⚠ Payment not collected" : "No payment recorded"}</b></div></div>`;
   }
   return `<div class="asg"><div class="t">Cancelled</div><div class="note">${when(b.statusAt)}</div></div>`;
 }
@@ -168,14 +171,14 @@ function card(b) {
   const etaVal = S.draft.eta[b.id] ?? b.eta ?? "";
   return `<div class="card bk">
     <div>
-      <div class="row"><b>${esc(b.code)}</b><span class="pill ${esc(b.status)}">${esc(STATUS[b.status] || b.status)}</span><span class="muted">${ago(b.createdAt)}</span></div>
+      <div class="row"><b>${esc(b.code)}</b>${isWarranty(b) ? `<span class="pill wty">🛡️ Warranty ${esc(b.warranty?.claimId || "")}</span>` : ""}<span class="pill ${esc(b.status)}">${esc(STATUS[b.status] || b.status)}</span><span class="muted">${ago(b.createdAt)}</span></div>
       <h3>${b.device ? esc(b.device) + " – " : ""}${esc(b.item || b.service)}${b.price ? ` · ₹${Number(b.price).toLocaleString("en-IN")}` : ""}</h3>
       ${b.problem ? `<div class="muted">${esc(b.problem)}</div>` : ""}
       <div class="meta"><b>${esc(b.name)}</b> · <a href="tel:+91${esc(b.mobile)}">${esc(b.mobile)}</a> · ${esc(b.area)} · ${esc(b.time)}</div>
       ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
       ${flags(b)}
       ${b.preQc || b.payment ? `<div class="row" style="margin-top:8px"><a class="btn sm o" href="${invoiceUrl(b.id)}" target="_blank" rel="noopener">🧾 ${b.payment ? "Invoice & QC report" : "QC report"}</a>${b.payment ? `<a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, `Hi ${b.name}, your ZippHive invoice & quality check report for booking ${b.code}: ${invoiceUrl(b.id)}`)}">Send invoice</a>` : ""}</div>` : ""}
-      ${b.preQc || b.postQc || b.payment || b.techRemarks ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
+      ${b.preQc || b.postQc || b.payment || b.techRemarks || isWarranty(b) ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
       ${open ? `<div class="foot">
         <input class="in" style="width:150px;min-height:34px" id="eta-${b.id}" data-eta="${b.id}" placeholder="ETA e.g. 4:30 PM" value="${esc(etaVal)}" aria-label="ETA for ${esc(b.code)}">
         <button class="btn sm g" data-act="eta" data-id="${b.id}">Save ETA</button>
@@ -195,8 +198,12 @@ function flags(b) {
   if (b.preQc && pre.fault) f.push(`<span class="flag">${pre.fault} not OK before repair</span>`);
   if (cmp.newIssues.length) f.push(`<span class="flag red">⚠ ${cmp.newIssues.length} new issue after repair</span>`);
   else if (b.postQc?.doneAt && !post.fault) f.push(`<span class="flag green">✓ All OK after repair</span>`);
-  if (b.payment?.status === "not_collected") f.push(`<span class="flag red">Unpaid</span>`);
-  else if (b.payment && b.price && Number(b.payment.amount) !== Number(b.price)) f.push(`<span class="flag">Paid ${rupees(b.payment.amount)} vs quote ${rupees(b.price)}</span>`);
+  const pi = payInfo(b);
+  if (pi.state === "unpaid") f.push(`<span class="flag red">Unpaid</span>`);
+  else if (pi.state === "free") f.push(`<span class="flag green">🛡️ ${esc(pi.label)}</span>`);
+  else if (pi.state === "paid" && pi.discount) f.push(`<span class="flag">Discount ${rupees(pi.discount)}${pi.reason ? " – " + esc(pi.reason) : ""}</span>`);
+  else if (pi.state === "paid" && b.price && pi.amount !== Number(b.price)) f.push(`<span class="flag">Paid ${rupees(pi.amount)} vs quote ${rupees(b.price)}</span>`);
+  if (isWarranty(b) && b.warranty?.photo && !b.preQc) f.push(`<a class="flag" href="${esc(b.warranty.photo)}" target="_blank" rel="noopener">📷 Customer photo</a>`);
   if (b.techRemarks) f.push(`<span class="flag">📝 Remarks</span>`);
   return f.length ? `<div class="flags">${f.join("")}</div>` : "";
 }
@@ -251,12 +258,12 @@ function dashboard() {
       ${kpi("k-wait", "waiting", c.wait, "Waiting for accept")}
       ${kpi("k-act", "active", c.act, "On the job")}
       ${kpi("k-done", "done", c.done, "Completed today")}
-      ${kpi("k-cash", "done", rupees(c.cash), "Collected today", [Object.entries(c.modes).map(([m, v]) => `${m} ${rupees(v)}`).join(" · "), c.unpaid ? `${c.unpaid} unpaid` : ""].filter(Boolean).join(" · "))}
+      ${kpi("k-cash", "done", rupees(c.cash), "Collected today", [Object.entries(c.modes).map(([m, v]) => `${m} ${rupees(v)}`).join(" · "), c.unpaid ? `${c.unpaid} unpaid` : "", c.free ? `${c.free} free` : ""].filter(Boolean).join(" · "))}
     </div>
     <div class="layout">
       <main>
         <div class="bar">
-          ${chip("action", "Needs action", n("action"))}${chip("waiting", "Waiting", n("waiting"))}${chip("active", "In progress", n("active"))}${chip("done", "Completed")}${chip("cancelled", "Cancelled")}${chip("all", "All")}
+          ${chip("action", "Needs action", n("action"))}${chip("waiting", "Waiting", n("waiting"))}${chip("active", "In progress", n("active"))}${chip("done", "Completed")}${chip("warranty", "🛡️ Warranty", (S.bookings || []).filter((b) => isWarranty(b) && !CLOSED.includes(b.status)).length)}${chip("cancelled", "Cancelled")}${chip("all", "All")}
           <input class="in" id="q" placeholder="Search name, mobile, code…" value="${esc(S.q)}" aria-label="Search bookings">
         </div>
         ${S.bookings === null ? `<div class="card empty">Loading bookings…</div>` : v.length ? v.map(card).join("") : `<div class="card empty">${S.filter === "action" ? "All caught up — nothing needs you right now." : "Nothing here."}</div>`}

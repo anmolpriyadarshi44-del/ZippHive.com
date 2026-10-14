@@ -24,7 +24,7 @@ const ALERT_EMAIL = "zipphive@gmail.com";
 const HEADERS = [
   "Received at", "Claim ID", "Status", "Customer name", "Mobile", "Area", "Booking code", "Invoice no",
   "Device / service", "Original repair", "Repair date", "Technician", "Problem now", "Since when",
-  "Photo", "Source page", "Staff notes",
+  "Photo", "Warranty job", "Tracking link", "Source page", "Staff notes",
 ];
 
 function doPost(e) {
@@ -58,7 +58,7 @@ function doPost(e) {
       sh.appendRow([
         new Date(), id, "New", clean(d.name, 80), "'" + mobile, clean(d.area, 80), clean(d.bookingCode, 20), clean(d.invoiceNo, 20),
         clean(d.device, 120), clean(d.repair, 160), clean(d.repairDate, 40), clean(d.technician, 80),
-        clean(d.problem, 1000), clean(d.since, 60), photo, clean(d.page, 200), "",
+        clean(d.problem, 1000), clean(d.since, 60), photo, clean(d.jobCode, 12), clean(d.trackUrl, 200), clean(d.page, 200), "",
       ]);
     } finally {
       lock.releaseLock();
@@ -73,6 +73,8 @@ function doPost(e) {
           `Booking: ${clean(d.bookingCode, 20) || "—"}  Invoice: ${clean(d.invoiceNo, 20) || "—"}`,
           `Device / service: ${clean(d.device, 120)}`, `Original repair: ${clean(d.repair, 160)} (${clean(d.repairDate, 40) || "date not given"})`,
           `Problem now: ${clean(d.problem, 1000)}`, `Since: ${clean(d.since, 60)}`, photo ? `Photo: ${photo}` : "",
+          d.jobCode ? `Warranty job ${clean(d.jobCode, 12)} is on the store manager dashboard – assign a technician there.` : "",
+          d.trackUrl ? `Customer tracking: ${clean(d.trackUrl, 200)}` : "",
           ``, `Sheet: https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`,
         ].filter((x) => x !== "").join("\n"),
       });
@@ -93,6 +95,9 @@ function sheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const sh = SHEET_TAB ? ss.getSheetByName(SHEET_TAB) || ss.insertSheet(SHEET_TAB) : ss.getSheets()[0];
   if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
+  // keep the header row in step with HEADERS (the sheet was created with an earlier column list)
+  const head = sh.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  if (head.join("|") !== HEADERS.join("|") && sh.getLastRow() <= 1) sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   if (sh.getFrozenRows() === 0) {
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold").setBackground("#053E40").setFontColor("#FFFFFF");
