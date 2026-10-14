@@ -13,5 +13,5 @@ window.ZIPPHIVE = {
   upiId: "",
   upiName: "ZippHive",
   // Google Apps Script web-app URL for warranty claims (see apps-script/warranty-claims.gs). Empty = claims go to WhatsApp.
-  warrantySheetUrl: ""
+  warrantySheetUrl: "https://script.google.com/macros/s/AKfycbyZgBPgH81ZVbVh9VQ0sz6hY_MaqCCf4lROaDqL0TV5E-fFRcrV6xOkOyhiGh_N8do0/exec"
 };
