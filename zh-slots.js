@@ -1,7 +1,7 @@
 // ZippHive time slots: calendar date + hourly slot picker for bookings, and the shared slot rules.
 // Settings live in Firestore content/slots (edited on /slots.html); usage counters in slotUse/{date}.
 // Used by the homepage booking form and the AI assistant's booking forms (<zh-slot-picker service="…">).
-import { backend } from "/zh-ops.js?v=13";
+import { backend } from "/zh-ops.js?v=14";
 
 export const SLOT_CATS = [
   { id: "phone", label: "Mobile repair", dur: 60 },
@@ -52,6 +52,14 @@ export function daySlots(cfg, use, date, cat, now = Date.now()) {
     const at = fromYmd(date).getTime() + Number(h.slice(0, 2)) * 3600e3;
     const past = at - now < (cfg.leadMins || 0) * 60e3;
     return { h, label: slotLabel(h, cat), cap, used, left: Math.max(0, cap - used), past, key: `${date}/${cat}_${h}` };
+  });
+}
+// Before a service is chosen: an hour is open if any service still has room in it
+export function anySlots(cfg, use, date, now = Date.now()) {
+  const per = SLOT_CATS.map((c) => daySlots(cfg, use, date, c.id, now));
+  return per[0].map((x, i) => {
+    const best = per.reduce((a, l) => (l[i].left > a.left ? l[i] : a), per[0][i]);
+    return { ...x, cap: Math.max(...per.map((l) => l[i].cap)), left: best.left, label: slotLabel(x.h, "phone"), key: "" };
   });
 }
 export const slotText = (date, h, cat) => `${dayLabel(date)}, ${slotLabel(h, cat)}`; // stored as booking.time (≤ 40 chars)
@@ -133,15 +141,16 @@ class SlotPicker extends HTMLElement {
   refresh() { return this.load(true); }
   days() {
     const { cfg, use } = this.state.data;
-    return nextDays(cfg.days).map((d) => {
-      const s = daySlots(cfg, use, d, this.cat), open = s.filter((x) => !x.past && x.left > 0).length;
+    const list = nextDays(cfg.days).map((d) => {
+      const s = this.cat ? daySlots(cfg, use, d, this.cat) : anySlots(cfg, use, d), open = s.filter((x) => !x.past && x.left > 0).length;
       return { d, open, closed: isDayClosed(cfg, d), s };
     });
+    // today has no slots left → start the calendar from tomorrow
+    if (list.length > 4 && !list[0].open) list.shift();
+    return list;
   }
   // keep the current choice if still free, otherwise pick the earliest free slot
   choose(reset) {
-    const cat = this.cat;
-    if (!cat) { this.set("", ""); return this.render(); }
     const days = this.days();
     let day = days.find((x) => x.d === this.state.date && !reset) || days.find((x) => x.d === this.state.date);
     const ok = (x) => x && !x.past && x.left > 0;
@@ -155,8 +164,8 @@ class SlotPicker extends HTMLElement {
   set(date, h) {
     const cat = this.cat;
     this.state.h = h;
-    const val = date && h ? slotText(date, h, cat) : cat ? NO_SLOT : "";
-    const key = date && h ? `${date}/${cat}_${h}` : "";
+    const val = date && h ? slotText(date, h, cat || "phone") : NO_SLOT;
+    const key = date && h && cat ? `${date}/${cat}_${h}` : ""; // counted only once the service is known
     if (val === this.value && key === this.slotKey) return;
     this.value = val; this.slotKey = key;
     if (key) picked[val] = key;
@@ -178,11 +187,11 @@ class SlotPicker extends HTMLElement {
   render() {
     const r = this.shadowRoot;
     if (!this.state.data) { r.innerHTML = `<style>${CSS}</style><div class="msg">Loading open slots…</div>`; return; }
-    if (!this.cat) { r.innerHTML = `<style>${CSS}</style><div class="msg">Choose a service to see open time slots.</div>`; return; }
     const keep = r.querySelector(".days")?.scrollLeft || 0;
     const days = this.days(), today = nextDays(2);
+    if (!days.length) { r.innerHTML = `<style>${CSS}</style><div class="msg">Loading open slots…</div>`; return; }
     const day = days.find((x) => x.d === this.state.date) || days[0];
-    const cat = SLOT_CATS.find((c) => c.id === this.cat);
+    const cat = SLOT_CATS.find((c) => c.id === this.cat) || { id: "", label: "service" };
     const dayBtn = (x) => {
       const dt = fromYmd(x.d);
       const top = x.d === today[0] ? "Today" : x.d === today[1] ? "Tmrw" : dt.toLocaleDateString("en-IN", { weekday: "short" });
@@ -191,13 +200,14 @@ class SlotPicker extends HTMLElement {
     };
     const times = day.s.filter((x) => x.cap > 0).map((x) => {
       const ok = !x.past && x.left > 0;
-      return `<button type="button" class="t ${x.h === this.state.h && ok ? "on" : ""} ${ok && x.left === 1 ? "low" : ""}" data-h="${x.h}" ${ok ? "" : "disabled"}>${x.label}<small>${x.past ? "Not available" : x.left ? (x.left === 1 ? "1 slot left" : `${x.left} slots left`) : "Full"}</small></button>`;
+      return `<button type="button" class="t ${x.h === this.state.h && ok ? "on" : ""} ${ok && x.left === 1 ? "low" : ""}" data-h="${x.h}" ${ok ? "" : "disabled"}>${x.label}<small>${x.past ? "Not available" : x.left && !this.cat ? "Open" : x.left ? (x.left === 1 ? "1 slot left" : `${x.left} slots left`) : "Full"}</small></button>`;
     }).join("");
     r.innerHTML = `<style>${CSS}</style>
       <div class="days" role="group" aria-label="Choose a date">${days.map(dayBtn).join("")}</div>
       ${!days.some((x) => x.open) ? `<div class="msg warn">All ${cat.label.toLowerCase()} slots for the next ${days.length} days are booked. Book anyway and we'll call you with the earliest time.</div>`
         : times ? `<div class="times" role="group" aria-label="Choose a time">${times}</div>` : `<div class="msg">No slots on this day.</div>`}
-      ${this.slotKey ? `<div class="sel">📅 ${this.value}${cat.id === "cleaning" ? " · 45 min" : ""}</div>` : ""}`;
+      ${this.slotKey ? `<div class="sel">📅 ${this.value}${cat.id === "cleaning" ? " · 45 min" : ""}</div>`
+        : this.state.h ? `<div class="sel">📅 ${this.value} <span style="font-weight:600;color:#8A5A00">· choose your service to confirm this slot</span></div>` : ""}`;
     const strip = r.querySelector(".days");
     if (strip) strip.scrollLeft = keep;
   }
