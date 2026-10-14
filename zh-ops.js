@@ -28,6 +28,7 @@ export const cfg = () => window.ZIPPHIVE || {};
 export const admins = () => (cfg().admins || ["zipphive@gmail.com"]).map((e) => e.toLowerCase());
 export const siteUrl = () => (cfg().siteUrl || location.origin).replace(/\/$/, "");
 export const trackUrl = (id) => `${siteUrl()}/track.html?b=${id}`;
+export const reviewUrl = () => (cfg().googleReviewUrl || "").trim();
 export const invoiceUrl = (id) => `${siteUrl()}/invoice.html?b=${id}`;
 export const business = () => ({
   name: "ZippHive", tagline: "Doorstep phone & home repairs", address: "Patna, Bihar",

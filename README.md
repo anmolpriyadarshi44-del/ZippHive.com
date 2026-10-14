@@ -92,3 +92,7 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - A claim on `/warranty.html` now **creates a job** (`kind: "warranty"`, price ₹0) in the same `bookings` collection, so it appears on `/manager.html` (🛡️ Warranty filter), is assigned and accepted like any booking, and the customer gets the normal tracking link. The claim is also copied to the Google Sheet (with the job code and tracking link) when `warrantySheetUrl` is set.
 - Technician payment step: total charge → discount (**No discount / ₹ Discount / 100% free**, reason required) → "Customer pays". When it's ₹0 the technician taps "Confirm — no payment needed" and the invoice shows ₹0 (stamp "WARRANTY · ₹0" or "NO CHARGE"). Warranty jobs default to free.
 - Needs the updated `firestore.rules` published (allows `kind: "warranty"` bookings from the website).
+
+## Thank-you & Google review
+- When a job is **completed**, the customer's tracking page shows a thank-you card with a **Rate us on Google** button and a WhatsApp feedback link. The review link is also added to the technician's WhatsApp invoice message and the invoice footer.
+- Set `googleReviewUrl` in `zipphive-config.js` (Google Business Profile → *Ask for reviews* → copy link). While empty, the thank-you card shows without the Google button.
