@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Store Manager</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=9"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=9" />
+<script src="/zipphive-config.js?v=10"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=10" />
 <style>
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
@@ -65,7 +65,7 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty } from "/zh-ops.js?v=9";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty } from "/zh-ops.js?v=10";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
@@ -136,7 +136,8 @@ function assignBox(b) {
       <select class="in" id="pick-${b.id}" data-pick="${b.id}" aria-label="Technician for ${esc(b.code)}">${techOptions(b)}</select>
       <button class="btn sm" data-act="send" data-id="${b.id}">${label}</button>
     </div>`;
-  if (s === "new") return `<div class="asg new"><div class="t">New booking — confirm and send to a technician</div>${pick("Send job")}<button class="btn sm o" data-act="confirm" data-id="${b.id}">Only confirm for now</button></div>`;
+  if (s === "new") return `<div class="asg new"><div class="t">New booking — confirm it and send to a technician</div>
+    <button class="btn sm wa" data-act="confirm-wa" data-id="${b.id}">✅ Confirm &amp; send WhatsApp</button>${pick("Send job")}</div>`;
   if (s === "unassigned") return `<div class="asg need"><div class="t red">No technician yet</div>${pick("Send job")}</div>`;
   if (s === "declined") return `<div class="asg need"><div class="t red">✋ ${esc(b.declinedByName || "Technician")} declined${b.declineReason ? ` — “${esc(b.declineReason)}”` : ""}</div><div class="note">${ago(b.declinedAt)} · choose someone else</div>${pick("Send job")}</div>`;
   if (s === "waiting") {
@@ -182,7 +183,7 @@ function card(b) {
       ${open ? `<div class="foot">
         <input class="in" style="width:150px;min-height:34px" id="eta-${b.id}" data-eta="${b.id}" placeholder="ETA e.g. 4:30 PM" value="${esc(etaVal)}" aria-label="ETA for ${esc(b.code)}">
         <button class="btn sm g" data-act="eta" data-id="${b.id}">Save ETA</button>
-        <a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, trackMsg(b))}">Send tracking link</a>
+        ${b.status !== "new" ? `<button class="btn sm wa" data-act="confirm-wa" data-id="${b.id}">${b.confirmSentAt ? "Resend tracking link" : "📲 Send confirmation"}</button>` : ""}
         <button class="btn sm o" data-act="copy" data-id="${b.id}">Copy link</button>
         <a class="btn sm g" href="${trackUrl(b.id)}" target="_blank" rel="noopener">Customer view</a>
         <button class="btn sm r" data-act="cancel" data-id="${b.id}">Cancel</button>
@@ -205,11 +206,23 @@ function flags(b) {
   else if (pi.state === "paid" && b.price && pi.amount !== Number(b.price)) f.push(`<span class="flag">Paid ${rupees(pi.amount)} vs quote ${rupees(b.price)}</span>`);
   if (isWarranty(b) && b.warranty?.photo && !b.preQc) f.push(`<a class="flag" href="${esc(b.warranty.photo)}" target="_blank" rel="noopener">📷 Customer photo</a>`);
   if (b.techRemarks) f.push(`<span class="flag">📝 Remarks</span>`);
+  if (!b.confirmSentAt && !["new", "completed", "cancelled"].includes(b.status)) f.unshift(`<span class="flag red">📲 Confirmation not sent</span>`);
   return f.length ? `<div class="flags">${f.join("")}</div>` : "";
 }
 
-const trackMsg = (b) =>
-  `Hi ${b.name}, your ZippHive booking ${b.code} is confirmed ✅${b.techName ? `\nTechnician: ${b.techName}${b.techPhone ? ` (${b.techPhone})` : ""}` : ""}${b.eta ? `\nExpected: ${b.eta}` : ""}\nTrack live: ${trackUrl(b.id)}`;
+// WhatsApp confirmation the store sends once it has received / accepted the booking
+const trackMsg = (b) => [
+  `Hi ${b.name}, your ZippHive booking *${b.code}* is confirmed ✅`,
+  ``,
+  `🛠️ ${b.device ? b.device + " – " : ""}${b.item || b.service}${b.price ? ` · ₹${Number(b.price).toLocaleString("en-IN")}` : isWarranty(b) ? " · warranty (free if covered)" : ""}`,
+  `📍 ${b.area}, Patna · ${b.time}`,
+  b.techName ? `👨‍🔧 Technician: ${b.techName}${b.techPhone ? ` (${b.techPhone})` : ""}` : `👨‍🔧 We're assigning a verified technician now.`,
+  b.eta ? `🕒 Expected: ${b.eta}` : "",
+  ``,
+  `Track your technician live: ${trackUrl(b.id)}`,
+  ``,
+  `Pay after the work is done – UPI, card or cash. Questions? Just reply here.`,
+].filter((l, i, a) => l !== "" || (a[i - 1] !== "" && i > 0)).join("\n");
 
 function techPanel() {
   const rows = S.techs.slice().sort((a, b) => (a.active === false) - (b.active === false) || a.name.localeCompare(b.name)).map((t) => {
@@ -302,6 +315,38 @@ function softRender() {
 }
 app.addEventListener("focusout", () => setTimeout(() => { if (deferred) { deferred = false; softRender(); } }, 0));
 
+// New-booking alert: chime + tab title, since website bookings land here directly (not on WhatsApp)
+let seenNew = null, actx = null;
+function chime() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18, 0.36].forEach((d, i) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = [660, 880, 990][i]; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.22, actx.currentTime + d); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + d + 0.25);
+      o.start(actx.currentTime + d); o.stop(actx.currentTime + d + 0.27);
+    });
+  } catch {}
+}
+function alertNew(list) {
+  const fresh = list.filter((b) => b.status === "new");
+  const ids = new Set(fresh.map((b) => b.id));
+  if (seenNew) {
+    const added = fresh.filter((b) => !seenNew.has(b.id));
+    if (added.length) {
+      chime();
+      toast(`🔔 New booking: ${added[0].name} · ${added[0].device ? added[0].device + " – " : ""}${added[0].item || added[0].service}`);
+      try { if (document.hidden && Notification.permission === "granted") new Notification("New ZippHive booking", { body: `${added[0].name} · ${added[0].area}`, icon: "/zh-icon.png" }); } catch {}
+    }
+  }
+  seenNew = ids;
+  document.title = ids.size ? `(${ids.size}) New booking – ZippHive Manager` : "ZippHive Store Manager";
+}
+document.addEventListener("click", () => {
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume?.(); } catch {}
+  try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch {}
+}, { once: true });
+
 const find = (id) => (S.bookings || []).find((b) => b.id === id);
 const run = (p, ok) => p.then(() => ok && toast(ok)).catch((e) => toast("Failed: " + (e.message || e), true));
 const loadTechs = () => S.be.listTechs().then((t) => { S.techs = t; softRender(); }).catch(() => {});
@@ -324,6 +369,13 @@ app.addEventListener("click", (e) => {
   if (act === "delmgr") return confirm(`Remove ${el.dataset.email}?`) && run(S.be.deleteManager(el.dataset.email), "Removed").then(loadMgrs);
   if (!b) return;
   if (act === "confirm") return run(actions.confirm(S.be, b), `${b.code} confirmed`);
+  if (act === "confirm-wa") {
+    // open WhatsApp first (must happen inside the click), then mark the booking confirmed + message sent
+    window.open(waLink(b.mobile, trackMsg(b)), "_blank", "noopener");
+    const patch = { confirmSentAt: Date.now() };
+    if (b.status === "new") Object.assign(patch, { status: "confirmed", statusAt: Date.now() });
+    return run(S.be.updateBooking(b.id, patch), b.status === "new" ? `${b.code} confirmed – WhatsApp opened` : "WhatsApp opened");
+  }
   if (act === "send") {
     const email = S.draft.pick[b.id];
     const t = S.techs.find((x) => x.email === email);
@@ -353,7 +405,7 @@ if (S.be) S.be.onUser(async (u) => {
   if (u) {
     S.ok = await S.be.isManager(u.email);
     if (S.ok) {
-      unsub = S.be.watchAllBookings((list) => { S.bookings = list; softRender(); }, (err) => toast("Could not load bookings: " + (err.message || err), true));
+      unsub = S.be.watchAllBookings((list) => { S.bookings = list; alertNew(list); softRender(); }, (err) => toast("Could not load bookings: " + (err.message || err), true));
       loadTechs(); loadMgrs();
     }
   }

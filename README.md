@@ -96,3 +96,8 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 ## Thank-you & Google review
 - When a job is **completed**, the customer's tracking page shows a thank-you card with a **Rate us on Google** button and a WhatsApp feedback link. The review link is also added to the technician's WhatsApp invoice message and the invoice footer.
 - Set `googleReviewUrl` in `zipphive-config.js` (Google Business Profile → *Ask for reviews* → copy link). While empty, the thank-you card shows without the Google button.
+
+## Bookings land on the dashboard (no WhatsApp step for customers)
+- The homepage form and the AI assistant now save bookings straight to Firestore. The customer sees "Booking received" with their booking ID and tracking link; WhatsApp only opens as a fallback if the booking can't be saved.
+- `/manager.html` chimes, shows a toast and puts the count in the tab title for every new booking (browser notification too, if allowed).
+- **✅ Confirm & send WhatsApp** marks the booking confirmed and opens WhatsApp with the confirmation + live tracking link for the customer (one tap to send). Bookings confirmed without it are flagged "Confirmation not sent".

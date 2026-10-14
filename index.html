@@ -9,6 +9,7 @@
 <meta property="og:title" content="ZippHive — Doorstep Home Services in Patna">
 <meta property="og:description" content="Mobile repair in 60 min, AC, appliances, plumbing, electrical & cleaning. Book in one tap.">
 <meta property="og:type" content="website">
+<script src="/zipphive-config.js?v=10"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,6 +99,12 @@ ol.next li::before{content:counter(n);flex:none;width:32px;height:32px;border-ra
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--teal);background:#fff}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-btn{width:100%;justify-content:center;margin-top:6px}
+.form-btn:disabled{opacity:.6;cursor:wait}
+.hero-card .done{text-align:center;padding:10px 4px}
+.hero-card .done .tick{width:64px;height:64px;border-radius:50%;background:#E6F4EA;color:#1E8E3E;display:grid;place-items:center;font-size:34px;margin:0 auto 10px}
+.hero-card .done h3{font-size:22px}
+.hero-card .done .bid{margin:10px 0 16px;font-size:15px}
+.hero-card .done .bid b{display:inline-block;margin-left:6px;font-size:20px;letter-spacing:.04em;border:2px dashed var(--teal);border-radius:10px;padding:2px 12px;color:var(--teal-d)}
 .err{color:#B42318;font-size:13px;margin-top:6px;display:none}
 .note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
 
@@ -291,7 +298,7 @@ footer .logo{color:#fff;margin-bottom:12px}
       <h2>Ready when you are</h2>
       <p class="sub">Tell us what needs fixing. We'll confirm on WhatsApp and send a verified technician at your chosen time.</p>
       <ol class="next">
-        <li><span><b>We call you back</b> to confirm the issue and the price.</span></li>
+        <li><span><b>We confirm on WhatsApp</b> with your tracking link.</span></li>
         <li><span><b>A technician is assigned</b> — you get a live tracking link.</span></li>
         <li><span><b>Repair at your door</b>, checked before and after. Pay after the work.</span></li>
       </ol>
@@ -299,7 +306,7 @@ footer .logo{color:#fff;margin-bottom:12px}
     </div>
     <div class="hero-card">
       <h3>Book in 30 seconds</h3>
-      <p>Fill this and confirm on WhatsApp — we'll call you back right away.</p>
+      <p>Fill this in — our team confirms on WhatsApp right away.</p>
       <form id="bookForm" novalidate>
         <div class="field"><label for="name">Your name</label><input id="name" required placeholder="e.g. Rahul Kumar" autocomplete="name"></div>
         <div class="row2">
@@ -325,7 +332,7 @@ footer .logo{color:#fff;margin-bottom:12px}
           </div>
         </div>
         <div class="field"><label for="issue">Issue (optional)</label><textarea id="issue" rows="2" placeholder="e.g. iPhone 12 screen cracked / AC not cooling"></textarea></div>
-        <button type="submit" class="btn btn-y form-btn">Confirm on WhatsApp</button>
+        <button type="submit" class="btn btn-y form-btn">Book now</button>
         <div class="err" id="err">Please fill your name, a valid 10-digit mobile number, service and area.</div>
         <p class="note">Or call <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p>
       </form>
@@ -460,16 +467,40 @@ document.addEventListener('click', e=>{
   setTimeout(()=>document.getElementById('name').focus({preventScroll:true}), 500);
 });
 
-// Booking form -> WhatsApp
-document.getElementById('bookForm').addEventListener('submit', e=>{
+// Booking form -> saved straight to the ZippHive dashboard (no WhatsApp needed).
+// The store confirms on WhatsApp with the tracking link once the job is accepted.
+let opsP = null;
+const ops = () => (opsP ||= import('/zh-ops.js?v=10').then(async m => ({ m, be: await m.backend() })));
+setTimeout(() => ops().catch(() => {}), 2500); // warm up in the background
+const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+document.getElementById('bookForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const v = id => document.getElementById(id).value.trim();
   const phone = v('phone').replace(/\D/g,'');
   const ok = v('name') && /^[6-9]\d{9}$/.test(phone) && v('service') && v('area');
   document.getElementById('err').style.display = ok ? 'none' : 'block';
   if(!ok) return;
-  const msg = `Hi ZippHive, I'd like to book a service.\n\nName: ${v('name')}\nMobile: ${phone}\nService: ${v('service')}\nArea: ${v('area')}\nPreferred time: ${v('when')}` + (v('issue') ? `\nIssue: ${v('issue')}` : '');
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+  const btn = e.target.querySelector('.form-btn'); btn.disabled = true; btn.textContent = 'Booking…';
+  const svc = v('service');
+  const data = { kind: /^Mobile/.test(svc) ? 'phone' : 'service', service: svc.slice(0,80), name: v('name').slice(0,60), mobile: phone,
+    area: v('area').slice(0,60), time: v('when').slice(0,40) };
+  if (v('issue')) data.problem = v('issue').slice(0,200);
+  let job = null;
+  try { const { m, be } = await ops(); if (be && be.createBooking) job = { ...(await be.createBooking(data)), url: null }; if (job) job.url = m.trackUrl(job.id); }
+  catch (err) { console.warn('booking not saved', err); }
+  const card = document.querySelector('#book .hero-card');
+  if (job) {
+    card.innerHTML = `<div class="done"><div class="tick">✓</div><h3>Booking received!</h3>
+      <p>Thanks ${escH(data.name.split(' ')[0])} — our team will confirm your technician and time on WhatsApp shortly.</p>
+      <div class="bid">Booking ID <b>${escH(job.code)}</b></div>
+      <a class="btn btn-y form-btn" href="${job.url}">📍 Track your booking</a>
+      <p class="note">Pay after the work is done. Questions? <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p></div>`;
+  } else {
+    // couldn't reach the dashboard: fall back to WhatsApp so the booking isn't lost
+    const msg = `Hi ZippHive, I'd like to book a service.\n\nName: ${data.name}\nMobile: ${phone}\nService: ${svc}\nArea: ${data.area}\nPreferred time: ${data.time}` + (data.problem ? `\nIssue: ${data.problem}` : '');
+    window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    btn.disabled = false; btn.textContent = 'Book now';
+  }
 });
 document.getElementById('phone').addEventListener('input', e=>{ e.target.value = e.target.value.replace(/\D/g,'').slice(0,10); });
 
@@ -484,7 +515,7 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script src="/zipphive-widget.js" data-position="right" defer></script>
+<script src="/zipphive-widget.js?v=10" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
 (function fixLauncher(n){
