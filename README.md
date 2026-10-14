@@ -93,6 +93,13 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - Technician payment step: total charge → discount (**No discount / ₹ Discount / 100% free**, reason required) → "Customer pays". When it's ₹0 the technician taps "Confirm — no payment needed" and the invoice shows ₹0 (stamp "WARRANTY · ₹0" or "NO CHARGE"). Warranty jobs default to free.
 - Needs the updated `firestore.rules` published (allows `kind: "warranty"` bookings from the website).
 
+## Warranty check (store manager approves / rejects)
+- Every warranty job shows a **🛡️ Warranty check** box on `/manager.html`: the customer's complaint and photo, the technician's pre-repair check, a "Defect / abnormality found" note, and **✅ Approve – covered (free)** or **❌ Not covered** (reason required; quick picks like physical / liquid damage, opened elsewhere, period over).
+- A warranty job whose pre-repair check is done but undecided shows "Warranty decision needed" and sits in **Needs action**. After deciding, **📲 Send decision on WhatsApp** messages the customer.
+- Customer tracking link shows *Under review → Approved → / Not covered* with the reason; the invoice shows the decision.
+- Technician app: approved → defaults to ₹0; not covered → normal charge (no warranty label on the invoice).
+- Stored as `warrantyReview: { decision, defect, reason, at, by, sentAt }`. The Google Sheet "Bookings" tab adds Warranty decision / defect / reason / decided by / at columns, and the claims tab Status follows the decision (update `bookings-sync.gs` in Apps Script and deploy a new version).
+
 ## Thank-you & Google review
 - When a job is **completed**, the customer's tracking page shows a thank-you card with a **Rate us on Google** button and a WhatsApp feedback link. The review link is also added to the technician's WhatsApp invoice message and the invoice footer.
 - Set `googleReviewUrl` in `zipphive-config.js` (Google Business Profile → *Ask for reviews* → copy link). While empty, the thank-you card shows without the Google button.

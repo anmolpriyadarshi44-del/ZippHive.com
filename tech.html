@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Technician</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=11"></script>
-<script src="/zh-qr.js?v=11"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=11" />
+<script src="/zipphive-config.js?v=12"></script>
+<script src="/zh-qr.js?v=12"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=12" />
 <style>
 .wrap{max-width:640px}
 .req{border:2px solid var(--y);background:#FFFDF5;box-shadow:0 6px 20px rgba(255,199,44,.18)}
@@ -77,7 +77,7 @@ details.remarks summary{cursor:pointer;font-weight:600;color:var(--teal);font-si
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=11";
+import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=12";
 
 const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
 const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {}, qc: {}, pay: {}, notes: {}, rem: {} };
@@ -150,9 +150,23 @@ function setQc(j, w, qc, now) {
   if (now) { clearTimeout(timers[j.id + w]); save(); } else debounce(j.id + w, save);
 }
 // Payment draft: total charge, optional discount (₹ or 100%), what the customer pays, how they paid
-const getPay = (j) => (S.pay[j.id] ||= isWarranty(j)
-  ? { charge: "0", disc: "full", discount: "", reason: "Covered under warranty", mode: "UPI", ref: "", note: "" }
-  : { charge: j.price != null ? String(j.price) : "", disc: "none", discount: "", reason: "", mode: "UPI", ref: "", note: "" });
+// warranty jobs: free only once the store manager approves; "not covered" → normal charge
+const wCovered = (j) => isWarranty(j) && warrantyInfo(j).state !== "rejected";
+const getPay = (j) => {
+  const ws = isWarranty(j) ? warrantyInfo(j).state : "";
+  if (S.pay[j.id] && S.pay[j.id]._ws === ws) return S.pay[j.id];
+  return (S.pay[j.id] = ws === "approved"
+    ? { _ws: ws, charge: "0", disc: "full", discount: "", reason: "Covered under warranty", mode: "UPI", ref: "", note: "" }
+    : { _ws: ws, charge: j.price ? String(j.price) : "", disc: "none", discount: "", reason: "", mode: "UPI", ref: "", note: "" });
+};
+// banner on a warranty job showing the store manager's decision
+function wDecision(j) {
+  const wi = warrantyInfo(j);
+  if (!wi) return "";
+  if (wi.state === "approved") return `<div class="wbanner" style="background:#E6F4EA;border-color:#1E8E3E">✅ Warranty approved by store${wi.by ? ` (${esc(wi.by)})` : ""} – repair is free for the customer.${wi.defect ? `<br><span class="muted">Defect: ${esc(wi.defect)}</span>` : ""}</div>`;
+  if (wi.state === "rejected") return `<div class="wbanner" style="background:#FDECEC;border-color:#C62828">❌ Not covered under warranty – ${esc(wi.reason)}. Share the normal repair price with the customer before starting.</div>`;
+  return `<div class="wbanner" style="background:#FFF6D9;border-color:#E8A317">⏳ Waiting for the store manager to confirm warranty. Do the pre-repair check carefully – write exactly what is faulty; the store decides from it.</div>`;
+}
 const num = (v) => Number(String(v ?? "").replace(/[^\d.]/g, "")) || 0;
 function payCalc(j, p) {
   const charge = num(p.charge);
@@ -227,16 +241,16 @@ function payPanel(j) {
   const upi = c.payable > 0 && p.mode === "UPI" ? upiLink(c.payable, j.code) : "";
   const chip = (v, label) => `<button class="${p.disc === v ? "on" : ""}" data-act="disc" data-id="${j.id}" data-v="${v}">${label}</button>`;
   return `<div class="panel paybox">
-    <h3>${W ? "Close warranty job" : "Collect payment"}</h3>
-    ${W ? `<div class="wbanner">🛡️ Warranty job — if the fault is covered, the customer pays nothing. Enter the part / service value if you want it shown on the invoice.</div>` : `<div class="due"><span class="muted">Quoted price</span><b>${rupees(j.price)}</b></div>`}
-    <label for="chg-${j.id}">${W ? "Repair value (₹)" : "Total charge (₹)"}</label>
+    <h3>${wCovered(j) ? "Close warranty job" : "Collect payment"}</h3>
+    ${W ? (warrantyInfo(j).state === "rejected" ? `<div class="wbanner" style="background:#FDECEC;border-color:#C62828">Not covered under warranty – enter the normal repair charge you agreed with the customer.</div>` : `<div class="wbanner">🛡️ Warranty job — if covered, the customer pays nothing. Enter the part / service value if you want it shown on the invoice.</div>`) : `<div class="due"><span class="muted">Quoted price</span><b>${rupees(j.price)}</b></div>`}
+    <label for="chg-${j.id}">${wCovered(j) ? "Repair value (₹)" : "Total charge (₹)"}</label>
     <input class="in" id="chg-${j.id}" data-pay="charge" data-id="${j.id}" inputmode="numeric" value="${esc(p.charge)}">
     <label>Discount</label>
-    <div class="modes disc">${chip("none", "No discount")}${chip("amount", "₹ Discount")}${chip("full", W ? "🛡️ Warranty – free" : "100% free")}</div>
+    <div class="modes disc">${chip("none", "No discount")}${chip("amount", "₹ Discount")}${chip("full", wCovered(j) ? "🛡️ Warranty – free" : "100% free")}</div>
     ${p.disc === "amount" ? `<label for="dsc-${j.id}">Discount amount (₹)</label><input class="in" id="dsc-${j.id}" data-pay="discount" data-id="${j.id}" inputmode="numeric" value="${esc(p.discount)}">` : ""}
     ${c.needReason ? `<label for="rsn-${j.id}">Reason (required)</label><input class="in" id="rsn-${j.id}" data-pay="reason" data-id="${j.id}" placeholder="${p.disc !== "none" ? "e.g. covered under warranty / loyal customer" : "e.g. extra part – back glass ₹500"}" value="${esc(p.reason)}">` : ""}
     <div class="due payable"><span>Customer pays</span><b>${rupees(c.payable)}</b></div>
-    ${c.discount ? `<div class="muted" style="text-align:right">${rupees(c.charge)} − ${p.disc === "full" ? (W ? "warranty cover" : "100% discount") : "discount"} ${rupees(c.discount)}</div>` : ""}
+    ${c.discount ? `<div class="muted" style="text-align:right">${rupees(c.charge)} − ${p.disc === "full" ? (wCovered(j) ? "warranty cover" : "100% discount") : "discount"} ${rupees(c.discount)}</div>` : ""}
     ${c.payable > 0 ? `
       <div class="modes">${PAY_MODES.map((m) => `<button class="${p.mode === m ? "on" : ""}" data-act="mode" data-id="${j.id}" data-m="${m}">${m === "UPI" ? "📱 UPI" : m === "Cash" ? "💵 Cash" : "💳 Card"}</button>`).join("")}</div>
       ${upi ? `<div class="qrbox">${qrSvg(upi)}<div class="muted">Customer scans to pay ${rupees(c.payable)} to ${esc(cfg().upiId)}</div><a class="btn sm o" style="margin-top:6px" href="${esc(upi)}">Open UPI app</a></div>` : ""}
@@ -247,7 +261,7 @@ function payPanel(j) {
       <input class="in" id="pnote-${j.id}" data-pay="note" data-id="${j.id}" placeholder="e.g. customer will pay by UPI tonight" value="${esc(p.note)}">
       <button class="btn link" style="display:block;margin:8px auto 0" data-act="unpaid" data-id="${j.id}">Customer couldn't pay now</button>`
     : `<button class="btn y big" style="margin-top:12px" data-act="paid" data-id="${j.id}" ${S.busy[j.id] ? "disabled" : ""}>✅ Confirm — no payment needed</button>
-      <p class="muted" style="text-align:center;margin:8px 0 0">The invoice will show ₹0 ${W ? "(covered under warranty)" : "(100% discount)"}.</p>`}
+      <p class="muted" style="text-align:center;margin:8px 0 0">The invoice will show ₹0 ${wCovered(j) ? "(covered under warranty)" : "(100% discount)"}.</p>`}
   </div>`;
 }
 
@@ -281,7 +295,7 @@ function jobCard(j) {
       if (!j.payment) action = qcLine + payPanel(j);
       else {
         const p = payInfo(j);
-        const receipt = `Hi ${j.name}, thank you for choosing ZippHive! ✅\nBooking ${j.code}: ${j.device ? j.device + " – " : ""}${j.item || j.service}\n${p.state === "free" ? (isWarranty(j) ? "No charge – covered under warranty" : "No charge – 100% discount") : `Paid: ${rupees(p.amount)} via ${p.mode}${p.ref ? ` (Ref ${p.ref})` : ""}${p.discount ? ` (discount ${rupees(p.discount)})` : ""}`}\nTechnician: ${S.me.name}\n\nYour invoice & quality check report: ${invoiceUrl(j.id)}${reviewUrl() ? `\n\nHappy with the service? Please rate us on Google ⭐ ${reviewUrl()}` : ""}`;
+        const receipt = `Hi ${j.name}, thank you for choosing ZippHive! ✅\nBooking ${j.code}: ${j.device ? j.device + " – " : ""}${j.item || j.service}\n${p.state === "free" ? (wCovered(j) ? "No charge – covered under warranty" : "No charge – 100% discount") : `Paid: ${rupees(p.amount)} via ${p.mode}${p.ref ? ` (Ref ${p.ref})` : ""}${p.discount ? ` (discount ${rupees(p.discount)})` : ""}`}\nTechnician: ${S.me.name}\n\nYour invoice & quality check report: ${invoiceUrl(j.id)}${reviewUrl() ? `\n\nHappy with the service? Please rate us on Google ⭐ ${reviewUrl()}` : ""}`;
         action = qcLine + (p.state !== "unpaid"
           ? `<div class="donebox">${p.state === "free" ? `🛡️ ${esc(p.label)}` : `💰 ${rupees(p.amount)} received via ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""}${p.discount ? ` · discount ${rupees(p.discount)}` : ""}`}
               <div class="row"><a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, receipt)}">Send invoice on WhatsApp</a><button class="btn link" data-act="pay-edit" data-id="${j.id}">Edit</button></div></div>`
@@ -295,7 +309,7 @@ function jobCard(j) {
     <div class="row" style="justify-content:space-between"><span><b>${esc(j.code)}</b> ${isWarranty(j) ? `<span class="wtag">🛡️ WARRANTY</span>` : ""}</span><span class="pill ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span></div>
     <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
     ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
-    ${isWarranty(j) ? `<div class="wbanner" style="display:flex;gap:10px;align-items:center">${j.warranty?.photo ? `<a href="${esc(j.warranty.photo)}" target="_blank" rel="noopener"><img class="wphoto" src="${esc(j.warranty.photo)}" alt="Customer photo"></a>` : ""}<span>Claim ${esc(j.warranty?.claimId || "")}${j.warranty?.invoiceNo || j.warranty?.origCode ? ` · original ${esc(j.warranty.invoiceNo || j.warranty.origCode)}` : ""}${j.warranty?.repairDate ? ` · repaired ${esc(j.warranty.repairDate)}` : ""}${j.warranty?.technician ? ` by ${esc(j.warranty.technician)}` : ""}${j.warranty?.origBookingId ? `<br><a href="${invoiceUrl(j.warranty.origBookingId)}" target="_blank" rel="noopener">Open original invoice & QC report →</a>` : ""}</span></div>` : ""}
+    ${isWarranty(j) ? `<div class="wbanner" style="display:flex;gap:10px;align-items:center">${j.warranty?.photo ? `<a href="${esc(j.warranty.photo)}" target="_blank" rel="noopener"><img class="wphoto" src="${esc(j.warranty.photo)}" alt="Customer photo"></a>` : ""}<span>Claim ${esc(j.warranty?.claimId || "")}${j.warranty?.invoiceNo || j.warranty?.origCode ? ` · original ${esc(j.warranty.invoiceNo || j.warranty.origCode)}` : ""}${j.warranty?.repairDate ? ` · repaired ${esc(j.warranty.repairDate)}` : ""}${j.warranty?.technician ? ` by ${esc(j.warranty.technician)}` : ""}${j.warranty?.origBookingId ? `<br><a href="${invoiceUrl(j.warranty.origBookingId)}" target="_blank" rel="noopener">Open original invoice & QC report →</a>` : ""}</span></div>${j.payment ? "" : wDecision(j)}` : ""}
     <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)}, Patna · ${esc(j.time)}${j.price ? ` · ${rupees(j.price)}` : ""}</p>
     ${j.note ? `<p class="muted">Note: ${esc(j.note)}</p>` : ""}
     <div class="row">
@@ -394,7 +408,7 @@ app.addEventListener("click", (e) => {
   if (a === "mode") { getPay(j).mode = el.dataset.m; return render(); }
   if (a === "disc") {
     const p = getPay(j); p.disc = el.dataset.v;
-    if (p.disc === "full" && !p.reason) p.reason = isWarranty(j) ? "Covered under warranty" : "";
+    if (p.disc === "full" && !p.reason) p.reason = wCovered(j) ? "Covered under warranty" : "";
     if (p.disc === "none" && isWarranty(j) && p.reason === "Covered under warranty") p.reason = "";
     return render();
   }
@@ -403,7 +417,7 @@ app.addEventListener("click", (e) => {
     if (p.charge === "" ) return toast("Enter the total charge (0 if nothing to charge)", true);
     if (p.disc === "amount" && !num(p.discount)) return toast("Enter the discount amount", true);
     if (c.needReason && !p.reason.trim()) { document.getElementById("rsn-" + j.id)?.focus(); return toast("Write the reason for the discount / changed amount", true); }
-    const base = { charge: c.charge, discount: c.discount, discountType: p.disc === "full" ? (isWarranty(j) ? "warranty" : "full") : p.disc === "amount" ? "discount" : "", reason: p.reason.trim(), at: Date.now(), by: S.me.name };
+    const base = { charge: c.charge, discount: c.discount, discountType: p.disc === "full" ? (wCovered(j) ? "warranty" : "full") : p.disc === "amount" ? "discount" : "", reason: p.reason.trim(), at: Date.now(), by: S.me.name };
     if (a === "paid") {
       const rec = c.payable > 0
         ? { ...base, status: "paid", amount: c.payable, mode: p.mode, ref: p.ref.trim(), note: p.reason.trim() }
@@ -416,7 +430,7 @@ app.addEventListener("click", (e) => {
   if (a === "pay-edit") {
     const p = j.payment || {};
     const disc = p.discountType === "warranty" || p.discountType === "full" ? "full" : p.discountType === "discount" ? "amount" : "none";
-    S.pay[j.id] = { charge: String(p.charge ?? p.amount ?? j.price ?? ""), disc, discount: disc === "amount" ? String(p.discount || "") : "", reason: p.reason || (p.status === "paid" ? p.note || "" : ""), mode: p.mode || "UPI", ref: p.ref || "", note: p.status === "not_collected" ? p.note || "" : "" };
+    S.pay[j.id] = { _ws: isWarranty(j) ? warrantyInfo(j).state : "", charge: String(p.charge ?? p.amount ?? j.price ?? ""), disc, discount: disc === "amount" ? String(p.discount || "") : "", reason: p.reason || (p.status === "paid" ? p.note || "" : ""), mode: p.mode || "UPI", ref: p.ref || "", note: p.status === "not_collected" ? p.note || "" : "" };
     return act(j.id, S.be.updateBooking(j.id, { payment: null }), "");
   }
 });

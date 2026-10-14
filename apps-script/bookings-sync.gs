@@ -21,6 +21,8 @@ const BOOKING_COLS = [
   "Issues before repair", "Issues after repair", "Total charge ₹", "Discount ₹", "Discount reason",
   "Paid ₹", "Payment", "Payment ref", "Paid at", "Technician remarks", "Warranty claim", "Original invoice",
   "Tracking link", "Invoice link", "Last change", "Booking ID", "Staff notes",
+  // added later – kept at the end so existing Staff notes stay in their column
+  "Warranty decision", "Warranty defect found", "Not-covered reason", "Decided by", "Decided at",
 ];
 const STATUS_LABEL = {
   new: "New", confirmed: "Confirmed", assigned: "Technician assigned", on_the_way: "On the way",
@@ -29,7 +31,7 @@ const STATUS_LABEL = {
 const MASK = ["code", "createdAt", "status", "statusAt", "kind", "service", "device", "item", "problem", "price",
   "name", "mobile", "area", "time", "note", "eta", "techName", "techPhone", "offerName", "assignState", "acceptedAt",
   "declinedByName", "declineReason", "confirmSentAt", "times", "preQc", "postQc", "payment", "techRemarks",
-  "warranty.claimId", "warranty.invoiceNo", "warranty.origCode"];
+  "warranty.claimId", "warranty.invoiceNo", "warranty.origCode", "warrantyReview"];
 
 /** Run once from the editor: formats the tab, sets India time, adds the 5-minute timer, does a first sync. */
 function setupBookingSync() {
@@ -61,11 +63,28 @@ function syncBookings() {
     const rows = docs.map((b) => bookingRow_(b, notes[b.id] || ""));
     if (last > 1) sh.getRange(2, 1, last - 1, BOOKING_COLS.length).clearContent();
     if (rows.length) sh.getRange(2, 1, rows.length, BOOKING_COLS.length).setValues(rows);
+    try { markClaims_(docs); } catch (e) { /* claims tab is optional */ }
     CacheService.getScriptCache().put("lastSync", String(Date.now()), 3600);
     return rows.length;
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Warranty claims tab: set Status to the store manager's decision (only moves forward from New / Called / Visit booked). */
+function markClaims_(docs) {
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  const ids = sh.getRange(2, 2, last - 1, 2).getValues(); // [Claim ID, Status]
+  docs.forEach((b) => {
+    const r = b.warrantyReview, cid = b.warranty && b.warranty.claimId;
+    if (!cid || !r || !r.decision) return;
+    const want = r.decision === "approved" ? "Approved – free fix" : "Rejected – not covered";
+    const i = ids.findIndex((x) => x[0] === cid);
+    if (i < 0 || ids[i][1] === want || ["Closed"].includes(ids[i][1])) return;
+    sh.getRange(i + 2, 3).setValue(want);
+  });
 }
 
 /** Ping from the website (throttled so a burst of changes only syncs once). */
@@ -141,7 +160,9 @@ function bookingRow_(b, note) {
     paidAt = dt(p.at);
   }
   const tech = b.techName || (b.assignState === "pending" ? `${b.offerName || ""} (waiting to accept)` : b.assignState === "declined" ? `Declined by ${b.declinedByName || "technician"}` : "");
-  const lastChange = Math.max(b.statusAt || 0, b.createdAt || 0, p && p.at ? p.at : 0);
+  const r = b.warrantyReview || null;
+  const decision = b.kind !== "warranty" ? "" : r && r.decision === "approved" ? "Approved – covered" : r && r.decision === "rejected" ? "Not covered" : "Pending check";
+  const lastChange = Math.max(b.statusAt || 0, b.createdAt || 0, p && p.at ? p.at : 0, r && r.at ? r.at : 0);
   const row = {
     "Booking code": b.code || "", "Booked at": dt(b.createdAt), "Status": STATUS_LABEL[b.status] || b.status || "",
     "Type": b.kind === "warranty" ? "Warranty" : b.kind === "phone" ? "Phone repair" : "Home service",
@@ -158,6 +179,8 @@ function bookingRow_(b, note) {
     "Warranty claim": w ? w.claimId || "" : "", "Original invoice": w ? w.invoiceNo || w.origCode || "" : "",
     "Tracking link": `${SITE}/track.html?b=${b.id}`, "Invoice link": p ? `${SITE}/invoice.html?b=${b.id}` : "",
     "Last change": dt(lastChange), "Booking ID": b.id, "Staff notes": note,
+    "Warranty decision": decision, "Warranty defect found": r ? r.defect || "" : "", "Not-covered reason": r ? r.reason || "" : "",
+    "Decided by": r ? r.by || "" : "", "Decided at": dt(r && r.at),
   };
   return BOOKING_COLS.map((c) => row[c]);
 }
@@ -173,12 +196,16 @@ function bookingsSheet_() {
     head.setValues([BOOKING_COLS]).setFontWeight("bold").setBackground("#053E40").setFontColor("#FFFFFF").setWrap(true);
     sh.setFrozenRows(1);
     sh.setFrozenColumns(1);
-    const dateCols = ["Booked at", "Confirmation sent", "Accepted at", "On the way", "Arrived", "Repair started", "Completed at", "Paid at", "Last change"];
+    const dateCols = ["Booked at", "Confirmation sent", "Accepted at", "On the way", "Arrived", "Repair started", "Completed at", "Paid at", "Last change", "Decided at"];
     dateCols.forEach((c) => sh.getRange(2, BOOKING_COLS.indexOf(c) + 1, 5000, 1).setNumberFormat("dd-mmm-yyyy hh:mm"));
     ["Quoted ₹", "Total charge ₹", "Discount ₹", "Paid ₹"].forEach((c) => sh.getRange(2, BOOKING_COLS.indexOf(c) + 1, 5000, 1).setNumberFormat("₹#,##0"));
     const st = BOOKING_COLS.indexOf("Status") + 1;
     const rules = [["Completed", "#E6F4EA", "#1E8E3E"], ["Cancelled", "#EEEEEE", "#666666"], ["New", "#FFF6D9", "#7A5A00"]]
       .map(([v, bg, fg]) => SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(v).setBackground(bg).setFontColor(fg).setRanges([sh.getRange(2, st, 5000, 1)]).build());
+    const wd = sh.getRange(2, BOOKING_COLS.indexOf("Warranty decision") + 1, 5000, 1);
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Approved – covered").setBackground("#E6F4EA").setFontColor("#1E8E3E").setRanges([wd]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Not covered").setBackground("#FDECEC").setFontColor("#C62828").setRanges([wd]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Pending check").setBackground("#FFF6D9").setFontColor("#7A5A00").setRanges([wd]).build());
     sh.setConditionalFormatRules(rules);
   }
   return sh;
