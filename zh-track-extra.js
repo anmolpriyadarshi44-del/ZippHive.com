@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty } from "/zh-ops.js?v=7";
+import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=9";
 
 const id = new URLSearchParams(location.search).get("b");
 
@@ -16,11 +16,34 @@ const css = `
 .zhx .bad{color:#C62828}
 .zhx .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .zhx .muted{color:#5B6F6F;font-size:13.5px}
+.zhx .thanks{background:linear-gradient(160deg,#0B7F7D,#053E40);color:#fff;border:0;text-align:center;padding:24px 18px}
+.zhx .thanks h3{color:#fff;font-size:22px;margin:6px 0 6px}
+.zhx .thanks p{margin:0 auto;max-width:440px;color:#D7EFED;font-size:15px;line-height:1.5}
+.zhx .thanks .big{font-size:40px;line-height:1}
+.zhx .stars{font-size:30px;letter-spacing:4px;color:#FFC72C;margin:14px 0 8px}
+.zhx .gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#0F2424;font-weight:800;font-size:16px;padding:13px 22px;border-radius:999px;text-decoration:none;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.zhx .gbtn svg{width:20px;height:20px}
+.zhx .alt{display:inline-block;margin-top:12px;color:#BFE6E3;font-size:13.5px}
 `;
 
 function view(b) {
   const p = b.payment, pre = b.preQc, post = b.postQc;
   const parts = [];
+  if (b.status === "completed") {
+    const first = String(b.name || "").trim().split(/\s+/)[0];
+    const rv = reviewUrl();
+    const g = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+    const fb = `https://wa.me/919220400950?text=${encodeURIComponent(`Hi ZippHive, feedback for booking ${b.code}: `)}`;
+    parts.push(`<div class="card thanks">
+      <div class="big">🙏</div>
+      <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
+      <p>Thanks for choosing ZippHive for your ${b.device ? esc(b.device) : "service"}${isWarranty(b) ? " warranty repair" : ""}. We hope everything works perfectly — we're always just a WhatsApp away.</p>
+      ${rv ? `<div class="stars" aria-hidden="true">★★★★★</div>
+        <p style="margin-bottom:14px">Happy with ${b.techName ? esc(b.techName) + "'s" : "our"} service? A quick Google review helps other families in Patna find us.</p>
+        <a class="gbtn" href="${esc(rv)}" target="_blank" rel="noopener">${g}Rate us on Google</a><br>` : `<div style="height:14px"></div>`}
+      <a class="alt" href="${fb}" target="_blank" rel="noopener">💬 Share feedback with us on WhatsApp</a>
+    </div>`);
+  }
   if (p) {
     const pi = payInfo(b), paid = pi.state === "paid", free = pi.state === "free";
     parts.push(`<div class="card">

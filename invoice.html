@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Invoice</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=8"></script>
+<script src="/zipphive-config.js?v=9"></script>
 <style>
 :root{--teal:#0B7F7D;--deep:#053E40;--y:#FFC72C;--ink:#0F2424;--muted:#5B6F6F;--line:#DCE8E7;--bg:#F5FAF9;--tint:#E8F5F4;--red:#C62828;--redlt:#FDECEC;--green:#1E8E3E;--greenlt:#E6F4EA;--wa:#1FAF54}
 *{box-sizing:border-box}
@@ -67,7 +67,7 @@ table{width:100%;border-collapse:collapse}
 <body>
 <div id="app"><div class="msg">Loading…</div></div>
 <script type="module">
-import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare, payInfo, isWarranty } from "/zh-ops.js?v=7";
+import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=9";
 
 const app = document.getElementById("app");
 const id = new URLSearchParams(location.search).get("b");
@@ -161,7 +161,7 @@ function render(b) {
     </div>
     ${invoiceSection(b, biz)}
     ${qcSection(b)}
-    <div class="foot">Thank you for choosing ZippHive! Questions? WhatsApp ${esc(biz.phone)}.<br>Problem after the repair? Raise a warranty claim at ${esc(biz.web)}/warranty.html<br>This is a computer-generated document and does not need a signature.</div>
+    <div class="foot">${reviewUrl() ? `<a href="${esc(reviewUrl())}" target="_blank" rel="noopener" style="display:inline-block;margin-bottom:10px;font-weight:800;color:#0B7F7D">⭐ Loved our service? Rate us on Google</a><br>` : ""}Thank you for choosing ZippHive! Questions? WhatsApp ${esc(biz.phone)}.<br>Problem after the repair? Raise a warranty claim at ${esc(biz.web)}/warranty.html<br>This is a computer-generated document and does not need a signature.</div>
   </div>`;
 }
 
