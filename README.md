@@ -101,3 +101,7 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - The homepage form and the AI assistant now save bookings straight to Firestore. The customer sees "Booking received" with their booking ID and tracking link; WhatsApp only opens as a fallback if the booking can't be saved.
 - `/manager.html` chimes, shows a toast and puts the count in the tab title for every new booking (browser notification too, if allowed).
 - **✅ Confirm & send WhatsApp** marks the booking confirmed and opens WhatsApp with the confirmation + live tracking link for the customer (one tap to send). Bookings confirmed without it are flagged "Confirmation not sent".
+
+## All bookings in Google Sheets
+- The Apps Script project behind the warranty sheet also keeps a **Bookings** tab: one row per booking with status, customer, service, technician, timeline, issues before/after repair, charge / discount / paid / payment mode, warranty claim, tracking and invoice links. Typed "Staff notes" are kept.
+- It reads Firestore directly as the sheet owner (`apps-script/bookings-sync.gs`, needs `apps-script/appsscript.json` for the Firestore permission), every 5 minutes, and immediately when the website, dashboard or technician app pings it after a change. Menu: *ZippHive → Sync bookings now*.
