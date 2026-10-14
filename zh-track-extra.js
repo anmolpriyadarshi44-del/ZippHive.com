@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=9";
+import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=11";
 
 const id = new URLSearchParams(location.search).get("b");
 

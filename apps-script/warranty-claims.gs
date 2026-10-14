@@ -30,6 +30,7 @@ const HEADERS = [
 function doPost(e) {
   try {
     const d = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+    if (d.action === "sync") return json(syncFromPing_()); // website / dashboard: a booking changed → refresh the Bookings tab
     if (d.website) return json({ ok: true, id: "" }); // spam trap filled → silently ignore
 
     const clean = (v, n) => String(v == null ? "" : v).replace(/^[=+\-@]/, "'$&").slice(0, n || 300);

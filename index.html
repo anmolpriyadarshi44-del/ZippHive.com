@@ -9,7 +9,7 @@
 <meta property="og:title" content="ZippHive — Doorstep Home Services in Patna">
 <meta property="og:description" content="Mobile repair in 60 min, AC, appliances, plumbing, electrical & cleaning. Book in one tap.">
 <meta property="og:type" content="website">
-<script src="/zipphive-config.js?v=10"></script>
+<script src="/zipphive-config.js?v=11"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -470,7 +470,7 @@ document.addEventListener('click', e=>{
 // Booking form -> saved straight to the ZippHive dashboard (no WhatsApp needed).
 // The store confirms on WhatsApp with the tracking link once the job is accepted.
 let opsP = null;
-const ops = () => (opsP ||= import('/zh-ops.js?v=10').then(async m => ({ m, be: await m.backend() })));
+const ops = () => (opsP ||= import('/zh-ops.js?v=11').then(async m => ({ m, be: await m.backend() })));
 setTimeout(() => ops().catch(() => {}), 2500); // warm up in the background
 const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 document.getElementById('bookForm').addEventListener('submit', async e=>{
@@ -515,7 +515,7 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script src="/zipphive-widget.js?v=10" data-position="right" defer></script>
+<script src="/zipphive-widget.js?v=11" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
 (function fixLauncher(n){

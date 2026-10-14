@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Store Manager</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=10"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=10" />
+<script src="/zipphive-config.js?v=11"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=11" />
 <style>
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
@@ -65,7 +65,7 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty } from "/zh-ops.js?v=10";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet } from "/zh-ops.js?v=11";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
@@ -374,6 +374,7 @@ app.addEventListener("click", (e) => {
     window.open(waLink(b.mobile, trackMsg(b)), "_blank", "noopener");
     const patch = { confirmSentAt: Date.now() };
     if (b.status === "new") Object.assign(patch, { status: "confirmed", statusAt: Date.now() });
+    pingSheet();
     return run(S.be.updateBooking(b.id, patch), b.status === "new" ? `${b.code} confirmed – WhatsApp opened` : "WhatsApp opened");
   }
   if (act === "send") {

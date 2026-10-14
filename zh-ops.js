@@ -39,6 +39,16 @@ export const business = () => ({
 const rnd = (n, abc) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (x) => abc[x % abc.length]).join("");
 const newId = () => rnd(20, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 const newCode = () => "ZH-" + rnd(5, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
+// Tell the Google Sheet a booking changed so its "Bookings" tab refreshes now (it also syncs every 5 min on its own)
+let pingT = null;
+export function pingSheet() {
+  const url = (cfg().warrantySheetUrl || "").trim();
+  if (!url) return;
+  clearTimeout(pingT);
+  pingT = setTimeout(() => {
+    try { fetch(url, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify({ action: "sync" }) }).catch(() => {}); } catch {}
+  }, 4000);
+}
 export const isWarranty = (b) => b && b.kind === "warranty";
 export const invoiceNo = (b) => "INV-" + String(b.code || b.id).replace(/^ZH-/, "");
 export const waLink = (mobile, text) => {
@@ -105,6 +115,7 @@ async function firebaseBackend(conf) {
     createBooking: async (data) => {
       const id = newId(), code = newCode(), now = Date.now();
       await fs.setDoc(bk(id), { ...data, code, status: "new", createdAt: now, statusAt: now });
+      pingSheet();
       return { id, code };
     },
     // single booking, no sign-in needed (customers open it by its secret link)
@@ -429,6 +440,12 @@ export function jobSheetHtml(b) {
     ${b.techRemarks ? `<p class="rmk"><b>Technician remarks:</b> ${esc(b.techRemarks)}</p>` : ""}
     <div class="sheet-row"><div><h4>Payment</h4>${payHtml}</div><div><h4>Timeline</h4><ul class="tl">${tl || '<li class="muted">—</li>'}</ul></div></div>
   </div>`;
+}
+
+// every job change from the dashboard / technician app also refreshes the Google Sheet
+for (const k of Object.keys(actions)) {
+  const fn = actions[k];
+  actions[k] = (...a) => { const r = fn(...a); Promise.resolve(r).then(pingSheet, () => {}); return r; };
 }
 
 // Which bucket a booking is in, from the manager's point of view
