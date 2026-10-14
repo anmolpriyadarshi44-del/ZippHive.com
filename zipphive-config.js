@@ -11,5 +11,7 @@ window.ZIPPHIVE = {
   siteUrl: "https://www.zipphive.com",
   // UPI for the payment QR technicians show customers (leave upiId empty to hide the QR)
   upiId: "",
-  upiName: "ZippHive"
+  upiName: "ZippHive",
+  // Google Apps Script web-app URL for warranty claims (see apps-script/warranty-claims.gs). Empty = claims go to WhatsApp.
+  warrantySheetUrl: ""
 };

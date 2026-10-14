@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Invoice</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=5"></script>
+<script src="/zipphive-config.js?v=6"></script>
 <style>
 :root{--teal:#0B7F7D;--deep:#053E40;--y:#FFC72C;--ink:#0F2424;--muted:#5B6F6F;--line:#DCE8E7;--bg:#F5FAF9;--tint:#E8F5F4;--red:#C62828;--redlt:#FDECEC;--green:#1E8E3E;--greenlt:#E6F4EA;--wa:#1FAF54}
 *{box-sizing:border-box}
@@ -67,7 +67,7 @@ table{width:100%;border-collapse:collapse}
 <body>
 <div id="app"><div class="msg">Loading…</div></div>
 <script type="module">
-import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare } from "/zh-ops.js?v=5";
+import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare } from "/zh-ops.js?v=6";
 
 const app = document.getElementById("app");
 const id = new URLSearchParams(location.search).get("b");
@@ -137,6 +137,7 @@ function render(b) {
     <button class="btn" onclick="window.print()">⬇️ Download / Print PDF</button>
     <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(share)}">Share on WhatsApp</a>
     <a class="btn o" href="${trackUrl(b.id)}">← Back to tracking</a>
+    ${b.status === "completed" ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Raise warranty claim</a>` : ""}
   </div>
   <div class="doc">
     <div class="head">
@@ -152,7 +153,7 @@ function render(b) {
     </div>
     ${invoiceSection(b, biz)}
     ${qcSection(b)}
-    <div class="foot">Thank you for choosing ZippHive! Questions? WhatsApp ${esc(biz.phone)}.<br>This is a computer-generated document and does not need a signature.</div>
+    <div class="foot">Thank you for choosing ZippHive! Questions? WhatsApp ${esc(biz.phone)}.<br>Problem after the repair? Raise a warranty claim at ${esc(biz.web)}/warranty.html<br>This is a computer-generated document and does not need a signature.</div>
   </div>`;
 }
 

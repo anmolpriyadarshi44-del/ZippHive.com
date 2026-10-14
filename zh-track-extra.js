@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum } from "/zh-ops.js?v=5";
+import { backend, esc, rupees, when, invoiceUrl, qcSum } from "/zh-ops.js?v=6";
 
 const id = new URLSearchParams(location.search).get("b");
 
@@ -28,7 +28,7 @@ function view(b) {
       <div class="paid"><span class="amt">${rupees(paid ? p.amount : b.price)}</span>
         ${paid ? `<span class="ok">✓ Paid by ${esc(p.mode)}${p.ref ? ` · Ref ${esc(p.ref)}` : ""}</span>` : `<span class="due">Not paid yet</span>`}</div>
       <div class="muted">${when(p.at)}${paid && p.by ? ` · collected by ${esc(p.by)}` : ""}</div>
-      <div class="row"><a class="btn" href="${invoiceUrl(b.id)}">🧾 View / download invoice</a></div>
+      <div class="row"><a class="btn" href="${invoiceUrl(b.id)}">🧾 View / download invoice</a>${b.status === "completed" ? `<a class="btn o" href="/warranty.html?b=${encodeURIComponent(b.id)}">🛡️ Warranty claim</a>` : ""}</div>
     </div>`);
   }
   if (pre?.doneAt) {

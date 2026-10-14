@@ -75,6 +75,18 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdro
 .stats{display:flex;gap:34px;flex-wrap:wrap}
 .stats div b{display:block;font-size:26px;font-weight:800;color:var(--yellow)}
 .stats div{font-size:14px;opacity:.85}
+.promise{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.22);border-radius:24px;padding:26px;backdrop-filter:blur(6px)}
+.promise h3{font-size:19px;margin-bottom:14px}
+.promise ul{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:14px}
+.promise li{display:flex;gap:14px;align-items:flex-start;font-size:14px;line-height:1.45;color:rgba(255,255,255,.85)}
+.promise li span{flex:none;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:20px}
+.promise li b{display:block;color:#fff;font-size:15.5px;margin-bottom:2px}
+.booksec{background:var(--soft)}
+.book-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.book-grid .hero-card{box-shadow:0 24px 50px rgba(5,62,64,.14);border:1px solid var(--line)}
+ol.next{margin:22px 0;padding:0;list-style:none;counter-reset:n;display:grid;gap:14px}
+ol.next li{counter-increment:n;display:flex;gap:14px;align-items:center;font-size:16px}
+ol.next li::before{content:counter(n);flex:none;width:32px;height:32px;border-radius:50%;background:var(--yellow);color:var(--ink);font-weight:800;display:grid;place-items:center}
 .hero-card{background:#fff;color:var(--ink);border-radius:24px;padding:26px;box-shadow:0 30px 60px rgba(0,0,0,.25)}
 .hero-card h3{font-size:20px;margin-bottom:4px}
 .hero-card p{color:var(--muted);font-size:14px;margin-bottom:16px}
@@ -160,7 +172,7 @@ footer .logo{color:#fff;margin-bottom:12px}
 .copy{border-top:1px solid rgba(255,255,255,.1);margin-top:40px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
 
 /* Floating WhatsApp */
-.wa-float{position:fixed;right:18px;bottom:18px;z-index:60;width:58px;height:58px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 10px 25px rgba(0,0,0,.25);transition:transform .2s}
+.wa-float{position:fixed;left:18px;bottom:18px;z-index:60;width:58px;height:58px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 10px 25px rgba(0,0,0,.25);transition:transform .2s}
 .wa-float:hover{transform:scale(1.08)}
 
 /* Reveal */
@@ -170,6 +182,7 @@ footer .logo{color:#fff;margin-bottom:12px}
 /* Responsive */
 @media (max-width:980px){
   .hero-grid{grid-template-columns:1fr}
+  .book-grid{grid-template-columns:1fr;gap:28px}
   .svc-grid{grid-template-columns:repeat(2,1fr)}
   .steps{grid-template-columns:repeat(2,1fr)}
   .why-grid,.plans{grid-template-columns:1fr 1fr}
@@ -205,6 +218,7 @@ footer .logo{color:#fff;margin-bottom:12px}
       <a href="#how">How it works</a>
       <a href="#plans">AMC Plans</a>
       <a href="#faq">FAQ</a>
+      <a href="/warranty.html">Warranty</a>
       <a href="tel:+919220400950" class="btn btn-t">Call 92204 00950</a>
     </nav>
     <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -231,7 +245,59 @@ footer .logo{color:#fff;margin-bottom:12px}
       </div>
     </div>
 
-    <div class="hero-card" id="book">
+    <div class="promise rv">
+      <h3>Every ZippHive job, start to finish</h3>
+      <ul>
+        <li><span>📍</span><div><b>Track your technician live</b>See who's coming and when — like a cab ride.</div></li>
+        <li><span>✅</span><div><b>Checked before &amp; after</b>Every function tested before and after the repair.</div></li>
+        <li><span>💸</span><div><b>Pay after the work</b>UPI, card or cash — only when you're happy.</div></li>
+        <li><span>🧾</span><div><b>Instant invoice &amp; warranty</b>Invoice on WhatsApp. Claim warranty online anytime.</div></li>
+      </ul>
+      <a class="btn btn-y form-btn" href="#book">Book a technician</a>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="wrap">
+    <span class="tag">Our services</span>
+    <h2>One call. Every home fix.</h2>
+    <p class="sub">Trained, background-verified technicians who carry genuine parts and the right tools.</p>
+    <div class="svc-grid" id="svcGrid"></div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="wrap">
+    <span class="tag">How it works</span>
+    <h2>Fixed in four simple steps</h2>
+    <div class="steps">
+      <div class="step rv"><h3>Book</h3><p>Use the form, WhatsApp or a quick call. Tell us what's wrong.</p></div>
+      <div class="step rv"><h3>Technician arrives</h3><p>A verified expert reaches your doorstep at your chosen time.</p></div>
+      <div class="step rv"><h3>Diagnose &amp; approve</h3><p>We check the issue and share the price. Work starts only after you say yes.</p></div>
+      <div class="step rv"><h3>Fixed &amp; warranted</h3><p>Pay after the job is done. Every repair is covered by our service warranty.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOK -->
+<section class="booksec" id="book">
+  <div class="wrap book-grid">
+    <div>
+      <span class="tag">Book a technician</span>
+      <h2>Ready when you are</h2>
+      <p class="sub">Tell us what needs fixing. We'll confirm on WhatsApp and send a verified technician at your chosen time.</p>
+      <ol class="next">
+        <li><span><b>We call you back</b> to confirm the issue and the price.</span></li>
+        <li><span><b>A technician is assigned</b> — you get a live tracking link.</span></li>
+        <li><span><b>Repair at your door</b>, checked before and after. Pay after the work.</span></li>
+      </ol>
+      <p class="sub" style="font-size:15px">Prefer to talk? <a href="tel:+919220400950"><b>Call +91 92204 00950</b></a> or <a href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener"><b>WhatsApp us</b></a>.</p>
+    </div>
+    <div class="hero-card">
       <h3>Book in 30 seconds</h3>
       <p>Fill this and confirm on WhatsApp — we'll call you back right away.</p>
       <form id="bookForm" novalidate>
@@ -263,31 +329,6 @@ footer .logo{color:#fff;margin-bottom:12px}
         <div class="err" id="err">Please fill your name, a valid 10-digit mobile number, service and area.</div>
         <p class="note">Or call <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p>
       </form>
-    </div>
-  </div>
-</section>
-
-<!-- SERVICES -->
-<section class="services" id="services">
-  <div class="wrap">
-    <span class="tag">Our services</span>
-    <h2>One call. Every home fix.</h2>
-    <p class="sub">Trained, background-verified technicians who carry genuine parts and the right tools.</p>
-    <div class="svc-grid" id="svcGrid"></div>
-  </div>
-</section>
-
-<!-- HOW -->
-<section id="how">
-  <div class="wrap">
-    <span class="tag">How it works</span>
-    <h2>Fixed in four simple steps</h2>
-    <div class="steps">
-      <div class="step rv"><h3>Book</h3><p>Use the form, WhatsApp or a quick call. Tell us what's wrong.</p></div>
-      <div class="step rv"><h3>Technician arrives</h3><p>A verified expert reaches your doorstep at your chosen time.</p></div>
-      <div class="step rv"><h3>Diagnose &amp; approve</h3><p>We check the issue and share the price. Work starts only after you say yes.</p></div>
-      <div class="step rv"><h3>Fixed &amp; warranted</h3><p>Pay after the job is done. Every repair is covered by our service warranty.</p></div>
-    </div>
   </div>
 </section>
 
@@ -341,7 +382,7 @@ footer .logo{color:#fff;margin-bottom:12px}
     <div class="faq">
       <details><summary>Is there a visiting or inspection charge?</summary><p>A small inspection charge may apply if you choose not to go ahead with the repair. If you approve the repair, it's adjusted in your bill. We always tell you upfront.</p></details>
       <details><summary>How fast can a technician reach me?</summary><p>For mobile repair we aim to finish at your doorstep in about 60 minutes. For home services we usually schedule the same day or the next day, at a time you choose.</p></details>
-      <details><summary>Do you give a warranty?</summary><p>Yes. Every repair comes with a service warranty on parts and labour. The exact period depends on the job and is mentioned on your bill.</p></details>
+      <details><summary>Do you give a warranty?</summary><p>Yes. Every repair comes with a service warranty on parts and labour. The exact period depends on the job and is mentioned on your bill. Something wrong after a repair? <a href="/warranty.html"><b>Raise a warranty claim</b></a>.</p></details>
       <details><summary>How do I pay?</summary><p>Pay after the work is done — UPI, card or cash.</p></details>
       <details><summary>Is my phone data safe?</summary><p>Mobile repairs happen in front of you at your doorstep, so your phone never leaves your sight.</p></details>
     </div>
@@ -368,7 +409,7 @@ footer .logo{color:#fff;margin-bottom:12px}
         <p>Doorstep mobile, AC, appliance, plumbing, electrical and cleaning services in Patna, Bihar.</p>
       </div>
       <div><h4>Services</h4><ul><li><a href="#services">Mobile Repair</a></li><li><a href="#services">AC Repair &amp; AMC</a></li><li><a href="#services">Washing Machine</a></li><li><a href="#services">Home Cleaning</a></li></ul></div>
-      <div><h4>Company</h4><ul><li><a href="#how">How it works</a></li><li><a href="#plans">AMC Plans</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="#how">How it works</a></li><li><a href="#plans">AMC Plans</a></li><li><a href="#faq">FAQ</a></li><li><a href="/warranty.html">Warranty claim</a></li></ul></div>
       <div><h4>Contact</h4><ul><li><a href="tel:+919220400950">+91 92204 00950</a></li><li><a href="https://wa.me/919220400950" target="_blank" rel="noopener">WhatsApp</a></li><li><a href="mailto:ZippHive@gmail.com">ZippHive@gmail.com</a></li><li>Patna, Bihar</li></ul></div>
     </div>
     <div class="copy"><span>© <span id="yr"></span> ZippHive. All rights reserved.</span><span>Made in Bihar ⚡</span></div>
@@ -443,6 +484,16 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script src="/zipphive-widget.js" defer></script>
+<script src="/zipphive-widget.js" data-position="right" defer></script>
+<script>
+// AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
+(function fixLauncher(n){
+  const host=[...document.body.children].find(el=>el.shadowRoot&&el.shadowRoot.querySelector('.zh-launch'));
+  if(!host){ if(n<60) setTimeout(()=>fixLauncher(n+1),250); return; }
+  const st=document.createElement('style');
+  st.textContent='@media (max-width:640px){.zh-launch{bottom:18px!important}}';
+  host.shadowRoot.appendChild(st);
+})(0);
+</script>
 </body>
 </html>
