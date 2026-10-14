@@ -77,3 +77,13 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - The technician's WhatsApp receipt and the manager's "Send invoice" button include the invoice link.
 - Business details on the invoice (address, phone, GSTIN) can be set in `zipphive-config.js` as `business: { address: "...", gstin: "..." }`. GSTIN is hidden while empty.
 - No Firestore rule change needed: customers read the booking by its secret link, exactly like tracking.
+
+## Warranty claims → Google Sheet
+
+- `/warranty.html` — customers raise a warranty claim (name, mobile, device, problem, optional photo). Opened from an invoice or tracking link (`warranty.html?b=<booking id>`) it pre-fills the repair, booking, invoice no. and technician.
+- Each claim becomes a row in the **ZippHive Warranty Claims** Google Sheet (zipphive@gmail.com's Drive), with an email alert. Photos are saved to a Drive folder "ZippHive Warranty Photos" and linked in the row.
+- The bridge is a Google Apps Script web app: `apps-script/warranty-claims.gs` (setup steps at the top of that file). Put its URL in `zipphive-config.js` → `warrantySheetUrl`. Until then, claims are sent to WhatsApp instead.
+
+## Homepage layout
+- The booking form now lives in its own section further down (`#book`); the hero shows the "start to finish" promise card. All "Book" buttons still scroll to the form.
+- "Ask ZippHive AI" is on the bottom-right (`data-position="right"` on the widget script); the WhatsApp button moved to the bottom-left.
