@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Technician</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=12"></script>
-<script src="/zh-qr.js?v=12"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=12" />
+<script src="/zipphive-config.js?v=13"></script>
+<script src="/zh-qr.js?v=13"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=13" />
 <style>
 .wrap{max-width:640px}
 .req{border:2px solid var(--y);background:#FFFDF5;box-shadow:0 6px 20px rgba(255,199,44,.18)}
@@ -77,7 +77,7 @@ details.remarks summary{cursor:pointer;font-weight:600;color:var(--teal);font-si
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=12";
+import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=13";
 
 const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
 const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {}, qc: {}, pay: {}, notes: {}, rem: {} };

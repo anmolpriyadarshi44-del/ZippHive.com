@@ -112,3 +112,9 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 ## All bookings in Google Sheets
 - The Apps Script project behind the warranty sheet also keeps a **Bookings** tab: one row per booking with status, customer, service, technician, timeline, issues before/after repair, charge / discount / paid / payment mode, warranty claim, tracking and invoice links. Typed "Staff notes" are kept.
 - It reads Firestore directly as the sheet owner (`apps-script/bookings-sync.gs`, needs `apps-script/appsscript.json` for the Firestore permission), every 5 minutes, and immediately when the website, dashboard or technician app pings it after a change. Menu: *ZippHive → Sync bookings now*.
+
+## Time slots (calendar booking)
+- Customers pick a **date and a time slot** (homepage form and the AI assistant's booking forms) instead of "As soon as possible". Mobile repair and home services slots are 1 hour; cleaning slots are 45 minutes. Full, past and closed slots can't be picked; the earliest free slot is pre-selected.
+- `/slots.html` (admin edits; store managers can view): opening hours, how many days ahead customers can book, minimum notice, weekly closed days, and **how many bookings each hour can take per service** (e.g. 9–10 AM: Mobile repair 2, Cleaning 4). The calendar shows booked/open per hour with booking codes, and lets the admin close a day (holiday) or change slots for one day only.
+- Settings are saved in `content/slots`; booked counts in `slotUse/{date}`. Cancelling a booking frees its slot. The Firestore rules stop a slot being booked above its limit. Publish the updated `firestore.rules` and press **Save normal day** once on `/slots.html` to switch it on.
+

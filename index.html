@@ -9,7 +9,7 @@
 <meta property="og:title" content="ZippHive — Doorstep Home Services in Patna">
 <meta property="og:description" content="Mobile repair in 60 min, AC, appliances, plumbing, electrical & cleaning. Book in one tap.">
 <meta property="og:type" content="website">
-<script src="/zipphive-config.js?v=12"></script>
+<script src="/zipphive-config.js?v=13"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -325,11 +325,9 @@ footer .logo{color:#fff;margin-bottom:12px}
             </select>
           </div>
         </div>
-        <div class="row2">
-          <div class="field"><label for="area">Area / locality</label><input id="area" required placeholder="e.g. Boring Road"></div>
-          <div class="field"><label for="when">Preferred time</label>
-            <select id="when"><option>As soon as possible</option><option>Today – morning</option><option>Today – afternoon</option><option>Today – evening</option><option>Tomorrow</option></select>
-          </div>
+        <div class="field"><label for="area">Area / locality</label><input id="area" required placeholder="e.g. Boring Road"></div>
+        <div class="field"><label id="whenLbl">Choose date &amp; time slot</label>
+          <zh-slot-picker id="when" aria-labelledby="whenLbl"></zh-slot-picker>
         </div>
         <div class="field"><label for="issue">Issue (optional)</label><textarea id="issue" rows="2" placeholder="e.g. iPhone 12 screen cracked / AC not cooling"></textarea></div>
         <button type="submit" class="btn btn-y form-btn">Book now</button>
@@ -470,7 +468,7 @@ document.addEventListener('click', e=>{
 // Booking form -> saved straight to the ZippHive dashboard (no WhatsApp needed).
 // The store confirms on WhatsApp with the tracking link once the job is accepted.
 let opsP = null;
-const ops = () => (opsP ||= import('/zh-ops.js?v=12').then(async m => ({ m, be: await m.backend() })));
+const ops = () => (opsP ||= import('/zh-ops.js?v=13').then(async m => ({ m, be: await m.backend() })));
 setTimeout(() => ops().catch(() => {}), 2500); // warm up in the background
 const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 document.getElementById('bookForm').addEventListener('submit', async e=>{
@@ -478,15 +476,32 @@ document.getElementById('bookForm').addEventListener('submit', async e=>{
   const v = id => document.getElementById(id).value.trim();
   const phone = v('phone').replace(/\D/g,'');
   const ok = v('name') && /^[6-9]\d{9}$/.test(phone) && v('service') && v('area');
-  document.getElementById('err').style.display = ok ? 'none' : 'block';
+  const er0 = document.getElementById('err'); er0.textContent = er0.dataset.msg || (er0.dataset.msg = er0.textContent); er0.style.display = ok ? 'none' : 'block';
   if(!ok) return;
   const btn = e.target.querySelector('.form-btn'); btn.disabled = true; btn.textContent = 'Booking…';
   const svc = v('service');
   const data = { kind: /^Mobile/.test(svc) ? 'phone' : 'service', service: svc.slice(0,80), name: v('name').slice(0,60), mobile: phone,
-    area: v('area').slice(0,60), time: v('when').slice(0,40) };
+    area: v('area').slice(0,60) };
+  const pk = document.getElementById('when');
+  data.time = String(pk.value || "Will call to fix a time").slice(0,40);
+  if (pk.slotKey) data.slot = pk.slotKey;
   if (v('issue')) data.problem = v('issue').slice(0,200);
   let job = null;
-  try { const { m, be } = await ops(); if (be && be.createBooking) job = { ...(await be.createBooking(data)), url: null }; if (job) job.url = m.trackUrl(job.id); }
+  try {
+    const { m, be } = await ops();
+    // the slot may have been taken while the customer was typing
+    if (data.slot && window.ZHSlots && !(await window.ZHSlots.stillFree(data.slot))) {
+      await pk.refresh(); btn.disabled = false; btn.textContent = 'Book now';
+      const er = document.getElementById('err'); er.textContent = 'Sorry, that time slot just got booked – please pick another one.'; er.style.display = 'block';
+      return;
+    }
+    if (be && be.createBooking) {
+      try { job = await be.createBooking(data); }
+      catch (e1) { if (!data.slot) throw e1; const { slot, ...rest } = data; job = await be.createBooking(rest); } // older rules without "slot"
+      if (data.slot) window.ZHSlots && window.ZHSlots.reserve(data.slot);
+    }
+    if (job) job.url = m.trackUrl(job.id);
+  }
   catch (err) { console.warn('booking not saved', err); }
   const card = document.querySelector('#book .hero-card');
   if (job) {
@@ -515,7 +530,12 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script src="/zipphive-widget.js?v=12" data-position="right" defer></script>
+<script type="module" src="/zh-slots.js?v=13"></script>
+<script>
+// show the slots for the chosen service
+document.getElementById('service').addEventListener('change', e => document.getElementById('when').setAttribute('service', e.target.value));
+</script>
+<script src="/zipphive-widget.js?v=13" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
 (function fixLauncher(n){
