@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl } from "/zh-ops.js?v=11";
+import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=12";
 
 const id = new URLSearchParams(location.search).get("b");
 
@@ -23,12 +23,45 @@ const css = `
 .zhx .stars{font-size:30px;letter-spacing:4px;color:#FFC72C;margin:14px 0 8px}
 .zhx .gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#0F2424;font-weight:800;font-size:16px;padding:13px 22px;border-radius:999px;text-decoration:none;box-shadow:0 8px 20px rgba(0,0,0,.2)}
 .zhx .gbtn svg{width:20px;height:20px}
+.zhx .wst{border:0;padding:18px}
+.zhx .wst.pending{background:#FFF8E1}.zhx .wst.approved{background:#E6F4EA}.zhx .wst.rejected{background:#FDECEC}
+.zhx .wst h3{font-size:19px}
+.zhx .wst.approved h3{color:#1E8E3E}.zhx .wst.rejected h3{color:#C62828}
+.zhx .wsteps{display:flex;gap:6px;margin:12px 0 4px}
+.zhx .wsteps div{flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#8A8A8A}
+.zhx .wsteps i{display:block;height:6px;border-radius:6px;background:#E3E3E3;margin-bottom:6px}
+.zhx .wsteps .on{color:#053E40}.zhx .wsteps .on i{background:#0B7F7D}
+.zhx .wsteps .now{color:#8A5A00}.zhx .wsteps .now i{background:#E8A317}
+.zhx .wbox{background:#fff;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px}
 .zhx .alt{display:inline-block;margin-top:12px;color:#BFE6E3;font-size:13.5px}
 `;
 
 function view(b) {
   const p = b.payment, pre = b.preQc, post = b.postQc;
   const parts = [];
+  const wi = warrantyInfo(b);
+  if (wi && b.status !== "cancelled") {
+    const claim = b.warranty?.claimId ? ` ${esc(b.warranty.claimId)}` : "";
+    const checked = !!b.preQc?.doneAt;
+    const step = (label, st) => `<div class="${st}"><i></i>${label}</div>`;
+    const steps = `<div class="wsteps">${step("Claim received", "on")}${step("Device checked", checked || wi.state !== "pending" ? "on" : "now")}${step(wi.state === "rejected" ? "Not covered" : wi.state === "approved" ? "Approved" : "Decision", wi.state !== "pending" ? "on" : checked ? "now" : "")}</div>`;
+    const wa = `https://wa.me/919220400950?text=${encodeURIComponent(`Hi ZippHive, about my warranty claim${b.warranty?.claimId ? " " + b.warranty.claimId : ""} (booking ${b.code}): `)}`;
+    parts.push(wi.state === "approved" ? `<div class="card wst approved">
+        <h3>✅ Warranty approved</h3>
+        <div>Good news — your claim${claim} is covered. The repair is <b>free</b>, you pay ₹0.</div>${steps}
+        ${wi.defect ? `<div class="wbox"><b>Defect found:</b> ${esc(wi.defect)}</div>` : ""}
+        <div class="muted" style="margin-top:8px">Approved ${when(wi.at)}</div></div>`
+      : wi.state === "rejected" ? `<div class="card wst rejected">
+        <h3>❌ Not covered under warranty</h3>
+        <div>We checked your claim${claim} carefully. Sorry, this problem is not covered by the ZippHive warranty.</div>${steps}
+        <div class="wbox"><b>Reason:</b> ${esc(wi.reason)}${wi.defect ? `<br><b>What we found:</b> ${esc(wi.defect)}` : ""}</div>
+        <div class="muted" style="margin-top:8px">Checked ${when(wi.at)} · We can still repair it at our normal price.</div>
+        <div class="row"><a class="btn wa" href="${wa}" target="_blank" rel="noopener">💬 Get a repair quote on WhatsApp</a></div></div>`
+      : `<div class="card wst pending">
+        <h3>🛡️ Warranty claim${claim} — under review</h3>
+        <div>${checked ? "Our technician has checked your device. The store is confirming if it's covered — the decision will show here." : "Our technician will check your device, then the store confirms if it's covered under warranty. The decision will show here."}</div>${steps}
+        <div class="muted" style="margin-top:6px">Questions? <a href="${wa}" target="_blank" rel="noopener">WhatsApp us</a></div></div>`);
+  }
   if (b.status === "completed") {
     const first = String(b.name || "").trim().split(/\s+/)[0];
     const rv = reviewUrl();
@@ -37,7 +70,7 @@ function view(b) {
     parts.push(`<div class="card thanks">
       <div class="big">🙏</div>
       <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
-      <p>Thanks for choosing ZippHive for your ${b.device ? esc(b.device) : "service"}${isWarranty(b) ? " warranty repair" : ""}. We hope everything works perfectly — we're always just a WhatsApp away.</p>
+      <p>Thanks for choosing ZippHive for your ${b.device ? esc(b.device) : "service"}${wi && wi.state !== "rejected" ? " warranty repair" : ""}. We hope everything works perfectly — we're always just a WhatsApp away.</p>
       ${rv ? `<div class="stars" aria-hidden="true">★★★★★</div>
         <p style="margin-bottom:14px">Happy with ${b.techName ? esc(b.techName) + "'s" : "our"} service? A quick Google review helps other families in Patna find us.</p>
         <a class="gbtn" href="${esc(rv)}" target="_blank" rel="noopener">${g}Rate us on Google</a><br>` : `<div style="height:14px"></div>`}
@@ -47,7 +80,7 @@ function view(b) {
   if (p) {
     const pi = payInfo(b), paid = pi.state === "paid", free = pi.state === "free";
     parts.push(`<div class="card">
-      <h3>${free ? (isWarranty(b) ? "Covered under warranty" : "No charge") : paid ? "Payment received" : "Payment pending"}</h3>
+      <h3>${free ? (wi && wi.state !== "rejected" ? "Covered under warranty" : "No charge") : paid ? "Payment received" : "Payment pending"}</h3>
       <div class="paid"><span class="amt">${rupees(paid || free ? pi.amount : Math.max(0, pi.charge - pi.discount))}</span>
         ${free ? `<span class="ok">✓ Nothing to pay</span>` : paid ? `<span class="ok">✓ Paid by ${esc(pi.mode)}${pi.ref ? ` · Ref ${esc(pi.ref)}` : ""}</span>` : `<span class="due">Not paid yet</span>`}</div>
       <div class="muted">${pi.discount && !free ? `Includes discount of ${rupees(pi.discount)} · ` : ""}${when(pi.at)}${paid && pi.by ? ` · collected by ${esc(pi.by)}` : ""}</div>

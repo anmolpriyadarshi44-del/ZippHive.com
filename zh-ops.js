@@ -50,6 +50,24 @@ export function pingSheet() {
   }, 4000);
 }
 export const isWarranty = (b) => b && b.kind === "warranty";
+// Store manager's warranty decision (booking.warrantyReview):
+//   { decision: "approved" | "rejected", defect: what was found, reason: why not covered, at, by }
+export const W_REASONS = [
+  "Physical damage (drop / crack / pressure)",
+  "Liquid / water damage",
+  "New fault – not related to our repair",
+  "Warranty period is over",
+  "Device opened / repaired elsewhere",
+  "Seal or warranty sticker broken",
+  "No defect found – working fine",
+];
+export function warrantyInfo(b) {
+  if (!isWarranty(b)) return null;
+  const r = b.warrantyReview || null;
+  const state = r?.decision === "approved" ? "approved" : r?.decision === "rejected" ? "rejected" : "pending";
+  const label = state === "approved" ? "Warranty approved – covered" : state === "rejected" ? "Not covered under warranty" : "Warranty check pending";
+  return { state, label, defect: r?.defect || "", reason: r?.reason || "", at: r?.at, by: r?.by || "" };
+}
 export const invoiceNo = (b) => "INV-" + String(b.code || b.id).replace(/^ZH-/, "");
 export const waLink = (mobile, text) => {
   const d = String(mobile || "").replace(/\D/g, "");
@@ -248,6 +266,8 @@ export const actions = {
   confirm: (be, b) => be.updateBooking(b.id, { status: "confirmed", statusAt: Date.now() }),
   cancel: (be, b) => be.updateBooking(b.id, { status: "cancelled", statusAt: Date.now() }),
   setEta: (be, b, eta) => be.updateBooking(b.id, { eta }),
+  // Manager → warranty decision after checking the defect (rec = { decision, defect, reason, at, by } or null to reopen)
+  reviewWarranty: (be, b, rec) => be.updateBooking(b.id, { warrantyReview: rec }),
   // Technician → accept (customer now sees the technician)
   accept: (be, b, me) =>
     be.updateBooking(b.id, {
@@ -369,7 +389,7 @@ export function payInfo(b) {
   const state = p.status === "not_collected" ? "unpaid" : p.status === "free" || (p.status === "paid" && amount === 0) ? "free" : "paid";
   const reason = p.reason || "";
   const label = state === "paid" ? `${rupees(amount)} · ${p.mode || ""}`.replace(/ · $/, "")
-    : state === "free" ? (p.discountType === "warranty" || isWarranty(b) ? "No charge · warranty" : "No charge · 100% discount")
+    : state === "free" ? (p.discountType === "warranty" || (isWarranty(b) && b.warrantyReview?.decision !== "rejected") ? "No charge · warranty" : "No charge · 100% discount")
     : "Payment not collected";
   return { state, amount, charge, discount, reason, discountType: p.discountType || "", mode: p.mode || "", ref: p.ref || "", note: p.note || "", at: p.at, by: p.by || "", label };
 }
@@ -430,8 +450,9 @@ export function jobSheetHtml(b) {
     : pi.state === "free" ? `<div class="pay ok"><b>${esc(pi.label)}</b>${extra ? `<div class="muted">${extra}</div>` : ""}</div>`
     : pi.state === "unpaid" ? `<div class="pay bad"><b>Payment not collected</b>${pi.note ? ` — ${esc(pi.note)}` : ""}</div>`
     : `<div class="muted">Not collected yet${b.price ? ` · due ${rupees(b.price)}` : isWarranty(b) ? " · warranty job" : ""}</div>`;
-  const w = b.warranty;
+  const w = b.warranty, wi = warrantyInfo(b);
   return `<div class="sheet">
+    ${wi ? `<p class="pay ${wi.state === "approved" ? "ok" : wi.state === "rejected" ? "bad" : ""}" style="${wi.state === "pending" ? "background:#FFF6D9;color:#7A5A00" : ""}"><b>${wi.state === "approved" ? "✅" : wi.state === "rejected" ? "❌" : "⏳"} ${esc(wi.label)}</b>${wi.defect ? `<br>Defect found: ${esc(wi.defect)}` : ""}${wi.reason ? `<br>Reason: ${esc(wi.reason)}` : ""}${wi.at ? `<br><span class="muted">${when(wi.at)}${wi.by ? " · " + esc(wi.by) : ""}</span>` : ""}</p>` : ""}
     ${w ? `<p class="rmk"><b>🛡️ Warranty claim ${esc(w.claimId || "")}</b> — original ${w.origBookingId ? `<a href="${invoiceUrl(w.origBookingId)}" target="_blank" rel="noopener">${esc(w.invoiceNo || w.origCode || "invoice")}</a>` : esc(w.invoiceNo || w.origCode || "repair not linked")}${w.repairDate ? ` · repaired ${esc(w.repairDate)}` : ""}${w.technician ? ` by ${esc(w.technician)}` : ""}${w.since ? ` · problem since: ${esc(w.since)}` : ""}${w.photo ? `<br><a href="${esc(w.photo)}" target="_blank" rel="noopener"><img src="${esc(w.photo)}" alt="Customer photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;margin-top:6px"></a>` : ""}</p>` : ""}
     ${pre || post ? `<table class="qc"><thead><tr><th>Check (${esc(CHECKLISTS[(pre || post).type]?.name || "")})</th><th>Before</th><th>After</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table>
       ${pre?.remark ? `<p class="rmk"><b>Before repair:</b> ${esc(pre.remark)}</p>` : ""}${post?.remark ? `<p class="rmk"><b>After repair:</b> ${esc(post.remark)}</p>` : ""}

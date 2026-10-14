@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#053E40" />
 <title>ZippHive Store Manager</title>
 <link rel="icon" href="/zh-icon.png" />
-<script src="/zipphive-config.js?v=11"></script>
-<link rel="stylesheet" href="/zh-ops.css?v=11" />
+<script src="/zipphive-config.js?v=12"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=12" />
 <style>
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;border-left:5px solid var(--line)}
@@ -56,6 +56,17 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 .tech .nm{font-weight:700;font-size:14px}
 .tech .st{font-size:12.5px;font-weight:600}
 .st.free{color:var(--green)}.st.busy{color:var(--teal)}.st.pend{color:#8A5A00}.st.off{color:var(--muted)}
+.wr{margin-top:10px;border-radius:12px;padding:12px;background:#FFF6D9;border:1px solid #F1D98A;display:flex;flex-direction:column;gap:8px}
+.wr.ok{background:var(--greenlt);border-color:#BFE3C8}.wr.bad{background:var(--redlt);border-color:#F2C2C2}
+.wr .t{font-weight:800;color:var(--deep);font-size:14.5px}
+.wr .note{font-size:13px;color:var(--muted)}
+.wr .found{font-size:13px;background:#fff;border-radius:8px;padding:8px 10px}
+.wr .found b{color:var(--red)}
+.wr label{font-size:12.5px;font-weight:700;color:var(--deep)}
+.wr textarea{min-height:56px}
+.wr .reasons{display:flex;flex-wrap:wrap;gap:6px}
+.wr .reasons button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
+.wr .reasons button.on{background:var(--red);border-color:var(--red);color:#fff}
 .empty{padding:28px;text-align:center;color:var(--muted)}
 @media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:980px){.layout{grid-template-columns:1fr}}
@@ -65,10 +76,10 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet } from "/zh-ops.js?v=11";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS } from "/zh-ops.js?v=12";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
-const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {} } };
+const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {}, wr: {} } };
 const app = document.getElementById("app");
 let unsub = null;
 
@@ -97,6 +108,10 @@ function techLoad(email) {
   return { pending: mine.filter((b) => b.assignState === "pending"), active: mine.filter((b) => b.assignState !== "pending") };
 }
 
+// warranty job whose defect has been checked by the technician but the store hasn't decided yet
+const wReady = (b) => warrantyInfo(b)?.state === "pending" && !!b.preQc?.doneAt && b.status !== "cancelled";
+const needsAction = (b) => ["new", "unassigned", "declined"].includes(stage(b)) || wReady(b);
+
 function visible() {
   const order = { new: 0, declined: 1, unassigned: 2, waiting: 3, active: 4, done: 5, cancelled: 6 };
   const q = S.q.trim().toLowerCase();
@@ -104,7 +119,7 @@ function visible() {
     .filter((b) => {
       const s = stage(b);
       switch (S.filter) {
-        case "action": return ["new", "unassigned", "declined"].includes(s);
+        case "action": return needsAction(b);
         case "waiting": return s === "waiting";
         case "active": return s === "active";
         case "done": return s === "done";
@@ -178,6 +193,7 @@ function card(b) {
       <div class="meta"><b>${esc(b.name)}</b> · <a href="tel:+91${esc(b.mobile)}">${esc(b.mobile)}</a> · ${esc(b.area)} · ${esc(b.time)}</div>
       ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
       ${flags(b)}
+      ${wBox(b)}
       ${b.preQc || b.payment ? `<div class="row" style="margin-top:8px"><a class="btn sm o" href="${invoiceUrl(b.id)}" target="_blank" rel="noopener">🧾 ${b.payment ? "Invoice & QC report" : "QC report"}</a>${b.payment ? `<a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, `Hi ${b.name}, your ZippHive invoice & quality check report for booking ${b.code}: ${invoiceUrl(b.id)}`)}">Send invoice</a>` : ""}</div>` : ""}
       ${b.preQc || b.postQc || b.payment || b.techRemarks || isWarranty(b) ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
       ${open ? `<div class="foot">
@@ -204,11 +220,72 @@ function flags(b) {
   else if (pi.state === "free") f.push(`<span class="flag green">🛡️ ${esc(pi.label)}</span>`);
   else if (pi.state === "paid" && pi.discount) f.push(`<span class="flag">Discount ${rupees(pi.discount)}${pi.reason ? " – " + esc(pi.reason) : ""}</span>`);
   else if (pi.state === "paid" && b.price && pi.amount !== Number(b.price)) f.push(`<span class="flag">Paid ${rupees(pi.amount)} vs quote ${rupees(b.price)}</span>`);
+  const wi = warrantyInfo(b);
+  if (wi && b.status !== "cancelled") {
+    if (wi.state === "pending") f.unshift(`<span class="flag ${wReady(b) ? "red" : ""}">🛡️ ${wReady(b) ? "Warranty decision needed" : "Warranty check pending"}</span>`);
+    else f.unshift(`<span class="flag ${wi.state === "approved" ? "green" : "red"}">${wi.state === "approved" ? "✅ Warranty approved" : "❌ Not covered"}</span>`);
+    if (wi.state !== "pending" && !b.warrantyReview?.sentAt) f.push(`<span class="flag red">📲 Decision not sent</span>`);
+  }
   if (isWarranty(b) && b.warranty?.photo && !b.preQc) f.push(`<a class="flag" href="${esc(b.warranty.photo)}" target="_blank" rel="noopener">📷 Customer photo</a>`);
   if (b.techRemarks) f.push(`<span class="flag">📝 Remarks</span>`);
   if (!b.confirmSentAt && !["new", "completed", "cancelled"].includes(b.status)) f.unshift(`<span class="flag red">📲 Confirmation not sent</span>`);
   return f.length ? `<div class="flags">${f.join("")}</div>` : "";
 }
+
+// ---- Warranty check: store manager looks at the defect and decides covered / not covered ----
+const wDraft = (b) => (S.draft.wr[b.id] ||= {
+  defect: (b.preQc?.items || []).filter((i) => i.s === "fault").map((i) => i.l + (i.r ? ` – ${i.r}` : "")).join("; "),
+  reason: "", mode: "",
+});
+function wBox(b) {
+  const wi = warrantyInfo(b);
+  if (!wi || b.status === "cancelled") return "";
+  const w = b.warranty || {};
+  if (wi.state !== "pending") {
+    const r = b.warrantyReview;
+    return `<div class="wr ${wi.state === "approved" ? "ok" : "bad"}">
+      <div class="t">${wi.state === "approved" ? "✅ Warranty approved – repair is free" : "❌ Not covered under warranty"}</div>
+      ${wi.defect ? `<div class="found">Defect found: ${esc(wi.defect)}</div>` : ""}
+      ${wi.reason ? `<div class="found"><b>Reason:</b> ${esc(wi.reason)}</div>` : ""}
+      <div class="note">Decided ${when(wi.at)}${wi.by ? " by " + esc(wi.by) : ""} · customer sees this on their tracking link${r?.sentAt ? ` · sent on WhatsApp ${ago(r.sentAt)}` : ""}</div>
+      <div class="row"><button class="btn sm wa" data-act="wr-send" data-id="${b.id}">📲 ${r?.sentAt ? "Resend" : "Send"} decision on WhatsApp</button>
+        ${b.payment ? "" : `<button class="btn link" data-act="wr-undo" data-id="${b.id}">Change decision</button>`}</div>
+    </div>`;
+  }
+  const d = wDraft(b);
+  const faults = (b.preQc?.items || []).filter((i) => i.s === "fault");
+  const techCheck = b.preQc?.doneAt
+    ? `<div class="found">👨‍🔧 Technician check (${when(b.preQc.doneAt)}): ${faults.length ? faults.map((i) => `<b>${esc(i.l)}</b>${i.r ? ` – ${esc(i.r)}` : ""}`).join("; ") : "no fault found"}${b.preQc.remark ? `<br>Remark: ${esc(b.preQc.remark)}` : ""}</div>`
+    : `<div class="note">Technician hasn't checked the device yet – you can decide from the photo / description, or wait for the pre-repair check.</div>`;
+  return `<div class="wr">
+    <div class="t">🛡️ Warranty check – is this covered?</div>
+    <div class="found">Customer says: ${esc(b.problem || "—")}${w.since ? ` · since ${esc(w.since)}` : ""}${w.photo ? ` · <a href="${esc(w.photo)}" target="_blank" rel="noopener">📷 photo</a>` : ""}${w.origBookingId ? ` · <a href="${invoiceUrl(w.origBookingId)}" target="_blank" rel="noopener">original repair & QC</a>` : w.invoiceNo || w.origCode ? ` · original ${esc(w.invoiceNo || w.origCode)}` : ""}</div>
+    ${techCheck}
+    <label for="wd-${b.id}">Defect / abnormality found</label>
+    <textarea class="in" id="wd-${b.id}" data-wr="defect" data-id="${b.id}" placeholder="e.g. Display flickering – same part we replaced">${esc(d.defect)}</textarea>
+    ${d.mode === "reject" ? `
+      <label>Why is it not covered? (customer will see this)</label>
+      <div class="reasons">${W_REASONS.map((x) => `<button class="${d.reason === x ? "on" : ""}" data-act="wr-reason" data-id="${b.id}" data-r="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+      <textarea class="in" id="wr-${b.id}" data-wr="reason" data-id="${b.id}" placeholder="Write the reason in simple words">${esc(d.reason)}</textarea>
+      <div class="row"><button class="btn sm r" data-act="wr-reject" data-id="${b.id}">❌ Confirm – not covered</button><button class="btn link" data-act="wr-mode" data-id="${b.id}" data-m="">Back</button></div>`
+    : `<div class="row"><button class="btn sm" style="background:var(--green);border-color:var(--green)" data-act="wr-approve" data-id="${b.id}">✅ Approve – covered (free)</button><button class="btn sm r" data-act="wr-mode" data-id="${b.id}" data-m="reject">❌ Not covered</button></div>`}
+  </div>`;
+}
+const wMsg = (b) => {
+  const wi = warrantyInfo(b), what = `${b.device ? b.device + " – " : ""}${b.item || b.service}`, id = b.warranty?.claimId || b.code;
+  return (wi.state === "approved" ? [
+    `Hi ${b.name}, good news! ✅ Your ZippHive warranty claim *${id}* is *APPROVED*.`, ``,
+    `🛠️ ${what}`, wi.defect ? `🔍 Defect found: ${wi.defect}` : "",
+    `💚 The repair is covered under warranty – you pay ₹0.`, ``,
+    `Track your warranty job: ${trackUrl(b.id)}`,
+  ] : [
+    `Hi ${b.name}, we have checked your ZippHive warranty claim *${id}*.`, ``,
+    `🛠️ ${what}`, wi.defect ? `🔍 Found: ${wi.defect}` : "",
+    `❌ Sorry, this is *not covered under warranty*.`, `Reason: ${wi.reason}`, ``,
+    `We can still repair it at our normal price – reply here and we'll share a quote.`,
+    `Details: ${trackUrl(b.id)}`,
+  ]).filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+};
 
 // WhatsApp confirmation the store sends once it has received / accepted the booking
 const trackMsg = (b) => [
@@ -257,7 +334,7 @@ function dashboard() {
   const v = visible();
   const n = (f) => (S.bookings || []).filter((b) => {
     const s = stage(b);
-    return f === "action" ? ["new", "unassigned", "declined"].includes(s) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : false;
+    return f === "action" ? needsAction(b) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : false;
   }).length;
   const chip = (f, label, count) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}${count != null ? `<em>${count}</em>` : ""}</button>`;
   const kpi = (cls, f, num, label, sub = "") => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
@@ -386,6 +463,33 @@ app.addEventListener("click", (e) => {
   }
   if (act === "unassign") return run(actions.unassign(S.be, b), "Job taken back");
   if (act === "eta") { const v = S.draft.eta[b.id] ?? b.eta ?? ""; delete S.draft.eta[b.id]; return run(actions.setEta(S.be, b, v), "ETA saved — customer can see it"); }
+  if (act.startsWith("wr-")) {
+    const d = wDraft(b);
+    if (act === "wr-mode") { d.mode = el.dataset.m; return render(); }
+    if (act === "wr-reason") { d.reason = el.dataset.r; return render(); }
+    const by = S.managers.find((m) => m.email === S.user.email)?.name || S.user.displayName || S.user.email;
+    if (act === "wr-approve") {
+      if (!d.defect.trim()) { document.getElementById("wd-" + b.id)?.focus(); return toast("Write the defect / abnormality you found", true); }
+      pingSheet();
+      return run(actions.reviewWarranty(S.be, b, { decision: "approved", defect: d.defect.trim(), reason: "", at: Date.now(), by }), "Warranty approved – send it to the customer on WhatsApp");
+    }
+    if (act === "wr-reject") {
+      if (!d.reason.trim()) { document.getElementById("wr-" + b.id)?.focus(); return toast("Choose or write the reason it's not covered", true); }
+      pingSheet();
+      return run(actions.reviewWarranty(S.be, b, { decision: "rejected", defect: d.defect.trim(), reason: d.reason.trim(), at: Date.now(), by }), "Marked not covered – send it to the customer on WhatsApp");
+    }
+    if (act === "wr-send") {
+      window.open(waLink(b.mobile, wMsg(b)), "_blank", "noopener");
+      return run(S.be.updateBooking(b.id, { warrantyReview: { ...b.warrantyReview, sentAt: Date.now() } }), "WhatsApp opened");
+    }
+    if (act === "wr-undo") {
+      if (!confirm(`Re-open the warranty decision for ${b.code}?`)) return;
+      const r = b.warrantyReview || {};
+      S.draft.wr[b.id] = { defect: r.defect || "", reason: r.reason || "", mode: r.decision === "rejected" ? "reject" : "" };
+      pingSheet();
+      return run(actions.reviewWarranty(S.be, b, null), "Decision re-opened");
+    }
+  }
   if (act === "cancel") return confirm(`Cancel booking ${b.code} for ${b.name}?`) && run(actions.cancel(S.be, b), "Booking cancelled");
   if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
 });
@@ -394,6 +498,7 @@ app.addEventListener("change", (e) => { if (e.target.dataset.pick) S.draft.pick[
 app.addEventListener("input", (e) => {
   if (e.target.id === "q") { S.q = e.target.value; render(); }
   else if (e.target.dataset.eta) S.draft.eta[e.target.dataset.eta] = e.target.value;
+  else if (e.target.dataset.wr) { const b = find(e.target.dataset.id); if (b) wDraft(b)[e.target.dataset.wr] = e.target.value; }
 });
 setInterval(() => S.ok && softRender(), 30000);
 setInterval(() => S.ok && loadTechs(), 120000);
