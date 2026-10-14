@@ -154,6 +154,24 @@ async function firebaseBackend(conf) {
     listManagers: async () => (await fs.getDocs(fs.collection(db, "managers"))).docs.map((d) => d.data()),
     saveManager: (m) => fs.setDoc(fs.doc(db, "managers", m.email.toLowerCase()), { ...m, email: m.email.toLowerCase() }),
     deleteManager: (email) => fs.deleteDoc(fs.doc(db, "managers", email.toLowerCase())),
+    // time slots: settings in content/slots (admin), usage counters in slotUse/{yyyy-mm-dd} = { n: { "phone_0900": 1 } }
+    getSlotConfig: async () => {
+      const d = await fs.getDoc(fs.doc(db, "content", "slots"));
+      return d.exists() ? d.data() : null;
+    },
+    saveSlotConfig: (c) => fs.setDoc(fs.doc(db, "content", "slots"), { ...c, updatedAt: Date.now() }),
+    getSlotUse: async (dates) => {
+      const out = {};
+      await Promise.all(dates.map(async (d) => {
+        try { const x = await fs.getDoc(fs.doc(db, "slotUse", d)); out[d] = x.exists() ? x.data().n || {} : {}; } catch { out[d] = {}; }
+      }));
+      return out;
+    },
+    bumpSlot: (key, by) => {
+      const [date, k] = String(key).split("/");
+      return fs.setDoc(fs.doc(db, "slotUse", date), { n: { [k]: fs.increment(by) } }, { merge: true });
+    },
+    setSlotUse: (date, n) => fs.setDoc(fs.doc(db, "slotUse", date), { n }),
   };
 }
 
@@ -224,6 +242,15 @@ function mockBackend() {
       delete x[email.toLowerCase()];
       put(K.mgr, x);
     },
+    getSlotConfig: async () => get("zhmock:slots", null),
+    saveSlotConfig: async (c) => put("zhmock:slots", { ...c, updatedAt: Date.now() }),
+    getSlotUse: async (dates) => { const u = get("zhmock:slotUse", {}); return Object.fromEntries(dates.map((d) => [d, u[d] || {}])); },
+    bumpSlot: async (key, by) => {
+      const [date, k] = String(key).split("/"), u = get("zhmock:slotUse", {});
+      (u[date] ||= {})[k] = (u[date][k] || 0) + by;
+      put("zhmock:slotUse", u);
+    },
+    setSlotUse: async (date, n) => { const u = get("zhmock:slotUse", {}); u[date] = n; put("zhmock:slotUse", u); },
   };
 }
 
@@ -264,7 +291,11 @@ export const actions = {
       ...(b.status === "assigned" ? { status: "confirmed", statusAt: Date.now() } : {}),
     }),
   confirm: (be, b) => be.updateBooking(b.id, { status: "confirmed", statusAt: Date.now() }),
-  cancel: (be, b) => be.updateBooking(b.id, { status: "cancelled", statusAt: Date.now() }),
+  cancel: (be, b) => {
+    // free the customer's time slot again
+    if (b.slot && be.bumpSlot) be.bumpSlot(b.slot, -1).catch(() => {});
+    return be.updateBooking(b.id, { status: "cancelled", statusAt: Date.now() });
+  },
   setEta: (be, b, eta) => be.updateBooking(b.id, { eta }),
   // Manager → warranty decision after checking the defect (rec = { decision, defect, reason, at, by } or null to reopen)
   reviewWarranty: (be, b, rec) => be.updateBooking(b.id, { warrantyReview: rec }),

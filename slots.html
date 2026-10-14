@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#053E40" />
+<title>ZippHive Time Slots</title>
+<link rel="icon" href="/zh-icon.png" />
+<script src="/zipphive-config.js?v=13"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=13" />
+<style>
+.wrap{max-width:980px}
+.set{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;margin:6px 0 14px}
+.set label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--deep)}
+.set select,.set input{width:auto;min-width:86px}
+.wk{display:flex;gap:5px;flex-wrap:wrap}
+.wk button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-weight:700;font-size:13px}
+.wk button.on{background:var(--red);border-color:var(--red);color:#fff}
+table.g{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.g th{background:var(--tint);color:var(--dark);text-align:center;padding:8px 6px;font-size:13px;line-height:1.25}
+table.g th:first-child{text-align:left;border-radius:10px 0 0 0}
+table.g th:last-child{border-radius:0 10px 0 0}
+table.g th small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+table.g td{padding:6px;border-bottom:1px solid var(--line);text-align:center;vertical-align:top}
+table.g td:first-child{text-align:left;font-weight:700;color:var(--deep);white-space:nowrap}
+table.g input{width:64px;text-align:center;border:2px solid var(--line);border-radius:9px;padding:6px 4px;font-weight:700}
+table.g input:focus{border-color:var(--teal);outline:none}
+table.g input.z{color:#B0B0B0}
+table.g tr.all td{background:#FAFCFC}
+.use{display:block;font-size:12px;font-weight:700;margin-top:3px;color:var(--green)}
+.use.full{color:var(--red)}.use.none{color:#B0B0B0;font-weight:500}
+.codes{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.over{color:var(--red);font-weight:800}
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px}
+.day{flex:0 0 auto;width:66px;border:2px solid var(--line);background:#fff;border-radius:12px;padding:6px 4px;text-align:center;line-height:1.15}
+.day small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.day b{display:block;font-size:20px;color:var(--deep);margin:2px 0}
+.day i{display:block;font-style:normal;font-size:10.5px;font-weight:700;color:var(--green)}
+.day.closed{background:#F4F4F4}.day.closed i{color:var(--red)}
+.day.custom i{color:#8A5A00}
+.day.on{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal) inset}
+.banner{border-radius:10px;padding:9px 12px;font-weight:600;font-size:14px;margin:4px 0 12px}
+.banner.closed{background:var(--redlt);color:var(--red)}
+.banner.custom{background:var(--ylt);color:#7A5A00}
+.banner.normal{background:var(--tint);color:var(--dark)}
+.foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.ro{background:var(--ylt);color:#7A5A00;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;margin-bottom:12px}
+@media (max-width:600px){table.g input{width:52px}table.g th small{display:none}}
+</style>
+</head>
+<body>
+<div id="app"><div class="card login muted" style="margin:60px auto;max-width:420px;text-align:center">Loading…</div></div>
+<script type="module">
+import { backend, admins, esc, toast } from "/zh-ops.js?v=13";
+import { SLOT_CATS, mergeCfg, hours, hm, slotLabel, nextDays, fromYmd, dayLabel, isDayClosed, capFor } from "/zh-slots.js?v=13";
+
+const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const S = { be: null, user: undefined, ok: false, cfg: null, draft: null, use: {}, bookings: [], date: "", dayDraft: null, dirty: false };
+const app = document.getElementById("app");
+const isAdmin = () => S.user && admins().includes(S.user.email);
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const planDays = () => nextDays(Math.max(14, S.draft?.days || 7));
+
+// raw settings saved in content/slots: full capacity for every hour, so the Firestore rules can check it
+function toSave(d) {
+  const c = mergeCfg(d);
+  const cap = {};
+  for (const h of hours(c)) cap[h] = Object.fromEntries(SLOT_CATS.map((k) => [k.id, Math.max(0, Math.min(99, Number(c.cap[h]?.[k.id]) || 0))]));
+  const dates = {};
+  const today = nextDays(1)[0];
+  for (const [day, v] of Object.entries(c.dates || {})) {
+    if (day < today) continue; // drop old days
+    if (v.closed) dates[day] = { closed: true };
+    else if (v.cap) dates[day] = { cap: Object.fromEntries(hours(c).map((h) => [h, Object.fromEntries(SLOT_CATS.map((k) => [k.id, Math.max(0, Number(v.cap[h]?.[k.id]) || 0)]))])) };
+  }
+  return { open: c.open, close: c.close, days: c.days, leadMins: c.leadMins, closedDays: c.closedDays, defCap: c.defCap, cap, dates };
+}
+
+function bookedIn(date) {
+  const m = {};
+  for (const b of S.bookings) {
+    if (b.status === "cancelled" || !b.slot || !b.slot.startsWith(date + "/")) continue;
+    const k = b.slot.split("/")[1];
+    (m[k] ||= []).push(b);
+  }
+  return m;
+}
+
+function normalCard() {
+  const d = S.draft, ro = !isAdmin();
+  const opt = (from, to, v) => Array.from({ length: to - from + 1 }, (_, i) => from + i).map((h) => `<option value="${h}" ${h === v ? "selected" : ""}>${slotLabel(hm(h), "phone").split("–")[0].replace(/:00/, "")}${h >= 12 ? " PM" : " AM"}</option>`).join("");
+  const rows = hours(d).map((h) => `<tr><td>${slotLabel(h, "phone")}</td>${SLOT_CATS.map((c) => {
+    const v = Number(d.cap[h]?.[c.id] ?? d.defCap[c.id]) || 0;
+    return `<td><input type="number" min="0" max="99" inputmode="numeric" class="${v ? "" : "z"}" data-cap="${h}" data-cat="${c.id}" value="${v}" ${ro ? "disabled" : ""} aria-label="${c.label} ${slotLabel(h, c.id)}"></td>`;
+  }).join("")}</tr>`).join("");
+  return `<div class="card">
+    <h2>Open slots on a normal day</h2>
+    <p class="muted" style="margin:0 0 10px">How many bookings you can take in each hour. 0 = closed. Customers see only the slots that are still open.</p>
+    ${!S.saved && !ro ? `<div class="ro">⚠ Not saved yet – check the numbers below and press <b>Save normal day</b> once to switch on slot booking for customers.</div>` : ""}
+    ${ro ? `<div class="ro">View only – only the admin (${esc(admins()[0])}) can change slots.</div>` : ""}
+    <div class="set">
+      <label>Opens at<select class="in" data-set="open" ${ro ? "disabled" : ""}>${opt(6, 12, d.open)}</select></label>
+      <label>Last slot ends<select class="in" data-set="close" ${ro ? "disabled" : ""}>${opt(13, 23, d.close)}</select></label>
+      <label>Customers can book<select class="in" data-set="days" ${ro ? "disabled" : ""}>${[3, 5, 7, 10, 14, 21, 30].map((n) => `<option value="${n}" ${n === d.days ? "selected" : ""}>${n} days ahead</option>`).join("")}</select></label>
+      <label>Minimum notice<select class="in" data-set="leadMins" ${ro ? "disabled" : ""}>${[0, 30, 60, 90, 120, 180].map((n) => `<option value="${n}" ${n === d.leadMins ? "selected" : ""}>${n ? (n % 60 ? n + " min" : n / 60 + " hour" + (n > 60 ? "s" : "")) : "None"}</option>`).join("")}</select></label>
+      <label>Closed every week<span class="wk">${WEEK.map((w, i) => `<button type="button" class="${d.closedDays.includes(i) ? "on" : ""}" data-act="wk" data-i="${i}" ${ro ? "disabled" : ""}>${w}</button>`).join("")}</span></label>
+    </div>
+    <table class="g"><thead><tr><th>Time</th>${SLOT_CATS.map((c) => `<th>${esc(c.label)}<small>${c.dur} min slot${c.hint ? " · " + esc(c.hint) : ""}</small></th>`).join("")}</tr></thead>
+      <tbody>${ro ? "" : `<tr class="all"><td>Set all hours</td>${SLOT_CATS.map((c) => `<td><input type="number" min="0" max="99" inputmode="numeric" data-all="${c.id}" placeholder="–" aria-label="Set all ${c.label}"></td>`).join("")}</tr>`}${rows}</tbody></table>
+    ${ro ? "" : `<div class="foot"><button class="btn" data-act="save" ${S.dirty || !S.saved ? "" : "disabled"}>💾 Save normal day</button>${S.dirty ? `<span class="muted">Unsaved changes</span>` : `<span class="muted">Saved</span>`}</div>`}
+  </div>`;
+}
+
+function dayCard() {
+  const d = S.draft, ro = !isAdmin(), date = S.date;
+  const days = planDays();
+  const strip = days.map((x) => {
+    const dt = fromYmd(x), closed = isDayClosed(d, x), custom = !!d.dates[x]?.cap;
+    const n = Object.values(bookedIn(x)).reduce((a, l) => a + l.length, 0);
+    return `<button class="day ${x === date ? "on" : ""} ${closed ? "closed" : ""} ${custom ? "custom" : ""}" data-act="day" data-d="${x}">
+      <small>${x === days[0] ? "Today" : WEEK[dt.getDay()]}</small><b>${dt.getDate()}</b><small>${dt.toLocaleDateString("en-IN", { month: "short" })}</small>
+      <i>${closed ? "Closed" : custom ? "Custom" : n ? `${n} booked` : "Normal"}</i></button>`;
+  }).join("");
+  const weekly = d.closedDays.includes(fromYmd(date).getDay()), holiday = !!d.dates[date]?.closed, custom = !!d.dates[date]?.cap;
+  const booked = bookedIn(date), use = S.use[date] || {};
+  const dd = S.dayDraft;
+  const rows = hours(d).map((h) => `<tr><td>${slotLabel(h, "phone")}</td>${SLOT_CATS.map((c) => {
+    const k = `${c.id}_${h}`, list = booked[k] || [], cap = dd ? Number(dd[h]?.[c.id]) || 0 : capFor(d, date, h, c.id);
+    const n = Math.max(list.length, Number(use[k]) || 0);
+    const cell = dd ? `<input type="number" min="0" max="99" inputmode="numeric" class="${cap ? "" : "z"}" data-dcap="${h}" data-cat="${c.id}" value="${cap}">` : "";
+    const u = holiday || weekly ? `<span class="use none">closed</span>` : !cap && !n ? `<span class="use none">—</span>`
+      : `<span class="use ${n >= cap ? "full" : ""}">${n > cap ? `<span class="over">${n}/${cap} overbooked</span>` : `${n}/${cap} booked`}</span>`;
+    return `<td>${cell}${dd ? `<span class="use ${n ? "" : "none"}">${n} booked</span>` : u}${list.length ? `<span class="codes">${list.map((b) => esc(b.code)).join(", ")}</span>` : ""}</td>`;
+  }).join("")}</tr>`).join("");
+  const banner = holiday ? `<div class="banner closed">🚫 Closed on ${dayLabel(date)} (holiday) – customers can't book this day.</div>`
+    : weekly ? `<div class="banner closed">🚫 Closed every ${WEEK[fromYmd(date).getDay()]} – change it in "Closed every week" above.</div>`
+    : custom ? `<div class="banner custom">✏️ Custom slots for ${dayLabel(date)} (not the normal day).</div>`
+    : `<div class="banner normal">Normal day – same slots as above.</div>`;
+  return `<div class="card">
+    <h2>Calendar – bookings and changes for one day</h2>
+    <p class="muted" style="margin:0 0 10px">Pick a day to see how many slots are booked, close it for a holiday, or open more / fewer slots just for that day.</p>
+    <div class="days">${strip}</div>
+    ${banner}
+    <table class="g"><thead><tr><th>${dayLabel(date)}</th>${SLOT_CATS.map((c) => `<th>${esc(c.label)}<small>${c.dur} min</small></th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
+    ${ro ? "" : `<div class="foot">
+      ${dd ? `<button class="btn" data-act="day-save">💾 Save slots for ${dayLabel(date)}</button><button class="btn link" data-act="day-cancel">Cancel</button>`
+        : `${holiday ? `<button class="btn" data-act="day-open">Open this day again</button>` : weekly ? "" : `<button class="btn o" data-act="day-edit">✏️ Change slots for this day</button><button class="btn r" data-act="day-close">🚫 Close this day (holiday)</button>`}
+           ${custom ? `<button class="btn link" data-act="day-reset">Back to normal day</button>` : ""}`}
+      <span class="sp" style="flex:1"></span><button class="btn sm g" data-act="recount" title="Fix the booked counts if a booking was deleted by hand">🔄 Recount from bookings</button>
+    </div>`}
+  </div>`;
+}
+
+function render() {
+  const a = document.activeElement, fid = a && a.dataset && (a.dataset.cap ? `[data-cap="${a.dataset.cap}"][data-cat="${a.dataset.cat}"]` : a.dataset.dcap ? `[data-dcap="${a.dataset.dcap}"][data-cat="${a.dataset.cat}"]` : a.dataset.all ? `[data-all="${a.dataset.all}"]` : "");
+  const head = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Time slots</span><span class="sp"></span>
+    ${S.user ? `<a class="btn sm ghost" href="/manager.html">← Dashboard</a><button class="btn sm ghost" data-act="signout">Sign out</button>` : ""}</header>`;
+  if (!S.be) app.innerHTML = head + `<div class="card login" style="margin:60px auto;max-width:420px;text-align:center"><h2>Not configured</h2><p class="muted">Firebase settings are missing.</p></div>`;
+  else if (S.user === undefined) app.innerHTML = head + `<div class="center muted" style="padding:40px;text-align:center">Loading…</div>`;
+  else if (!S.user) app.innerHTML = head + `<div class="card" style="margin:60px auto;max-width:420px;text-align:center"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
+  else if (!S.ok) app.innerHTML = head + `<div class="card" style="margin:60px auto;max-width:420px;text-align:center"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive admin or store manager.</p></div>`;
+  else if (!S.draft) app.innerHTML = head + `<div class="muted" style="padding:40px;text-align:center">Loading slots…</div>`;
+  else app.innerHTML = head + `<div class="wrap">${normalCard()}${dayCard()}</div>`;
+  if (fid) { const el = app.querySelector(fid); if (el) { el.focus(); try { el.select(); } catch {} } }
+}
+
+async function load() {
+  const raw = await S.be.getSlotConfig().catch(() => null);
+  S.saved = !!raw;
+  S.cfg = mergeCfg(raw);
+  if (!S.dirty) S.draft = clone(S.cfg);
+  S.date ||= nextDays(1)[0];
+  S.use = await S.be.getSlotUse(planDays()).catch(() => ({}));
+  render();
+}
+async function persist(msg) {
+  const data = toSave(S.draft);
+  await S.be.saveSlotConfig(data);
+  S.draft = mergeCfg(data); S.dirty = false; S.saved = true;
+  toast(msg); render();
+}
+
+app.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, d = S.draft;
+  try {
+    if (act === "signin") return S.be.signIn();
+    if (act === "signout") return S.be.signOut();
+    if (act === "wk") { const i = +el.dataset.i; d.closedDays = d.closedDays.includes(i) ? d.closedDays.filter((x) => x !== i) : [...d.closedDays, i]; S.dirty = true; return render(); }
+    if (act === "save") return persist("Saved – customers see the new slots now");
+    if (act === "day") { S.date = el.dataset.d; S.dayDraft = null; return render(); }
+    if (act === "day-edit") { S.dayDraft = Object.fromEntries(hours(d).map((h) => [h, Object.fromEntries(SLOT_CATS.map((c) => [c.id, capFor(d, S.date, h, c.id)]))])); return render(); }
+    if (act === "day-cancel") { S.dayDraft = null; return render(); }
+    if (act === "day-save") { d.dates[S.date] = { cap: S.dayDraft }; S.dayDraft = null; return persist(`Slots saved for ${dayLabel(S.date)}`); }
+    if (act === "day-close") {
+      const n = Object.values(bookedIn(S.date)).reduce((a, l) => a + l.length, 0);
+      if (!confirm(`Close ${dayLabel(S.date)}? Customers won't be able to book it.${n ? `\n\n${n} booking(s) already on this day stay – call those customers.` : ""}`)) return;
+      d.dates[S.date] = { closed: true }; return persist(`${dayLabel(S.date)} closed`);
+    }
+    if (act === "day-open" || act === "day-reset") { delete d.dates[S.date]; return persist(`${dayLabel(S.date)} back to the normal day`); }
+    if (act === "recount") {
+      for (const day of planDays()) {
+        const n = Object.fromEntries(Object.entries(bookedIn(day)).map(([k, l]) => [k, l.length]));
+        await S.be.setSlotUse(day, n);
+      }
+      S.use = await S.be.getSlotUse(planDays()); toast("Booked counts updated from bookings"); return render();
+    }
+  } catch (x) { toast("Failed: " + (x.message || x), true); }
+});
+app.addEventListener("change", (e) => {
+  const t = e.target, d = S.draft;
+  if (t.dataset.set) {
+    d[t.dataset.set] = Number(t.value);
+    if (d.close <= d.open) d.close = d.open + 1;
+    S.draft = mergeCfg(d); S.dirty = true; return render();
+  }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target, d = S.draft, v = Math.max(0, Math.min(99, parseInt(t.value || "0", 10) || 0));
+  if (t.dataset.cap) { (d.cap[t.dataset.cap] ||= {})[t.dataset.cat] = v; S.dirty = true; t.classList.toggle("z", !v); const s = app.querySelector("[data-act=save]"); if (s) { s.disabled = false; s.nextElementSibling.textContent = "Unsaved changes"; } }
+  else if (t.dataset.dcap) { S.dayDraft[t.dataset.dcap][t.dataset.cat] = v; t.classList.toggle("z", !v); }
+  else if (t.dataset.all && t.value !== "") { for (const h of hours(d)) (d.cap[h] ||= {})[t.dataset.all] = v; d.defCap[t.dataset.all] = v; S.dirty = true; render(); }
+});
+window.addEventListener("beforeunload", (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+S.be = await backend();
+render();
+if (S.be) S.be.onUser(async (u) => {
+  S.user = u; S.ok = false;
+  if (u) {
+    S.ok = await S.be.isManager(u.email);
+    if (S.ok) {
+      S.be.watchAllBookings((l) => { S.bookings = l; if (S.draft) render(); }, () => {});
+      await load();
+      setInterval(() => !S.dirty && !S.dayDraft && load(), 60e3);
+    }
+  }
+  render();
+});
+</script>
+</body>
+</html>
