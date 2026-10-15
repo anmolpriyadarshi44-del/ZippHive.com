@@ -2,7 +2,7 @@
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
 import { backend, trackUrl } from "/zh-ops.js?v=15";
-import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE } from "/zh-services.js?v=19";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI } from "/zh-services.js?v=20";
 import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
@@ -45,6 +45,30 @@ const CSS = `
 #zhBook .zb-sub{color:var(--mu);font-size:14px;margin:0 0 14px}
 #zhBook .zb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #zhBook .zb-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+#zhBook .zb-pics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#zhBook .zb-pic{display:flex;flex-direction:column;text-align:left;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:var(--ink)}
+#zhBook .zb-pic .ph{position:relative;display:block;aspect-ratio:1/1;border-radius:18px;overflow:hidden;background:linear-gradient(140deg,#E6F4F3,#FFF4CC)}
+#zhBook .zb-pic .ph::before{content:attr(data-e);position:absolute;inset:0;display:grid;place-items:center;font-size:40px}
+#zhBook .zb-pic .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .4s}
+#zhBook .zb-pic:hover .ph img{transform:scale(1.06)}
+#zhBook .zb-pic .ph::after{content:"";position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(transparent,rgba(4,47,49,.35))}
+#zhBook .zb-pic .ph em{position:absolute;z-index:1;left:8px;top:8px;font-style:normal;font-size:10.5px;font-weight:800;background:var(--y,#FFC93C);color:#3A2A00;border-radius:999px;padding:3px 8px}
+#zhBook .zb-pic .ph i{position:absolute;z-index:1;right:8px;top:8px;font-style:normal;font-size:10.5px;font-weight:800;background:#042F31;color:#fff;border-radius:999px;padding:3px 8px}
+#zhBook .zb-pic b{display:block;font-size:14px;line-height:1.25;margin:8px 2px 2px}
+#zhBook .zb-pic .fr{font-size:12.5px;color:var(--mu);margin:0 2px}
+#zhBook .zb-pic .fr strong{color:var(--td);font-weight:800}
+#zhBook .zb-pic .fr s{color:#9AA9A9;margin-left:5px}
+#zhBook .zb-pic.wide{grid-column:span 2}
+#zhBook .zb-pic.wide .ph{aspect-ratio:auto;flex:1;min-height:0}
+#zhBook .zb-pic:focus-visible .ph{outline:3px solid var(--t);outline-offset:2px}
+#zhBook .zb-banner{position:relative;border-radius:18px;overflow:hidden;min-height:150px;display:flex;align-items:flex-end;margin-bottom:14px;background:linear-gradient(140deg,#0B6E6E,#042F31)}
+#zhBook .zb-banner::before{content:attr(data-e);position:absolute;right:18px;top:12px;font-size:48px;opacity:.5}
+#zhBook .zb-banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#zhBook .zb-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,47,49,0) 20%,rgba(4,47,49,.88))}
+#zhBook .zb-banner div{position:relative;z-index:1;padding:14px 16px;color:#fff}
+#zhBook .zb-banner h3{color:#fff;margin:0 0 2px}
+#zhBook .zb-banner p{margin:0;font-size:13px;opacity:.9}
+@media (max-width:520px){#zhBook .zb-pics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#zhBook .zb-pic.wide .ph{aspect-ratio:2/1;flex:none}}
 #zhBook .zb-opt{position:relative;text-align:left;border:1.5px solid var(--ln);background:#fff;border-radius:14px;padding:12px;cursor:pointer;font:inherit;color:var(--ink);transition:border-color .15s,box-shadow .15s}
 #zhBook .zb-opt:hover{border-color:var(--t);box-shadow:0 4px 14px rgba(7,72,72,.08)}
 #zhBook .zb-opt.on{border-color:var(--t);background:var(--tl);box-shadow:0 0 0 1.5px var(--t) inset}
@@ -321,10 +345,17 @@ function vPricePhone() {
 }
 function vItem() {
   const s = svc();
+  const card = (i) => {
+    const f = itemFrom(s, i), off = f && f.mrp > f.price ? offPct(f.mrp, f.price) : 0;
+    return `<button class="zb-pic ${i.id === "combo" ? "wide" : ""}" data-a="item" data-v="${i.id}" aria-label="${esc(i.name)}">
+      <span class="ph" data-e="${CLEAN_EMOJI[i.id] || "✨"}"><img src="${esc(itemImg(i, i.id === "combo" ? 900 : 480))}" alt="" loading="lazy" onerror="this.remove()">${off ? `<em>${off}% OFF</em>` : ""}${i.id === "combo" ? `<i>★ Most booked</i>` : ""}</span>
+      <b>${esc(i.name)}</b><span class="fr">${f ? `from <strong>${rs(f.price)}</strong>${f.mrp > f.price ? `<s>${rs(f.mrp)}</s>` : ""}` : "–"}</span></button>`;
+  };
+  const items = s.items.filter((i) => i.active !== false).sort((a, b) => (b.id === "combo") - (a.id === "combo"));
   return `<h3>${esc(s.name)}</h3><p class="zb-sub">${esc(s.tagline || "")}</p>
-    <div class="zb-list">${s.items.filter((i) => i.active !== false).map((i) => `<button class="zb-opt" data-a="item" data-v="${i.id}"><b>${esc(i.name)}</b><small>${esc(i.desc || "")}</small>
-      <span class="pr">from ${(() => { const d = s.durations.filter((x) => itemPrice(s, i, x) > 0).sort((a, b) => itemPrice(s, i, a) - itemPrice(s, i, b))[0]; return d ? tag(itemPrice(s, i, d), itemMrp(s, i, d)) : "–"; })()}</span></button>`).join("")}
-    <button class="zb-opt zb-other" data-a="item" data-v="other"><b>Something else</b><small>Full-home deep cleaning, office, move-in… describe it</small></button></div>`;
+    <div class="zb-pics">${items.map(card).join("")}
+    <button class="zb-pic wide" data-a="item" data-v="other"><span class="ph" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 480))}" alt="" loading="lazy" onerror="this.remove()"></span><b>Something else</b><span class="fr">Full-home, move-in, office…</span></button></div>
+    <p class="zb-note">Pick what to clean → choose 30, 45 or 60 min → pick a slot. Cleaners bring all equipment.</p>`;
 }
 function vPriceDuration() {
   const s = svc();
@@ -335,7 +366,7 @@ function vPriceDuration() {
       ${S.err ? `<div class="zb-err">${esc(S.err)}</div>` : ""}${summary(true, "Choose time slot →")}`;
   }
   const it = S.item;
-  return `<h3>${esc(it.name)}</h3><p class="zb-sub">${esc(it.desc || "")}</p>
+  return `<div class="zb-banner" data-e="${CLEAN_EMOJI[it.id] || "✨"}"><img src="${esc(itemImg(it, 900))}" alt="" onerror="this.remove()"><div><h3>${esc(it.name)}</h3><p>${esc(it.desc || "")}</p></div></div>
     <label>How long should the cleaner spend?</label>
     <div class="zb-dur">${s.durations.map((d) => `<button class="${S.dur === d ? "on" : ""}" data-a="dur" data-v="${d}"><b>${d} min</b><span>${rs(itemPrice(s, it, d))}</span>${itemMrp(s, it, d) > itemPrice(s, it, d) ? `<s>${rs(itemMrp(s, it, d))}</s><em class="off">${offPct(itemMrp(s, it, d), itemPrice(s, it, d))}% OFF</em>` : ""}</button>`).join("")}</div>
     <label for="zbOR">Notes for the cleaner (optional)</label><textarea id="zbOR" data-f="remarks" rows="2" placeholder="e.g. 2 bathrooms, hard water stains">${esc(S.remarks)}</textarea>
@@ -525,7 +556,7 @@ function afterSub() {
   const sk = phoneSkus(); S.sku = sk.length === 1 ? sk[0] : null;
   return go("price");
 }
-async function startService(id) {
+async function startService(id, quiet) {
   S.svc = id; S.hist = ["svc"]; S.err = ""; S.sel = {}; S.other = false; S.item = null; S.dur = null; S.sku = null; S.group = ""; S.variant = ""; S.remarks = "";
   const s = svc();
   if (s.mode === "phone") {
@@ -537,7 +568,7 @@ async function startService(id) {
     return;
   }
   S.step = s.mode === "duration" ? "item" : s.variants ? "variant" : "price";
-  render(true);
+  render(!quiet);
 }
 function next() {
   const s = svc();
@@ -629,6 +660,14 @@ document.addEventListener("click", (e) => {
   if (!svcById(S.cat, id)) return;
   startService(id).then(() => {
     const s = svc();
+    if (a.dataset.bookItem && s.mode === "duration") {
+      const it = s.items.find((i) => i.id === a.dataset.bookItem && i.active !== false);
+      if (it || a.dataset.bookItem === "other") {
+        S.other = !it; S.item = it || null;
+        const d = Number(a.dataset.bookDur); S.dur = it && s.durations.includes(d) && itemPrice(s, it, d) > 0 ? d : null;
+        go("price");
+      }
+    }
     if (a.dataset.bookItem && s.mode === "items") {
       const it = s.items.find((i) => i.id === a.dataset.bookItem);
       if (it) { S.sel = { [it.id]: it.minQty || 1 }; if (s.variants && !S.variant) { /* choose AC type first */ } render(); }
@@ -643,5 +682,6 @@ loadServices().then((cat) => {
   S.cat = cat;
   window.ZHBook = { catalog: cat, open: startService };
   document.dispatchEvent(new CustomEvent("zh-services", { detail: cat }));
-  render();
+  // <div id="zhBook" data-start="cleaning"> opens straight at that service (e.g. /cleaning.html)
+  if (root.dataset.start && svcById(cat, root.dataset.start)) startService(root.dataset.start, true); else render();
 }).catch(() => { root.innerHTML = `<div class="zb-load">Couldn't load services – call <a href="tel:+919220400950">+91 92204 00950</a>.</div>`; });
