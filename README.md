@@ -127,3 +127,7 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
   - **Washing Machine, Plumber & Electrician** (one service, three tabs): every sub-issue has its own price and quantity; "Other issue" adds an inspection visit with the customer's description.
 - **/pricing.html** (admin edits, store managers view): every item's name, description and price(s), show/hide, add/delete items, "other" visit charge. Saved to Firestore `content/services` (already writable by the admin under the current rules). Phone prices stay in Admin → Price list.
 - Defaults live in `zh-services.js`; the homepage service cards and AMC plan prices read the same price list.
+
+## Gmail alert for every new booking
+- `apps-script/bookings-sync.gs` emails ALERT_EMAIL (zipphive@gmail.com) for each new booking or warranty job: service, selection, price, slot, customer, mobile, area, notes, with buttons for the dashboard, WhatsApp and tracking page.
+- Sent within seconds (the website pings the script on every booking) or at the latest at the 5-minute sync. The first run only records existing bookings, so old orders are not emailed. Run `testBookingEmail` once from the editor to see a sample.
