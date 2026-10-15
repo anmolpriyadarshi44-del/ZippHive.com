@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -246,6 +246,119 @@ footer .logo{color:#fff;margin-bottom:12px}
   .stats{gap:22px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}.rv{opacity:1;transform:none}}
+
+/* ================= 2026 refresh ================= */
+:root{--night:#042F31;--paper:#F5F9F8;--display:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif}
+body{background:#fff}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.025em}
+h2{font-size:clamp(30px,4.2vw,46px);font-weight:800;line-height:1.05}
+section{padding:96px 0}
+.tag{display:inline-flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:15px;font-weight:700;color:var(--teal)}
+.tag::before{content:"";width:12px;height:14px;background:var(--yellow);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.why .tag{color:var(--yellow)}
+.btn{font-weight:800}
+.btn-y{box-shadow:0 10px 24px -8px rgba(242,178,0,.7)}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+/* header */
+header{background:rgba(255,255,255,.82);backdrop-filter:saturate(1.4) blur(14px)}
+.logo span{font-family:var(--display);letter-spacing:-.02em}
+.links a:not(.btn){position:relative}
+.links a:not(.btn)::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--yellow);transform:scaleX(0);transition:transform .2s}
+.links a:not(.btn):hover::after{transform:scaleX(1)}
+/* hero */
+.hero{background:var(--night);padding:72px 0 0;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;
+  background:radial-gradient(700px 420px at 82% 18%,rgba(255,201,60,.22),transparent 60%),radial-gradient(800px 500px at 10% 100%,rgba(11,110,110,.55),transparent 60%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64' viewBox='0 0 56 64'%3E%3Cpath d='M28 2 54 17v30L28 62 2 47V17z' fill='none' stroke='%23ffffff' stroke-opacity='.06' stroke-width='1.5'/%3E%3C/svg%3E")}
+.hero-grid{grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.hero h1{font-size:clamp(40px,5.2vw,68px);line-height:1;font-weight:800;margin:22px 0 20px;max-width:15ch}
+.hero p.lead{font-size:18.5px;color:#C9E3E1;opacity:1;max-width:540px;line-height:1.6}
+.pill{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);font-size:13.5px}
+.hero-cta{margin:30px 0 26px}
+.quick{display:flex;flex-wrap:wrap;gap:10px}
+.quick a{display:inline-flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:14px;line-height:1.15;transition:background .2s,transform .2s}
+.quick a:hover{background:rgba(255,255,255,.14);transform:translateY(-2px)}
+.quick small{display:block;font-weight:600;font-size:12px;color:var(--yellow)}
+.quick .qi{width:34px;height:38px;display:grid;place-items:center;background:var(--yellow);color:var(--night);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.quick .qi svg{width:18px;height:18px}
+/* tracking demo */
+.tdev{position:relative;border-radius:30px;padding:14px;background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.14);box-shadow:0 40px 80px -30px rgba(0,0,0,.6)}
+.tmap{position:relative;height:230px;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,#0A5654,#073F40)}
+.tmap svg{position:absolute;inset:0;width:100%;height:100%}
+.tmap .pin{position:absolute;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;display:grid;place-items:center;border-radius:50%;background:#053E40;box-shadow:0 0 0 6px rgba(255,201,60,.25),0 6px 16px rgba(0,0,0,.4);
+  offset-path:path("M40 200 C 90 200, 70 160, 120 160 S 210 160, 220 110 S 260 60, 310 58");offset-rotate:0deg;animation:drive 7s ease-in-out infinite}
+@keyframes drive{0%{offset-distance:0%}70%,100%{offset-distance:88%}}
+.tmap .home{position:absolute;right:14px;top:14px;font-size:12px;font-weight:800;background:var(--yellow);color:var(--night);padding:4px 10px;border-radius:999px}
+.tcard{margin-top:-34px;position:relative;background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 20px 40px -20px rgba(0,0,0,.5)}
+.trow{display:flex;align-items:center;gap:12px}
+.ava{width:46px;height:52px;display:grid;place-items:center;font-size:24px;background:var(--teal-l);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.who{flex:1;min-width:0}
+.who b{display:block;font-family:var(--display);font-size:17px}
+.who small{color:var(--muted);font-size:12.5px}
+.eta{text-align:center;background:var(--night);color:#fff;border-radius:14px;padding:6px 12px;font-size:11px;font-weight:700;line-height:1.1}
+.eta b{display:block;font-family:var(--display);font-size:24px;color:var(--yellow)}
+.tsteps{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:14px 0 12px;padding:0;font-size:11.5px;font-weight:700;color:#8AA0A0;text-align:center}
+.tsteps li{position:relative;padding-top:14px}
+.tsteps li::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;border-radius:5px;background:#E3ECEB}
+.tsteps li.done{color:var(--teal)}.tsteps li.done::before{background:var(--teal)}
+.tsteps li.now{color:var(--ink)}.tsteps li.now::before{background:linear-gradient(90deg,var(--teal) 50%,#E3ECEB 50%)}
+.tchips{display:flex;flex-wrap:wrap;gap:6px}
+.tchips span{font-size:12px;font-weight:700;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.tcap{font-size:12.5px;color:#9CC4C1;text-align:center;margin-top:10px}
+.trust{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:64px;border-top:1px solid rgba(255,255,255,.12)}
+.trust span{padding:22px 18px;color:#B7D6D3;font-size:14.5px;border-right:1px solid rgba(255,255,255,.08)}
+.trust span:last-child{border-right:0}
+.trust b{display:block;color:#fff;font-family:var(--display);font-size:20px;margin-bottom:2px}
+/* services */
+.services{background:var(--paper)}
+/* steps as a timeline */
+#how{background:#fff}
+.steps{position:relative;gap:26px}
+.steps::before{content:"";position:absolute;left:30px;right:30px;top:30px;border-top:2px dashed #C9DEDC;z-index:0}
+.step{position:relative;z-index:1;background:transparent;border:0;padding:0;box-shadow:none}
+.step::before{display:none!important}
+.step .num{width:60px;height:68px;display:grid;place-items:center;background:var(--night);color:var(--yellow);font-family:var(--display);font-size:26px;font-weight:800;margin-bottom:16px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.step:hover .num{background:var(--teal)}
+.step h3{font-size:21px}
+/* booking */
+.booksec{background:linear-gradient(180deg,var(--paper),#fff)}
+.book-grid .hero-card{border:0;box-shadow:0 40px 80px -40px rgba(5,62,64,.45),0 0 0 1px var(--line);border-radius:28px}
+ol.next li::before{border-radius:0;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);width:30px;height:34px;font-family:var(--display)}
+/* why */
+.why{background:var(--night);position:relative;isolation:isolate}
+.why::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.6;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64' viewBox='0 0 56 64'%3E%3Cpath d='M28 2 54 17v30L28 62 2 47V17z' fill='none' stroke='%23ffffff' stroke-opacity='.05' stroke-width='1.5'/%3E%3C/svg%3E")}
+.why-item{border-radius:22px;padding:26px;transition:background .2s,border-color .2s}
+.why-item:hover{background:rgba(255,255,255,.1);border-color:rgba(255,201,60,.35)}
+.why-item svg{width:46px;height:50px;padding:11px;background:rgba(255,201,60,.14);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.why-item h3{font-size:20px}
+/* plans */
+#plans{background:#fff}
+.plan{border-radius:26px;border-color:var(--line)}
+.plan.hot{background:var(--night);color:#fff;border-color:var(--night);transform:translateY(-10px);box-shadow:0 40px 70px -35px rgba(4,47,49,.7)}
+.plan.hot h3{color:#fff}.plan.hot .price{color:#A9CFCC}.plan.hot li{color:#E1F0EF}
+.plan.hot .amt{color:#fff}.plan.hot .amt small{color:#A9CFCC}.plan.hot .amt s{color:#7FAAA7}
+.plan.hot li::before{background-color:rgba(255,201,60,.2)}
+.plan h3{font-size:24px}
+/* areas */
+.areas{background:var(--paper)}
+.chips{gap:8px}
+.chip{border-radius:12px;padding:10px 16px;transition:border-color .2s,background .2s}
+.chip:hover{border-color:var(--teal);background:var(--teal-l)}
+/* faq */
+#faq{background:#fff}
+.faq details{border:1px solid var(--line);border-radius:18px;padding:18px 22px;margin-bottom:10px;background:#fff;transition:border-color .2s,box-shadow .2s}
+.faq details[open]{border-color:var(--teal);box-shadow:0 18px 40px -26px rgba(7,72,72,.5)}
+summary{font-family:var(--display);font-size:18px}
+summary::after{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--teal-l);font-size:20px}
+/* cta band */
+.band{background:var(--yellow);position:relative;isolation:isolate;overflow:hidden;padding:64px 0}
+.band::before{content:"";position:absolute;right:-60px;top:-80px;width:340px;height:390px;z-index:-1;background:rgba(255,255,255,.35);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.band h2{font-size:clamp(28px,4vw,44px)}
+/* footer */
+footer{background:var(--night)}
+@media (max-width:980px){.hero-grid{grid-template-columns:1fr}.tdev{max-width:520px}.trust{grid-template-columns:1fr 1fr}.trust span:nth-child(2){border-right:0}.steps::before{display:none}.plan.hot{transform:none}}
+@media (max-width:560px){.hero{padding-top:48px}.hero h1{font-size:44px}.trust{grid-template-columns:1fr 1fr;margin-top:44px}.trust span{padding:16px 12px;font-size:13px}.trust b{font-size:17px}.tsteps{font-size:10.5px}.quick a{flex:1 1 calc(50% - 10px)}}
+@media (prefers-reduced-motion:reduce){.tmap .pin{animation:none;offset-distance:60%}}
 </style>
 </head>
 <body>
@@ -272,33 +385,47 @@ footer .logo{color:#fff;margin-bottom:12px}
 <!-- HERO -->
 <section class="hero">
   <div class="wrap hero-grid">
-    <div>
-      <span class="pill"><i></i> Now serving across Patna</span>
-      <h1>Home &amp; phone repairs, <em>at your door</em> — fast.</h1>
-      <p class="lead">Mobile repair in 60 minutes, AC service, appliances, plumbing, electrical and deep cleaning. Verified technicians, upfront pricing, and a service warranty on every job.</p>
+    <div class="hero-copy">
+      <span class="pill"><i></i> Booking now across Patna · festive cleaning slots open</span>
+      <h1>Home fixed. Phone fixed. Right at your door.</h1>
+      <p class="lead">Cleaning, mobile repair, AC, plumbing and electrical work by verified technicians – fixed prices upfront, live tracking, and you pay only after the job is done.</p>
       <div class="hero-cta">
-        <a class="btn btn-y" href="#book">Book a Technician
+        <a class="btn btn-y" href="#book">Book a technician
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-        <a class="btn btn-o" href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener">WhatsApp Us</a>
+        <a class="btn btn-o" href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener">WhatsApp us</a>
       </div>
-      <div class="stats">
-        <div><b>60 min</b>Doorstep mobile repair</div>
-        <div><b>8+</b>Home services</div>
-        <div><b>Warranty</b>On every repair</div>
-      </div>
+      <div class="quick" id="heroQuick" aria-label="Popular services"></div>
     </div>
 
-    <div class="promise rv">
-      <h3>Every ZippHive job, start to finish</h3>
-      <ul>
-        <li><span>📍</span><div><b>Track your technician live</b>See who's coming and when — like a cab ride.</div></li>
-        <li><span>✅</span><div><b>Checked before &amp; after</b>Every function tested before and after the repair.</div></li>
-        <li><span>💸</span><div><b>Pay after the work</b>UPI, card or cash — only when you're happy.</div></li>
-        <li><span>🧾</span><div><b>Instant invoice &amp; warranty</b>Invoice on WhatsApp. Claim warranty online anytime.</div></li>
-      </ul>
-      <a class="btn btn-y form-btn" href="#book">Book a technician</a>
+    <div class="tdev" aria-label="Example of live technician tracking">
+      <div class="tmap" aria-hidden="true">
+        <svg viewBox="0 0 360 230" preserveAspectRatio="xMidYMid slice">
+          <g stroke="rgba(255,255,255,.07)" stroke-width="10" fill="none" stroke-linecap="round">
+            <path d="M-10 60 H380"/><path d="M-10 160 H380"/><path d="M70 -10 V240"/><path d="M220 -10 V240"/><path d="M300 -10 L180 240"/>
+          </g>
+          <path class="route" d="M40 200 C 90 200, 70 160, 120 160 S 210 160, 220 110 S 260 60, 310 58" fill="none" stroke="#FFC93C" stroke-width="3.5" stroke-dasharray="2 9" stroke-linecap="round"/>
+          <g transform="translate(310 58)"><circle r="16" fill="rgba(255,201,60,.18)"/><circle r="7" fill="#FFC93C"/></g>
+        </svg>
+        <span class="pin"><svg width="18" height="18" viewBox="0 0 48 48"><path d="M24 2 43 13v22L24 46 5 35V13z" fill="#FFC93C"/><path d="M16 15h17l-11 11h9L18 35l3-8h-6l9-8h-8z" fill="#053E40"/></svg></span>
+        <span class="home">Your home</span>
+      </div>
+      <div class="tcard">
+        <div class="trow">
+          <span class="ava">👨‍🔧</span>
+          <div class="who"><b>Technician on the way</b><small>Verified · ID checked · rated after every job</small></div>
+          <span class="eta"><b>12</b>min</span>
+        </div>
+        <ol class="tsteps"><li class="done">Booked</li><li class="done">Assigned</li><li class="now">On the way</li><li>Repair</li><li>Paid</li></ol>
+        <div class="tchips"><span>✅ Checked before &amp; after</span><span>💸 Pay after the work</span><span>🧾 Invoice on WhatsApp</span></div>
+      </div>
+      <p class="tcap">This is what you see on every booking – a live tracking link.</p>
     </div>
-    </div>
+  </div>
+  <div class="wrap trust">
+    <span><b>60 min</b> doorstep phone repair</span>
+    <span><b>Fixed prices</b> shown before you book</span>
+    <span><b>Genuine parts</b> with warranty</span>
+    <span><b>Pay after</b> UPI, card or cash</span>
   </div>
 </section>
 
@@ -318,10 +445,10 @@ footer .logo{color:#fff;margin-bottom:12px}
     <span class="tag">How it works</span>
     <h2>Fixed in four simple steps</h2>
     <div class="steps">
-      <div class="step rv"><h3>Book</h3><p>Use the form, WhatsApp or a quick call. Tell us what's wrong.</p></div>
-      <div class="step rv"><h3>Technician arrives</h3><p>A verified expert reaches your doorstep at your chosen time.</p></div>
-      <div class="step rv"><h3>Diagnose &amp; approve</h3><p>We check the issue and share the price. Work starts only after you say yes.</p></div>
-      <div class="step rv"><h3>Fixed &amp; warranted</h3><p>Pay after the job is done. Every repair is covered by our service warranty.</p></div>
+      <div class="step rv"><span class="num">1</span><h3>Book</h3><p>Pick a service, see the price and choose a time slot – online, on WhatsApp or by phone.</p></div>
+      <div class="step rv"><span class="num">2</span><h3>Technician arrives</h3><p>A verified expert reaches your doorstep at your chosen time.</p></div>
+      <div class="step rv"><span class="num">3</span><h3>Diagnose &amp; approve</h3><p>We check the issue and share the price. Work starts only after you say yes.</p></div>
+      <div class="step rv"><span class="num">4</span><h3>Fixed &amp; warranted</h3><p>Pay after the job is done. Every repair is covered by our service warranty.</p></div>
     </div>
   </div>
 </section>
@@ -481,7 +608,20 @@ function svcCard(x, cat){
 }
 const grid = document.getElementById('svcGrid');
 grid.innerHTML = services.map(x=>svcCard(x)).join('');
-document.addEventListener('zh-services', e=>{ grid.innerHTML = services.map(x=>svcCard(x, e.detail)).join(''); });
+const quick = document.getElementById('heroQuick');
+function quickChips(cat){
+  quick.innerHTML = services.map(x=>{
+    const sv = cat && (cat.services||[]).find(s=>s.id===x.id); let from = '';
+    if (sv && sv.items) { let min=0; const keys = sv.mode==='duration' ? sv.durations : (sv.variants&&sv.variants.length ? sv.variants : [null]);
+      for (const it of sv.items) { if (it.active===false) continue; for (const k of keys) { const p = Number(k==null ? it.price : (it.prices||{})[k])||0; if (p>0 && (!min||p<min)) min=p; } }
+      if (min) from = `<small>from ${rupee(min)}</small>`; }
+    if (x.id==='mobile') from = '<small>in 60 min</small>';
+    const short = {cleaning:'Cleaning', mobile:'Phone repair', ac:'AC service', amc:'AC AMC', home:'Plumber & more'}[x.id];
+    return `<a href="#book" data-book="${x.id}" style="--ink2:${x.ink}"><span class="qi">${ic[x.i]}</span><span>${short}${from}</span></a>`;
+  }).join('');
+}
+quickChips();
+document.addEventListener('zh-services', e=>{ grid.innerHTML = services.map(x=>svcCard(x, e.detail)).join(''); quickChips(e.detail); });
 
 // AMC plan prices come from the admin price list (/pricing.html)
 document.addEventListener('zh-services', e=>{
