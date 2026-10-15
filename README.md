@@ -131,3 +131,8 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 ## Gmail alert for every new booking
 - `apps-script/bookings-sync.gs` emails ALERT_EMAIL (zipphive@gmail.com) for each new booking or warranty job: service, selection, price, slot, customer, mobile, area, notes, with buttons for the dashboard, WhatsApp and tracking page.
 - Sent within seconds (the website pings the script on every booking) or at the latest at the 5-minute sync. The first run only records existing bookings, so old orders are not emailed. Run `testBookingEmail` once from the editor to see a sample.
+
+## MRP & discount
+- Every price on /pricing.html has an **MRP** and a **Price**; the **% off** is calculated automatically ((MRP − Price) ÷ MRP). "Quick fill" sets all MRPs of a service to price + X% (rounded to …49/…99); "Clear all MRPs" removes them.
+- The booking flow, homepage AMC cards and phone repair options show the MRP struck through with an "X% OFF" tag, and the summary shows "You save ₹…". Leave MRP empty to show only the price.
+- A "💰 Service prices" button on /admin.html opens the same page.

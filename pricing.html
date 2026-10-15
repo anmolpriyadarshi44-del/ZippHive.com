@@ -18,7 +18,15 @@ table.pt{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
 table.pt th{background:var(--tint);color:var(--dark);font-size:12.5px;text-align:left;padding:7px 6px;white-space:nowrap}
 table.pt td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
 table.pt input.in,table.pt select.in{min-height:34px;padding:5px 8px}
-table.pt input.num{width:92px;text-align:right}
+table.pt input.num{width:84px;text-align:right}
+.pc{display:grid;grid-template-columns:auto auto;gap:3px 4px;align-items:center;justify-items:end}
+.pc small{font-size:10.5px;color:var(--muted);font-weight:700;justify-self:start}
+.pc input.mrp{background:#F7F7F7;color:#6B7B7B}
+.pc .off{grid-column:1/3;justify-self:center;font-size:11.5px;font-weight:800;color:#1E8E3E;background:#E6F4EA;border-radius:6px;padding:1px 7px;min-height:18px}
+.pc .off.none{background:none;color:#B0B0B0;font-weight:600}
+.pc .off.bad{background:#FDECEC;color:#C62828}
+.tool{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#F6FAF9;border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin:4px 0 12px;font-size:13.5px}
+.tool input{width:70px}
 table.pt input.qty{width:60px;text-align:right}
 table.pt tr.off td{opacity:.5}
 .grp{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 4px 4px!important;background:#FAFCFC}
@@ -34,7 +42,7 @@ table.pt tr.off td{opacity:.5}
 <div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
 <script type="module">
 import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
-import { mergeCatalog } from "/zh-services.js?v=15";
+import { mergeCatalog, offPct } from "/zh-services.js?v=16";
 
 const S = { be: null, user: undefined, ok: false, cat: null, tab: "cleaning", dirty: false, saving: false };
 const app = document.getElementById("app");
@@ -47,9 +55,22 @@ function priceCols(s) {
   if (s.variants) return s.variants.map((v) => ({ key: v, label: `₹ ${v}` }));
   return [{ key: null, label: "₹ Price" }];
 }
+function offHtml(mrp, price) {
+  mrp = Number(mrp) || 0; price = Number(price) || 0;
+  if (!mrp) return `<span class="off none">no MRP</span>`;
+  if (mrp <= price) return `<span class="off bad">MRP ≤ price</span>`;
+  return `<span class="off">${offPct(mrp, price)}% off</span>`;
+}
 function rowHtml(s, it, i) {
   const ro = isAdmin() ? "" : "disabled";
-  const cols = priceCols(s).map((c) => `<td><input class="in num" inputmode="numeric" data-i="${i}" data-p="${esc(c.key ?? "")}" value="${c.key == null ? (it.price ?? "") : (it.prices?.[c.key] ?? "")}" ${ro} aria-label="${esc(c.label)}"></td>`).join("");
+  const cols = priceCols(s).map((c) => {
+    const price = c.key == null ? it.price : it.prices?.[c.key];
+    const mrp = c.key == null ? it.mrp : it.mrps?.[c.key];
+    const k = esc(c.key ?? "");
+    return `<td><div class="pc"><small>MRP</small><input class="in num mrp" inputmode="numeric" data-i="${i}" data-m="${k}" value="${mrp ?? ""}" placeholder="–" ${ro} aria-label="MRP ${esc(c.label)}">
+      <small>Price</small><input class="in num" inputmode="numeric" data-i="${i}" data-p="${k}" value="${price ?? ""}" ${ro} aria-label="Price ${esc(c.label)}">
+      ${offHtml(mrp, price)}</div></td>`;
+  }).join("");
   return `<tr class="${it.active === false ? "off" : ""}">
     <td><input class="in" data-i="${i}" data-k="name" value="${esc(it.name)}" ${ro} aria-label="Name"></td>
     ${s.groups ? `<td><select class="in" data-i="${i}" data-k="group" ${ro}>${s.groups.map((g) => `<option ${g === it.group ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></td>` : ""}
@@ -83,8 +104,9 @@ function serviceCard() {
       <label>Badge<input class="in" data-s="badge" value="${esc(s.badge || "")}" placeholder="e.g. FESTIVE" ${ro}></label>
       ${s.otherPrice != null ? `<label>"Other / not listed" visit ₹<input class="in" data-s="otherPrice" inputmode="numeric" value="${s.otherPrice}" ${ro}></label>` : "<span></span>"}
     </div>
+    ${isAdmin() ? `<div class="tool">⚡ Quick fill: set every MRP in this service to price + <input class="in" id="mkup" inputmode="numeric" value="40">% <button class="btn sm o" data-act="mrpfill">Apply</button><button class="btn link" data-act="mrpclear">Clear all MRPs</button><span class="muted">Customers see the MRP struck through and the % off.</span></div>` : ""}
     <div style="overflow-x:auto"><table class="pt"><thead><tr><th>Item</th>${s.groups ? "<th>Category</th>" : ""}<th>Description (shown to customer)</th>
-      ${cols.map((c) => `<th>${esc(c.label)}</th>`).join("")}${s.id === "amc" ? "<th>Min ACs</th>" : ""}<th>Show</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${cols.map((c) => `<th style="text-align:center">${esc(c.label.replace("₹ ", ""))}<br><span style="font-weight:500">MRP · Price · Off</span></th>`).join("")}${s.id === "amc" ? "<th>Min ACs</th>" : ""}<th>Show</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     ${isAdmin() ? `<div class="row" style="margin-top:10px">${(s.groups || [null]).map((g) => `<button class="btn sm o" data-act="add" data-g="${esc(g || "")}">+ Add ${g ? esc(g) + " item" : "item"}</button>`).join("")}</div>` : ""}
     <p class="muted" style="margin-top:10px">Prices are what the customer pays (ex-GST). ${s.mode === "duration" ? "Each item has its own price for 30, 45 and 60 minutes." : s.variants ? "Set a price for each AC type." : "Each job has its own fixed price; parts extra."} Untick “Show” to hide an item without deleting it.</p>
   </div>`;
@@ -122,6 +144,15 @@ app.addEventListener("click", async (e) => {
     s.items.push(it); S.dirty = true; render();
     return;
   }
+  if (a === "mrpfill" || a === "mrpclear") {
+    const pct = Math.max(0, Number(document.getElementById("mkup")?.value) || 0);
+    const up = (p) => (a === "mrpclear" || !(p > 0) ? 0 : Math.ceil((p * (1 + pct / 100)) / 50) * 50 - 1);
+    for (const it of s.items) {
+      if (it.prices) it.mrps = Object.fromEntries(Object.entries(it.prices).map(([k, v]) => [k, up(Number(v))]));
+      else it.mrp = up(Number(it.price));
+    }
+    S.dirty = true; render(); return toast(a === "mrpclear" ? "MRPs cleared – press Save & publish" : `MRPs set to price + ${pct}% – press Save & publish`);
+  }
   if (a === "del") {
     const it = s.items[+el.dataset.i];
     if (!confirm(`Delete “${it.name}”? (Untick “Show” instead to hide it for now.)`)) return;
@@ -143,8 +174,13 @@ app.addEventListener("input", (e) => {
   if (t.dataset.s) { s[t.dataset.s] = t.dataset.s === "otherPrice" ? num(t.value) : t.value; return dirty(); }
   if (t.dataset.i == null) return;
   const it = s.items[+t.dataset.i];
-  if (t.dataset.p != null && t.dataset.p !== undefined && "p" in t.dataset) {
-    if (t.dataset.p === "") it.price = num(t.value); else (it.prices ||= {})[t.dataset.p] = num(t.value);
+  if ("p" in t.dataset || "m" in t.dataset) {
+    if ("p" in t.dataset) { if (t.dataset.p === "") it.price = num(t.value); else (it.prices ||= {})[t.dataset.p] = num(t.value); }
+    else { if (t.dataset.m === "") it.mrp = num(t.value); else (it.mrps ||= {})[t.dataset.m] = num(t.value); }
+    const key = t.dataset.p ?? t.dataset.m;
+    const cell = t.closest(".pc");
+    const pr = key === "" ? it.price : it.prices?.[key], mr = key === "" ? it.mrp : it.mrps?.[key];
+    cell.querySelector(".off").outerHTML = offHtml(mr, pr);
   } else if (t.dataset.k === "active") { it.active = t.checked; t.closest("tr").classList.toggle("off", !t.checked); }
   else if (t.dataset.k === "minQty") it.minQty = Math.max(1, num(t.value));
   else if (t.dataset.k) it[t.dataset.k] = t.value;

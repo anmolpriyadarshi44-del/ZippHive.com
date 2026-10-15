@@ -92,7 +92,21 @@ export const DEFAULT_SERVICES = {
   ],
 };
 
+// Sample MRPs for the defaults (≈35% above the price, ending in 49/99) – the admin sets real MRPs on /pricing.html
+const sampleMrp = (p) => (p > 0 ? Math.ceil((p * 1.35) / 50) * 50 - 1 : 0);
+for (const s of DEFAULT_SERVICES.services) for (const it of s.items || []) {
+  if (it.prices) it.mrps = Object.fromEntries(Object.entries(it.prices).map(([k, v]) => [k, sampleMrp(v)]));
+  else if (it.price) it.mrp = sampleMrp(it.price);
+}
+
 export const svcById = (cat, id) => (cat.services || []).find((s) => s.id === id);
+// MRP (strike-through price) of one item for a variant / duration; 0 = no MRP set
+export function itemMrp(svc, item, key) {
+  if (svc.mode === "duration" || svc.variants?.length) return Number(item.mrps?.[key]) || 0;
+  return Number(item.mrp) || 0;
+}
+// "% off" shown to customers: (MRP − price) ÷ MRP, rounded
+export const offPct = (mrp, price) => (mrp > 0 && price > 0 && mrp > price ? Math.round((1 - price / mrp) * 100) : 0);
 // price of one item for a variant / duration
 export function itemPrice(svc, item, key) {
   if (svc.mode === "duration") return Number(item.prices?.[key]) || 0;
