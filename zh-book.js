@@ -7,7 +7,25 @@ import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
 const AREAS = ["Boring Road", "Kankarbagh", "Rajendra Nagar", "Patliputra Colony", "Bailey Road", "Fraser Road", "Ashiana Nagar", "Danapur",
-  "Raja Bazar", "Anisabad", "Gardanibagh", "Saguna More", "Kurji", "Gandhi Maidan", "Gaya", "Muzaffarpur"];
+  "Raja Bazar", "Anisabad", "Gardanibagh", "Saguna More", "Kurji", "Gandhi Maidan", "Kidwaipuri", "Shri Krishna Puri", "Boring Canal Road",
+  "Rukanpura", "Shastri Nagar", "Punaichak", "Lohanipur", "Kadamkuan", "Patna City", "Bahadurpur", "Bypass", "Jakkanpur", "Mithapur",
+  "Phulwari Sharif", "Khagaul", "Digha", "Rajiv Nagar", "Indrapuri", "Exhibition Road", "Bankipur", "Agam Kuan", "Sampatchak", "Beur"];
+// Service area: Patna only. A pincode starting 800 (Patna) or one of these nearby 801xxx pincodes, or a shared GPS location
+// within RADIUS_KM of Patna centre. Edit here to add cities later.
+const SERVICE_AREA = {
+  city: "Patna",
+  pinPrefixes: ["800"],
+  extraPins: ["801103", "801104", "801105", "801503", "801505", "801506"],
+  centre: { lat: 25.5941, lng: 85.1376 },
+  radiusKm: 22,
+};
+const pinOk = (p) => /^\d{6}$/.test(p) && (SERVICE_AREA.pinPrefixes.some((x) => p.startsWith(x)) || SERVICE_AREA.extraPins.includes(p));
+const kmFrom = (a, b) => {
+  const r = (d) => (d * Math.PI) / 180, R = 6371;
+  const x = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+};
+const NOTIFY = `https://wa.me/919220400950?text=${encodeURIComponent("Hi ZippHive, please tell me when you start in my city: ")}`;
 const ISSUE_ICON = { 1: "📱", 2: "📖", 3: "🪟", 4: "🔗", 5: "🔋", 6: "✨", 7: "🔌", 8: "📷", 9: "🔄", 10: "💥", 11: "💧", 12: "🔊", 13: "🎙️", 14: "🙂", 15: "👆", 16: "📶", 17: "🔘", 18: "📞", 19: "📳", 20: "🛠️", 21: "🧩", 22: "🛡️" };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const rs = (n) => (n == null ? "" : "₹" + Number(n).toLocaleString("en-IN"));
@@ -90,7 +108,7 @@ const S = {
   // other services
   variant: "", group: "", sel: {}, item: null, dur: null, other: false,
   // details
-  name: "", mobile: "", area: "", addr: "", remarks: "", err: "", busy: false, done: null,
+  name: "", mobile: "", area: "", addr: "", pin: "", geo: null, remarks: "", err: "", busy: false, done: null,
 };
 const picker = document.createElement("zh-slot-picker");
 picker.id = "zbSlot";
@@ -304,15 +322,35 @@ function vSlot() {
   return `<h3>Pick a date & time</h3><p class="zb-sub">Only open slots are shown.</p><div id="zbSlotHost"></div>
     ${summary(true, "Continue →")}`;
 }
+// where the customer is: ok / outside / unknown
+function locState() {
+  if (S.pin.length === 6) return pinOk(S.pin) ? "ok" : "out";
+  if (S.geo) return S.geo.km <= SERVICE_AREA.radiusKm ? "ok" : "out";
+  return "unknown";
+}
+function locHtml() {
+  const st = locState();
+  if (S.geo?.busy) return `<p class="zb-sub" style="margin:6px 0 0">Finding your location…</p>`;
+  if (st === "ok") return `<p style="margin:6px 0 0;color:#1E8E3E;font-weight:700;font-size:13.5px">✅ Great – we serve your area in ${SERVICE_AREA.city}${S.geo && S.pin.length !== 6 ? ` (${S.geo.km.toFixed(1)} km from the city centre)` : ""}.</p>`;
+  if (st === "out") return `<div style="margin:8px 0 0;background:#FDECEC;border-radius:12px;padding:10px 12px;color:#9C0006;font-size:13.5px">
+    <b>Sorry, ZippHive is available only in ${SERVICE_AREA.city} right now.</b><br>${S.pin.length === 6 ? `Pincode ${esc(S.pin)} is outside our service area.` : `Your location is ${S.geo.km.toFixed(0)} km from ${SERVICE_AREA.city}.`}
+    We're expanding soon – <a href="${NOTIFY}" target="_blank" rel="noopener" style="color:#9C0006;font-weight:700">get notified on WhatsApp</a>.</div>`;
+  if (S.geo?.error) return `<p class="zb-sub" style="margin:6px 0 0">${esc(S.geo.error)} – please enter your pincode.</p>`;
+  return `<p class="zb-sub" style="margin:6px 0 0">We currently serve ${SERVICE_AREA.city} only.</p>`;
+}
 function vDetails() {
   return `<h3>Your details</h3><p class="zb-sub">📅 ${esc(picker.value || "")}</p>
     <label for="zbN">Your name *</label><input id="zbN" data-f="name" value="${esc(S.name)}" autocomplete="name" placeholder="e.g. Rahul Kumar">
     <label for="zbM">Mobile number *</label><input id="zbM" data-f="mobile" value="${esc(S.mobile)}" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number">
     <label for="zbA">Area / locality *</label><input id="zbA" data-f="area" value="${esc(S.area)}" list="zbAreas" placeholder="e.g. Boring Road"><datalist id="zbAreas">${AREAS.map((a) => `<option value="${a}">`).join("")}</datalist>
+    <label for="zbP">Pincode *</label>
+    <div style="display:flex;gap:8px"><input id="zbP" data-f="pin" value="${esc(S.pin)}" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 800001" style="flex:1">
+      <button class="zb-add" type="button" data-a="geo" style="white-space:nowrap">📍 Use my location</button></div>
+    <div id="zbLoc">${locHtml()}</div>
     <label for="zbH">House no. / landmark</label><input id="zbH" data-f="addr" value="${esc(S.addr)}" placeholder="Flat, building, nearby landmark">
     ${S.err ? `<div class="zb-err">${esc(S.err)}</div>` : ""}
     ${summary(false)}
-    <button class="zb-cta" data-a="confirm" ${S.busy ? "disabled" : ""}>${S.busy ? "Booking…" : "Confirm booking"}</button>
+    <button class="zb-cta" data-a="confirm" ${S.busy || locState() === "out" ? "disabled" : ""}>${S.busy ? "Booking…" : "Confirm booking"}</button>
     <p class="zb-note">No advance payment. Pay after the work – UPI, card or cash.</p>`;
 }
 function vDone() {
@@ -370,7 +408,9 @@ root.addEventListener("input", (e) => {
   if (t.dataset.f) {
     let v = t.value;
     if (t.dataset.f === "mobile") { v = v.replace(/\D/g, "").slice(0, 10); t.value = v; }
+    if (t.dataset.f === "pin") { v = v.replace(/\D/g, "").slice(0, 6); t.value = v; }
     S[t.dataset.f] = v;
+    if (t.dataset.f === "pin") { const box = root.querySelector("#zbLoc"); if (box) box.innerHTML = locHtml(); syncConfirm(); }
     if (S.err) { S.err = ""; root.querySelector(".zb-err")?.remove(); }
   }
 });
@@ -425,6 +465,7 @@ root.addEventListener("click", async (e) => {
   }
   if (a === "other") { S.other = !S.other; return render(); }
   if (a === "next") return next();
+  if (a === "geo") return useLocation();
   if (a === "confirm") return confirm();
 });
 function afterSub() {
@@ -458,17 +499,38 @@ function next() {
   }
   if (S.step === "slot") return go("details");
 }
+function syncConfirm() {
+  const btn = root.querySelector("[data-a=confirm]");
+  if (btn && !S.busy) btn.disabled = locState() === "out";
+}
+function useLocation() {
+  if (!navigator.geolocation) { S.geo = { error: "Location isn't available on this device" }; return render(); }
+  S.geo = { busy: true }; const box = root.querySelector("#zbLoc"); if (box) box.innerHTML = locHtml();
+  navigator.geolocation.getCurrentPosition(
+    (p) => {
+      const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      S.geo = { ...pos, km: kmFrom(SERVICE_AREA.centre, pos) };
+      render();
+    },
+    () => { S.geo = { error: "Couldn't get your location" }; render(); },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+  );
+}
 async function confirm() {
   const s = svc();
   S.name = S.name.trim(); S.area = S.area.trim();
   if (S.name.length < 2) { S.err = "Please enter your name."; return render(); }
   if (!/^[6-9]\d{9}$/.test(S.mobile)) { S.err = "Please enter a valid 10-digit mobile number."; return render(); }
   if (S.area.length < 2) { S.err = "Please enter your area."; return render(); }
+  const ls = locState();
+  if (ls === "out") { S.err = `Sorry, we only take bookings in ${SERVICE_AREA.city} right now.`; return render(); }
+  if (ls !== "ok") { S.err = `Please enter your 6-digit pincode (or tap “Use my location”) so we can check we serve your area.`; return render(); }
   S.busy = true; S.err = ""; render();
   const c = cart();
-  const data = { name: cut(S.name, 60), mobile: S.mobile, area: cut(S.area, 60), time: cut(picker.value || "Will call to fix a time", 40) };
+  const data = { name: cut(S.name, 60), mobile: S.mobile, area: cut(S.area + (S.pin.length === 6 ? ", " + S.pin : ""), 60), time: cut(picker.value || "Will call to fix a time", 40) };
   if (picker.slotKey) data.slot = picker.slotKey;
-  const notes = [S.addr && "Address: " + S.addr, S.remarks && (S.other ? "" : "Notes: ") + S.remarks].filter(Boolean).join(" | ");
+  const notes = [S.addr && "Address: " + S.addr, S.geo?.lat && `Map: https://maps.google.com/?q=${S.geo.lat.toFixed(5)},${S.geo.lng.toFixed(5)}`,
+    S.remarks && (S.other ? "" : "Notes: ") + S.remarks].filter(Boolean).join(" | ");
   if (s.mode === "phone") {
     data.kind = "phone"; data.service = "Mobile Repair";
     const brand = S.brand === "other" ? "" : P().brands.find((x) => x.id === S.brand)?.name || "";
