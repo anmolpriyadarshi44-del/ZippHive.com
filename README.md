@@ -136,3 +136,8 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - Every price on /pricing.html has an **MRP** and a **Price**; the **% off** is calculated automatically ((MRP − Price) ÷ MRP). "Quick fill" sets all MRPs of a service to price + X% (rounded to …49/…99); "Clear all MRPs" removes them.
 - The booking flow, homepage AMC cards and phone repair options show the MRP struck through with an "X% OFF" tag, and the summary shows "You save ₹…". Leave MRP empty to show only the price.
 - A "💰 Service prices" button on /admin.html opens the same page.
+
+## Patna-only bookings
+- The booking flow's details step asks for a **pincode** (or "📍 Use my location"). Bookings are accepted only for Patna: pincodes starting 800 plus nearby 801103/801104/801105/801503/801505/801506, or a GPS location within 22 km of Patna centre. Outside → the booking button is disabled and the customer can ask to be notified on WhatsApp.
+- The pincode is saved with the area; a shared location adds a Google Maps link to the booking notes for the technician.
+- To add a city later, edit `SERVICE_AREA` at the top of `zh-book.js`.
