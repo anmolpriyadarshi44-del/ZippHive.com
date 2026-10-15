@@ -1,7 +1,7 @@
 // ZippHive time slots: calendar date + hourly slot picker for bookings, and the shared slot rules.
 // Settings live in Firestore content/slots (edited on /slots.html); usage counters in slotUse/{date}.
 // Used by the homepage booking form and the AI assistant's booking forms (<zh-slot-picker service="…">).
-import { backend } from "/zh-ops.js?v=14";
+import { backend } from "/zh-ops.js?v=15";
 
 export const SLOT_CATS = [
   { id: "phone", label: "Mobile repair", dur: 60 },
@@ -36,8 +36,8 @@ export function mergeCfg(c) {
   return x;
 }
 const clock = (mins) => { let h = Math.floor(mins / 60), m = mins % 60; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return { t: `${h}:${String(m).padStart(2, "0")}`, ap }; };
-export function slotLabel(h, cat) {
-  const start = Number(h.slice(0, 2)) * 60, dur = SLOT_CATS.find((c) => c.id === cat)?.dur || 60;
+export function slotLabel(h, cat, mins) {
+  const start = Number(h.slice(0, 2)) * 60, dur = Number(mins) || SLOT_CATS.find((c) => c.id === cat)?.dur || 60;
   const a = clock(start), b = clock(start + dur);
   return a.ap === b.ap ? `${a.t}–${b.t} ${b.ap}` : `${a.t} ${a.ap}–${b.t} ${b.ap}`;
 }
@@ -62,7 +62,7 @@ export function anySlots(cfg, use, date, now = Date.now()) {
     return { ...x, cap: Math.max(...per.map((l) => l[i].cap)), left: best.left, label: slotLabel(x.h, "phone"), key: "" };
   });
 }
-export const slotText = (date, h, cat) => `${dayLabel(date)}, ${slotLabel(h, cat)}`; // stored as booking.time (≤ 40 chars)
+export const slotText = (date, h, cat, mins) => `${dayLabel(date)}, ${slotLabel(h, cat, mins)}`; // stored as booking.time (≤ 40 chars)
 export const NO_SLOT = "No slot free – please call me";
 
 let cache = null;
@@ -118,7 +118,8 @@ const CSS = `
 .msg.warn{color:#8A5A00;background:#FFF6D9;border-radius:9px;padding:8px 10px}
 `;
 class SlotPicker extends HTMLElement {
-  static get observedAttributes() { return ["service"]; }
+  static get observedAttributes() { return ["service", "dur"]; }
+  get dur() { return Number(this.getAttribute("dur")) || 0; }
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -164,7 +165,7 @@ class SlotPicker extends HTMLElement {
   set(date, h) {
     const cat = this.cat;
     this.state.h = h;
-    const val = date && h ? slotText(date, h, cat || "phone") : NO_SLOT;
+    const val = date && h ? slotText(date, h, cat || "phone", this.dur) : NO_SLOT;
     const key = date && h && cat ? `${date}/${cat}_${h}` : ""; // counted only once the service is known
     if (val === this.value && key === this.slotKey) return;
     this.value = val; this.slotKey = key;
@@ -200,13 +201,13 @@ class SlotPicker extends HTMLElement {
     };
     const times = day.s.filter((x) => x.cap > 0).map((x) => {
       const ok = !x.past && x.left > 0;
-      return `<button type="button" class="t ${x.h === this.state.h && ok ? "on" : ""} ${ok && x.left === 1 ? "low" : ""}" data-h="${x.h}" ${ok ? "" : "disabled"}>${x.label}<small>${x.past ? "Not available" : x.left && !this.cat ? "Open" : x.left ? (x.left === 1 ? "1 slot left" : `${x.left} slots left`) : "Full"}</small></button>`;
+      return `<button type="button" class="t ${x.h === this.state.h && ok ? "on" : ""} ${ok && x.left === 1 ? "low" : ""}" data-h="${x.h}" ${ok ? "" : "disabled"}>${this.dur ? slotLabel(x.h, this.cat, this.dur) : x.label}<small>${x.past ? "Not available" : x.left && !this.cat ? "Open" : x.left ? (x.left === 1 ? "1 slot left" : `${x.left} slots left`) : "Full"}</small></button>`;
     }).join("");
     r.innerHTML = `<style>${CSS}</style>
       <div class="days" role="group" aria-label="Choose a date">${days.map(dayBtn).join("")}</div>
       ${!days.some((x) => x.open) ? `<div class="msg warn">All ${cat.label.toLowerCase()} slots for the next ${days.length} days are booked. Book anyway and we'll call you with the earliest time.</div>`
         : times ? `<div class="times" role="group" aria-label="Choose a time">${times}</div>` : `<div class="msg">No slots on this day.</div>`}
-      ${this.slotKey ? `<div class="sel">📅 ${this.value}${cat.id === "cleaning" ? " · 45 min" : ""}</div>`
+      ${this.slotKey ? `<div class="sel">📅 ${this.value}${cat.id === "cleaning" ? ` · ${this.dur || 45} min` : ""}</div>`
         : this.state.h ? `<div class="sel">📅 ${this.value} <span style="font-weight:600;color:#8A5A00">· choose your service to confirm this slot</span></div>` : ""}`;
     const strip = r.querySelector(".days");
     if (strip) strip.scrollLeft = keep;

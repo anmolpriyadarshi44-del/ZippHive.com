@@ -118,3 +118,12 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - `/slots.html` (admin edits; store managers can view): opening hours, how many days ahead customers can book, minimum notice, weekly closed days, and **how many bookings each hour can take per service** (e.g. 9–10 AM: Mobile repair 2, Cleaning 4). The calendar shows booked/open per hour with booking codes, and lets the admin close a day (holiday) or change slots for one day only.
 - Settings are saved in `content/slots`; booked counts in `slotUse/{date}`. Cancelling a booking frees its slot. The Firestore rules stop a slot being booked above its limit. Publish the updated `firestore.rules` and press **Save normal day** once on `/slots.html` to switch it on.
 
+
+## Step-by-step booking & service prices
+- The homepage booking card (`zh-book.js`) walks the customer through: **service → choices → price → time slot → details → booking ID + tracking link**.
+  - **Mobile repair:** brand → model (search) → issue → sub-issue / question → repair option with price, MRP and warranty (from `zipphive-catalog.json` + Admin price list overrides). "Other brand / my model isn't listed" and "Other / not sure" let the customer type the model and problem; booked as Home diagnosis.
+  - **Home Cleaning (featured):** sofa, bathroom, kitchen, rooms, mattress, carpet, windows, appliances, festive combo – each with its own price for **30 / 45 / 60 min**; the slot shown matches the length.
+  - **AC Repair, Service & Installation** (install/uninstall merged in) and **AC AMC Plans:** Split / Window AC prices per item, quantity per AC, Family Pack minimum 2 ACs.
+  - **Washing Machine, Plumber & Electrician** (one service, three tabs): every sub-issue has its own price and quantity; "Other issue" adds an inspection visit with the customer's description.
+- **/pricing.html** (admin edits, store managers view): every item's name, description and price(s), show/hide, add/delete items, "other" visit charge. Saved to Firestore `content/services` (already writable by the admin under the current rules). Phone prices stay in Admin → Price list.
+- Defaults live in `zh-services.js`; the homepage service cards and AMC plan prices read the same price list.
