@@ -48,10 +48,10 @@ import { mergeCatalog, offPct } from "/zh-services.js?v=16";
 
 const EMBED = new URLSearchParams(location.search).has("embed"); // shown inside the Admin portal tab
 if (EMBED) document.documentElement.classList.add("embed");
-const S = { be: null, user: undefined, ok: false, cat: null, tab: "cleaning", dirty: false, saving: false };
+const S = { be: null, user: undefined, ok: false, cat: null, tab: "all", dirty: false, saving: false };
 const app = document.getElementById("app");
 const isAdmin = () => S.user && admins().includes(S.user.email);
-const svc = () => S.cat.services.find((s) => s.id === S.tab);
+const svcOf = (el) => { const c = el && el.closest("[data-sid]"); return c ? S.cat.services.find((x) => x.id === c.dataset.sid) : null; };
 const num = (v) => { const n = Number(String(v).replace(/[^\d.]/g, "")); return isFinite(n) ? Math.round(n) : 0; };
 
 function priceCols(s) {
@@ -84,9 +84,9 @@ function rowHtml(s, it, i) {
     <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="active" ${it.active === false ? "" : "checked"} ${ro} aria-label="Show on website"></td>
     <td>${isAdmin() ? `<button class="btn sm r" data-act="del" data-i="${i}" aria-label="Delete">✕</button>` : ""}</td></tr>`;
 }
-function serviceCard() {
-  const s = svc(), ro = isAdmin() ? "" : "disabled";
-  if (s.mode === "phone") return `<div class="card svcard"><h2>${s.icon} ${esc(s.name)}</h2>
+function serviceCard(s) {
+  const ro = isAdmin() ? "" : "disabled";
+  if (s.mode === "phone") return `<div class="card svcard" id="svc-${s.id}" data-sid="${s.id}"><h2>${s.icon} ${esc(s.name)}</h2>
     <p>Phone repair prices (every brand, model and part) are managed in the existing <b>Admin → Price list</b>, which already feeds the website and the AI assistant.</p>
     ${EMBED ? `<p class="muted">Use the <b>📱 Phone prices</b> tab above.</p>` : `<a class="btn" href="/admin.html">Open Admin price list</a>`}</div>`;
   const cols = priceCols(s);
@@ -100,15 +100,15 @@ function serviceCard() {
   }
   const orphans = s.groups ? s.items.map((it, i) => [it, i]).filter(([it]) => !s.groups.includes(it.group)) : [];
   for (const [it, i] of orphans) rows += rowHtml(s, it, i);
-  return `<div class="card svcard">
-    <h2>${s.icon} ${esc(s.name)}</h2>
+  return `<div class="card svcard" id="svc-${s.id}" data-sid="${s.id}">
+    <h2>${s.icon} ${esc(s.name)} <span class="muted" style="font-size:13px;font-weight:500">· ${s.items.filter((i) => i.active !== false).length} items on website</span></h2>
     <div class="meta">
       <label>Name on website<input class="in" data-s="name" value="${esc(s.name)}" ${ro}></label>
       <label>Short description<input class="in" data-s="tagline" value="${esc(s.tagline || "")}" ${ro}></label>
       <label>Badge<input class="in" data-s="badge" value="${esc(s.badge || "")}" placeholder="e.g. FESTIVE" ${ro}></label>
       ${s.otherPrice != null ? `<label>"Other / not listed" visit ₹<input class="in" data-s="otherPrice" inputmode="numeric" value="${s.otherPrice}" ${ro}></label>` : "<span></span>"}
     </div>
-    ${isAdmin() ? `<div class="tool">⚡ Quick fill: set every MRP in this service to price + <input class="in" id="mkup" inputmode="numeric" value="40">% <button class="btn sm o" data-act="mrpfill">Apply</button><button class="btn link" data-act="mrpclear">Clear all MRPs</button><span class="muted">Customers see the MRP struck through and the % off.</span></div>` : ""}
+    ${isAdmin() ? `<div class="tool">⚡ Quick fill: set every MRP in this service to price + <input class="in mkup" inputmode="numeric" value="40" aria-label="Markup %">% <button class="btn sm o" data-act="mrpfill">Apply</button><button class="btn link" data-act="mrpclear">Clear all MRPs</button><span class="muted">Customers see the MRP struck through and the % off.</span></div>` : ""}
     <div style="overflow-x:auto"><table class="pt"><thead><tr><th>Item</th>${s.groups ? "<th>Category</th>" : ""}<th>Description (shown to customer)</th>
       ${cols.map((c) => `<th style="text-align:center">${esc(c.label.replace("₹ ", ""))}<br><span style="font-weight:500">MRP · Price · Off</span></th>`).join("")}${s.id === "amc" ? "<th>Min ACs</th>" : ""}<th>Show</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     ${isAdmin() ? `<div class="row" style="margin-top:10px">${(s.groups || [null]).map((g) => `<button class="btn sm o" data-act="add" data-g="${esc(g || "")}">+ Add ${g ? esc(g) + " item" : "item"}</button>`).join("")}</div>` : ""}
@@ -126,19 +126,39 @@ function render() {
   app.innerHTML = head + `<div class="wrap">
     <h1 style="margin:6px 0 2px">Service prices</h1><p class="muted" style="margin:0 0 12px">These prices appear in the website booking flow straight after you save.</p>
     ${isAdmin() ? "" : `<div class="ro">View only – only the admin (${esc(admins()[0])}) can change prices.</div>`}
-    <div class="tabs">${S.cat.services.map((s) => `<button class="${s.id === S.tab ? "on" : ""}" data-act="tab" data-v="${s.id}">${s.icon} ${esc(s.name)}</button>`).join("")}</div>
-    ${serviceCard()}</div>
+    <div class="tabs"><button class="${S.tab === "all" ? "on" : ""}" data-act="tab" data-v="all">📋 All services</button>${S.cat.services.map((s) => `<button class="${s.id === S.tab ? "on" : ""}" data-act="tab" data-v="${s.id}">${s.icon} ${esc(s.name)}</button>`).join("")}
+      <button class="btn sm g" style="margin-left:auto" data-act="csv">⬇ Download full price list (Excel)</button></div>
+    ${S.cat.services.filter((s) => S.tab === "all" || s.id === S.tab).map(serviceCard).join("")}</div>
     ${isAdmin() ? `<div class="bar"><span class="muted">${S.dirty ? "Unsaved changes" : "All changes saved"}</span><a class="btn sm g" href="/#book" target="_blank" rel="noopener">View booking flow</a><button class="btn" data-act="save" ${S.dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "💾 Save & publish"}</button></div>` : ""}`;
+}
+// whole price list as a CSV that opens in Excel / Google Sheets
+function downloadCsv() {
+  const rows = [["Service", "Category", "Item", "Option", "MRP (₹)", "Price (₹)", "% off", "Shown on website"]];
+  for (const s of S.cat.services) {
+    if (s.mode === "phone") continue;
+    for (const it of s.items) {
+      for (const c of priceCols(s)) {
+        const price = Number(c.key == null ? it.price : it.prices?.[c.key]) || 0, mrp = Number(c.key == null ? it.mrp : it.mrps?.[c.key]) || 0;
+        rows.push([s.name, it.group || "", it.name, c.key ? (s.mode === "duration" ? c.key + " min" : c.key) : "", mrp || "", price, offPct(mrp, price) ? offPct(mrp, price) + "%" : "", it.active === false ? "No" : "Yes"]);
+      }
+    }
+  }
+  const csv = "\ufeff" + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `ZippHive-price-list-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
 }
 const dirty = () => { if (!S.dirty) { S.dirty = true; const b = app.querySelector("[data-act=save]"); if (b) { b.disabled = false; b.previousElementSibling.previousElementSibling.textContent = "Unsaved changes"; } } };
 
 app.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-act]");
   if (!el) return;
-  const a = el.dataset.act, s = S.cat && svc();
+  const a = el.dataset.act, s = S.cat && svcOf(el);
   if (a === "signin") return S.be.signIn();
   if (a === "signout") return S.be.signOut();
-  if (a === "tab") { S.tab = el.dataset.v; return render(); }
+  if (a === "tab") { S.tab = el.dataset.v; render(); return window.scrollTo({ top: 0 }); }
+  if (a === "csv") return downloadCsv();
   if (a === "add") {
     const it = { id: "x" + Date.now().toString(36), name: "New item", desc: "", active: true };
     if (s.groups) it.group = el.dataset.g || s.groups[0];
@@ -149,7 +169,7 @@ app.addEventListener("click", async (e) => {
     return;
   }
   if (a === "mrpfill" || a === "mrpclear") {
-    const pct = Math.max(0, Number(document.getElementById("mkup")?.value) || 0);
+    const pct = Math.max(0, Number(el.closest("[data-sid]").querySelector(".mkup")?.value) || 0);
     const up = (p) => (a === "mrpclear" || !(p > 0) ? 0 : Math.ceil((p * (1 + pct / 100)) / 50) * 50 - 1);
     for (const it of s.items) {
       if (it.prices) it.mrps = Object.fromEntries(Object.entries(it.prices).map(([k, v]) => [k, up(Number(v))]));
@@ -163,7 +183,7 @@ app.addEventListener("click", async (e) => {
     s.items.splice(+el.dataset.i, 1); S.dirty = true; return render();
   }
   if (a === "save") {
-    for (const sv of S.cat.services) for (const it of sv.items || []) if (!String(it.name || "").trim()) { S.tab = sv.id; render(); return toast("Every item needs a name", true); }
+    for (const sv of S.cat.services) for (const it of sv.items || []) if (!String(it.name || "").trim()) { S.tab = sv.id; render(); return toast(`Every item needs a name (${sv.name})`, true); }
     S.saving = true; render();
     try {
       await S.be.saveServiceCatalog({ version: 1, services: S.cat.services.filter((x) => x.mode !== "phone") });
@@ -173,7 +193,7 @@ app.addEventListener("click", async (e) => {
   }
 });
 app.addEventListener("input", (e) => {
-  const t = e.target, s = S.cat && svc();
+  const t = e.target, s = S.cat && svcOf(t);
   if (!s) return;
   if (t.dataset.s) { s[t.dataset.s] = t.dataset.s === "otherPrice" ? num(t.value) : t.value; return dirty(); }
   if (t.dataset.i == null) return;
