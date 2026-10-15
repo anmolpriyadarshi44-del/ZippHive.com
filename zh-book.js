@@ -2,7 +2,7 @@
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
 import { backend, trackUrl } from "/zh-ops.js?v=15";
-import { loadServices, svcById, itemPrice } from "/zh-services.js?v=15";
+import { loadServices, svcById, itemPrice, itemMrp, offPct } from "/zh-services.js?v=16";
 import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
@@ -12,6 +12,8 @@ const ISSUE_ICON = { 1: "📱", 2: "📖", 3: "🪟", 4: "🔗", 5: "🔋", 6: "
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const rs = (n) => (n == null ? "" : "₹" + Number(n).toLocaleString("en-IN"));
 const cut = (s, n) => String(s || "").slice(0, n);
+// price with struck-through MRP and auto "% OFF"
+const tag = (price, mrp) => `${rs(price)}${mrp > price && price > 0 ? `<s>${rs(mrp)}</s><em class="off">${offPct(mrp, price)}% OFF</em>` : ""}`;
 
 const CSS = `
 #zhBook{--t:#0B6E6E;--td:#074848;--tl:#E6F4F3;--y:#FFC93C;--ink:#0F1F1F;--mu:#506363;--ln:#DCE8E7;font-size:15px}
@@ -32,7 +34,10 @@ const CSS = `
 #zhBook .zb-opt small{display:block;color:var(--mu);font-size:12.5px;line-height:1.35;margin-top:3px}
 #zhBook .zb-opt .ic{font-size:24px;display:block;margin-bottom:6px}
 #zhBook .zb-opt .pr{display:block;margin-top:6px;font-weight:800;color:var(--td)}
-#zhBook .zb-opt .pr s{color:#9AA9A9;font-weight:500;margin-left:6px}
+#zhBook .zb-opt .pr s,#zhBook .zb-row .pr s,#zhBook .zb-dur s,#zhBook .zb-sum s{color:#9AA9A9;font-weight:500;margin-left:6px;font-size:.9em}
+#zhBook .off{display:inline-block;font-style:normal;background:#E6F4EA;color:#1E8E3E;font-weight:800;font-size:11px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+#zhBook .zb-dur .off{display:block;margin:4px auto 0;width:max-content}
+#zhBook .zb-sum .save{color:#1E8E3E;font-weight:700}
 #zhBook .zb-badge{position:absolute;top:-8px;right:10px;background:var(--y);color:var(--ink);font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.03em}
 #zhBook .zb-svc{display:flex;gap:12px;align-items:center;padding:14px}
 #zhBook .zb-svc .ic{margin:0;font-size:28px}
@@ -139,25 +144,28 @@ function cart() {
   let priced = true;
   if (s.mode === "phone") {
     const k = S.sku && P().skus[S.sku];
-    if (k) { lines.push([k.label, k.price]); if (k.price == null) priced = false; }
+    if (k) { lines.push([k.label, k.price, k.mrp]); if (k.price == null) priced = false; }
     else if (S.other) lines.push(["Home diagnosis", P()?.skus[DIAG]?.price ?? 99]);
   } else if (s.mode === "duration") {
-    if (S.item && S.dur) lines.push([`${S.item.name} · ${S.dur} min`, itemPrice(s, S.item, S.dur)]);
+    if (S.item && S.dur) lines.push([`${S.item.name} · ${S.dur} min`, itemPrice(s, S.item, S.dur), itemMrp(s, S.item, S.dur)]);
     if (S.other) lines.push(["Visit for custom request", s.otherPrice || 0]);
   } else {
     for (const it of s.items) {
       const q = S.sel[it.id];
-      if (q) lines.push([`${it.name}${q > 1 ? " × " + q : ""}`, itemPrice(s, it, S.variant) * q]);
+      if (q) lines.push([`${it.name}${q > 1 ? " × " + q : ""}`, itemPrice(s, it, S.variant) * q, itemMrp(s, it, S.variant) * q]);
     }
     if (S.other) lines.push(["Other issue – inspection visit", s.otherPrice || 0]);
   }
-  return { lines, total: lines.reduce((a, l) => a + (Number(l[1]) || 0), 0), priced };
+  const total = lines.reduce((a, l) => a + (Number(l[1]) || 0), 0);
+  const mrpTotal = lines.reduce((a, l) => a + (Number(l[2]) > Number(l[1]) ? Number(l[2]) : Number(l[1]) || 0), 0);
+  return { lines, total, priced, save: priced ? Math.max(0, mrpTotal - total) : 0 };
 }
 const summary = (showCta, ctaLabel, disabled) => {
   const c = cart();
   if (!c.lines.length && !showCta) return "";
-  return `${c.lines.length ? `<div class="zb-sum">${c.lines.map(([l, p]) => `<div class="ln"><span>${esc(l)}</span><b>${p == null ? "On inspection" : rs(p)}</b></div>`).join("")}
-    <div class="ln tot"><span>Total (pay after service)</span><span>${c.priced ? rs(c.total) : "After inspection"}</span></div></div>` : ""}
+  return `${c.lines.length ? `<div class="zb-sum">${c.lines.map(([l, p, m]) => `<div class="ln"><span>${esc(l)}</span><b>${p == null ? "On inspection" : rs(p)}${m > p && p > 0 ? `<s>${rs(m)}</s>` : ""}</b></div>`).join("")}
+    <div class="ln tot"><span>Total (pay after service)</span><span>${c.priced ? rs(c.total) : "After inspection"}</span></div>
+    ${c.save > 0 ? `<div class="ln save"><span>🎉 You save</span><span>${rs(c.save)}</span></div>` : ""}</div>` : ""}
     ${showCta ? `<button class="zb-cta" data-a="next" ${disabled ? "disabled" : ""}>${ctaLabel}</button>` : ""}`;
 };
 
@@ -235,7 +243,7 @@ function vPricePhone() {
     if (!k) return "";
     return `<button class="zb-opt ${S.sku === code ? "on" : ""}" style="width:100%" data-a="sku" data-v="${code}"><b>${esc(k.label)}</b>
       <small>${esc(k.type || "")}${k.warrantyMonths ? ` · 🛡️ ${k.warrantyMonths}-month warranty` : ""}</small>
-      <span class="pr">${k.price == null ? "Price on inspection" : rs(k.price)}${k.mrp && k.price && k.mrp > k.price ? `<s>${rs(k.mrp)}</s>` : ""}</span></button>`;
+      <span class="pr">${k.price == null ? "Price on inspection" : tag(k.price, k.mrp)}</span></button>`;
   }).join("");
   return `<h3>Choose your repair</h3><p class="zb-sub">${esc(S.model.name)} · ${esc(S.issue.name)} · ${esc(S.sub.name)}${S.answer != null ? " · " + esc(S.model.repairs[String(S.sub.id)].answers[S.answer].answer) : ""}</p>
     <div class="zb-list">${opts}</div>
@@ -246,7 +254,7 @@ function vItem() {
   const s = svc();
   return `<h3>${esc(s.name)}</h3><p class="zb-sub">${esc(s.tagline || "")}</p>
     <div class="zb-list">${s.items.filter((i) => i.active !== false).map((i) => `<button class="zb-opt" data-a="item" data-v="${i.id}"><b>${esc(i.name)}</b><small>${esc(i.desc || "")}</small>
-      <span class="pr">from ${rs(Math.min(...s.durations.map((d) => itemPrice(s, i, d)).filter((x) => x > 0)))}</span></button>`).join("")}
+      <span class="pr">from ${(() => { const d = s.durations.filter((x) => itemPrice(s, i, x) > 0).sort((a, b) => itemPrice(s, i, a) - itemPrice(s, i, b))[0]; return d ? tag(itemPrice(s, i, d), itemMrp(s, i, d)) : "–"; })()}</span></button>`).join("")}
     <button class="zb-opt zb-other" data-a="item" data-v="other"><b>Something else</b><small>Full-home deep cleaning, office, move-in… describe it</small></button></div>`;
 }
 function vPriceDuration() {
@@ -260,7 +268,7 @@ function vPriceDuration() {
   const it = S.item;
   return `<h3>${esc(it.name)}</h3><p class="zb-sub">${esc(it.desc || "")}</p>
     <label>How long should the cleaner spend?</label>
-    <div class="zb-dur">${s.durations.map((d) => `<button class="${S.dur === d ? "on" : ""}" data-a="dur" data-v="${d}"><b>${d} min</b><span>${rs(itemPrice(s, it, d))}</span></button>`).join("")}</div>
+    <div class="zb-dur">${s.durations.map((d) => `<button class="${S.dur === d ? "on" : ""}" data-a="dur" data-v="${d}"><b>${d} min</b><span>${rs(itemPrice(s, it, d))}</span>${itemMrp(s, it, d) > itemPrice(s, it, d) ? `<s>${rs(itemMrp(s, it, d))}</s><em class="off">${offPct(itemMrp(s, it, d), itemPrice(s, it, d))}% OFF</em>` : ""}</button>`).join("")}</div>
     <label for="zbOR">Notes for the cleaner (optional)</label><textarea id="zbOR" data-f="remarks" rows="2" placeholder="e.g. 2 bathrooms, hard water stains">${esc(S.remarks)}</textarea>
     ${summary(true, "Choose time slot →", !S.dur)}`;
 }
@@ -275,9 +283,9 @@ function vPriceItems() {
   const g = S.group || groups[0];
   const items = s.items.filter((i) => i.active !== false && (!g || i.group === g));
   const row = (it) => {
-    const q = S.sel[it.id] || 0, p = itemPrice(s, it, S.variant);
+    const q = S.sel[it.id] || 0, p = itemPrice(s, it, S.variant), m = itemMrp(s, it, S.variant);
     return `<div class="zb-row ${q ? "on" : ""}"><div class="tx"><b>${esc(it.name)}${it.hot ? ` <span class="zb-badge" style="position:static;margin-left:4px">POPULAR</span>` : ""}</b><small>${esc(it.desc || "")}</small>
-      <span class="pr">${rs(p)}${s.qtyLabel === "ACs" ? " / AC" : ""}</span></div>
+      <span class="pr">${tag(p, m)}${s.qtyLabel === "ACs" ? " <small style=\"display:inline;font-weight:600\">/ AC</small>" : ""}</span></div>
       ${q ? `<span class="zb-qty"><button data-a="qty" data-v="${it.id}" data-d="-1" aria-label="Less">−</button><span>${q}</span><button data-a="qty" data-v="${it.id}" data-d="1" aria-label="More">+</button></span>`
         : `<button class="zb-add" data-a="qty" data-v="${it.id}" data-d="${it.minQty || 1}">Add</button>`}</div>`;
   };

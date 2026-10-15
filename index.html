@@ -86,6 +86,8 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdro
 .svc.feat{border:2px solid var(--yellow);background:#FFFBEA}
 .plan .amt{font-size:15px;color:var(--teal-d);margin:6px 0 10px}
 .plan .amt b{font-size:22px}
+.plan .amt s{color:#9AA9A9;font-size:14px}
+.plan .amt .off{font-style:normal;background:#E6F4EA;color:#1E8E3E;font-weight:800;font-size:11px;border-radius:6px;padding:1px 6px}
 .plan .amt small{display:block;color:var(--muted);font-size:12.5px}
 .book-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
 #zhBook{min-height:380px;scroll-margin-top:90px}
@@ -436,7 +438,8 @@ document.addEventListener('zh-services', e=>{
     const it = amc.items.find(i=>i.id===btn.dataset.bookItem); if(!it) return;
     const el = btn.closest('.plan').querySelector('.amt'); if(!el) return;
     const v = amc.variants||[]; const p = it.prices||{};
-    el.innerHTML = v.map(x=>`<b>₹${Number(p[x]||0).toLocaleString('en-IN')}</b> ${x.replace(' AC','')}`).join(' · ') + ' <small>per AC / year</small>';
+    const m = it.mrps||{};
+    el.innerHTML = v.map(x=>`<b>₹${Number(p[x]||0).toLocaleString('en-IN')}</b>${m[x]>p[x]?` <s>₹${Number(m[x]).toLocaleString('en-IN')}</s> <em class="off">${Math.round((1-p[x]/m[x])*100)}% OFF</em>`:''} ${x.replace(' AC','')}`).join('<br>') + ' <small>per AC / year</small>';
   });
 });
 
@@ -451,7 +454,7 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-book.js?v=15"></script>
+<script type="module" src="/zh-book.js?v=16"></script>
 <script src="/zipphive-widget.js?v=15" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
