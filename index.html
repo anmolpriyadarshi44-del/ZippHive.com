@@ -9,7 +9,7 @@
 <meta property="og:title" content="ZippHive — Doorstep Home Services in Patna">
 <meta property="og:description" content="Mobile repair in 60 min, AC, appliances, plumbing, electrical & cleaning. Book in one tap.">
 <meta property="og:type" content="website">
-<script src="/zipphive-config.js?v=14"></script>
+<script src="/zipphive-config.js?v=15"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +83,12 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdro
 .promise li span{flex:none;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:20px}
 .promise li b{display:block;color:#fff;font-size:15.5px;margin-bottom:2px}
 .booksec{background:var(--soft)}
-.book-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.svc.feat{border:2px solid var(--yellow);background:#FFFBEA}
+.plan .amt{font-size:15px;color:var(--teal-d);margin:6px 0 10px}
+.plan .amt b{font-size:22px}
+.plan .amt small{display:block;color:var(--muted);font-size:12.5px}
+.book-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+#zhBook{min-height:380px;scroll-margin-top:90px}
 .book-grid .hero-card{box-shadow:0 24px 50px rgba(5,62,64,.14);border:1px solid var(--line)}
 ol.next{margin:22px 0;padding:0;list-style:none;counter-reset:n;display:grid;gap:14px}
 ol.next li{counter-increment:n;display:flex;gap:14px;align-items:center;font-size:16px}
@@ -304,36 +309,8 @@ footer .logo{color:#fff;margin-bottom:12px}
       </ol>
       <p class="sub" style="font-size:15px">Prefer to talk? <a href="tel:+919220400950"><b>Call +91 92204 00950</b></a> or <a href="https://wa.me/919220400950?text=Hi%20ZippHive%2C%20I%20need%20a%20service" target="_blank" rel="noopener"><b>WhatsApp us</b></a>.</p>
     </div>
-    <div class="hero-card">
-      <h3>Book in 30 seconds</h3>
-      <p>Fill this in — our team confirms on WhatsApp right away.</p>
-      <form id="bookForm" novalidate>
-        <div class="field"><label for="name">Your name</label><input id="name" required placeholder="e.g. Rahul Kumar" autocomplete="name"></div>
-        <div class="row2">
-          <div class="field"><label for="phone">Mobile number</label><input id="phone" required inputmode="numeric" maxlength="10" placeholder="10-digit number" autocomplete="tel-national"></div>
-          <div class="field"><label for="service">Service</label>
-            <select id="service" required>
-              <option value="">Choose…</option>
-              <option>Mobile Repair (60 min)</option>
-              <option>AC Repair / Service</option>
-              <option>AC AMC Plan</option>
-              <option>AC Installation / Uninstallation</option>
-              <option>Washing Machine Repair / Install</option>
-              <option>Plumber</option>
-              <option>Electrician</option>
-              <option>Home Cleaning</option>
-            </select>
-          </div>
-        </div>
-        <div class="field"><label for="area">Area / locality</label><input id="area" required placeholder="e.g. Boring Road"></div>
-        <div class="field"><label id="whenLbl">Choose date &amp; time slot</label>
-          <zh-slot-picker id="when" aria-labelledby="whenLbl"></zh-slot-picker>
-        </div>
-        <div class="field"><label for="issue">Issue (optional)</label><textarea id="issue" rows="2" placeholder="e.g. iPhone 12 screen cracked / AC not cooling"></textarea></div>
-        <button type="submit" class="btn btn-y form-btn">Book now</button>
-        <div class="err" id="err">Please fill your name, a valid 10-digit mobile number, service and area.</div>
-        <p class="note">Or call <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p>
-      </form>
+    <div class="hero-card" id="zhBook">
+      <noscript><p>Please call <a href="tel:+919220400950"><b>+91 92204 00950</b></a> or <a href="https://wa.me/919220400950">WhatsApp us</a> to book.</p></noscript>
   </div>
 </section>
 
@@ -359,11 +336,11 @@ footer .logo{color:#fff;margin-bottom:12px}
   <div class="wrap">
     <span class="tag">AC care plans</span>
     <h2>Annual Maintenance (AMC) for your AC</h2>
-    <p class="sub">Beat Patna's summer with scheduled servicing and priority repairs. Ask us for the current price for your AC type.</p>
+    <p class="sub">Beat Patna's summer with scheduled servicing and priority repairs. Simple yearly price per AC.</p>
     <div class="plans">
-      <div class="plan rv"><h3>Basic Care</h3><p class="price">1 AC · 2 services / year</p><ul><li>2 scheduled wet services</li><li>Filter &amp; coil cleaning</li><li>Gas pressure check</li><li>Discount on repairs</li></ul><a class="btn btn-t" data-plan="AC AMC – Basic Care" href="#book">Get a quote</a></div>
-      <div class="plan hot rv"><h3>Comfort Plus</h3><p class="price">1 AC · 3 services / year</p><ul><li>3 scheduled services</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Labour covered on repairs</li></ul><a class="btn btn-y" data-plan="AC AMC – Comfort Plus" href="#book">Get a quote</a></div>
-      <div class="plan rv"><h3>Family Pack</h3><p class="price">2–4 ACs · full home</p><ul><li>All ACs on one plan</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Best per-AC price</li></ul><a class="btn btn-t" data-plan="AC AMC – Family Pack" href="#book">Get a quote</a></div>
+      <div class="plan rv"><h3>Basic Care</h3><p class="price">1 AC · 2 services / year</p><ul><li>2 scheduled wet services</li><li>Filter &amp; coil cleaning</li><li>Gas pressure check</li><li>Discount on repairs</li></ul><p class="amt"></p><a class="btn btn-t" data-book="amc" data-book-item="basic" href="#book">Book this plan</a></div>
+      <div class="plan hot rv"><h3>Comfort Plus</h3><p class="price">1 AC · 3 services / year</p><ul><li>3 scheduled services</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Labour covered on repairs</li></ul><p class="amt"></p><a class="btn btn-y" data-book="amc" data-book-item="comfort" href="#book">Book this plan</a></div>
+      <div class="plan rv"><h3>Family Pack</h3><p class="price">2–4 ACs · full home</p><ul><li>All ACs on one plan</li><li>Free breakdown visits</li><li>Priority same-day support</li><li>Best per-AC price</li></ul><p class="amt"></p><a class="btn btn-t" data-book="amc" data-book-item="family" href="#book">Book this plan</a></div>
     </div>
   </div>
 </section>
@@ -438,86 +415,30 @@ const ic = {
   clean:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8M8 10h8l1 4H7z"/><path d="M7 14l-1 8h12l-1-8"/><path d="M19 3l.5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5z"/></svg>'
 };
 const services = [
-  {i:'phone', t:'Mobile Repair', b:'60 MIN', d:'Screen, battery, charging port, speaker & more — repaired at your doorstep in about an hour.', s:'Mobile Repair (60 min)'},
-  {i:'ac', t:'AC Repair & Service', d:'Not cooling, gas refill, water leakage, noise — split & window ACs of all brands.', s:'AC Repair / Service'},
-  {i:'shield', t:'AC AMC Plans', b:'SAVE', d:'Yearly maintenance with scheduled services and priority breakdown support.', s:'AC AMC Plan'},
-  {i:'snow', t:'AC Install / Uninstall', d:'Safe installation, shifting and uninstallation with proper piping and testing.', s:'AC Installation / Uninstallation'},
-  {i:'wash', t:'Washing Machine', d:'Repair and installation for front-load, top-load and semi-automatic machines.', s:'Washing Machine Repair / Install'},
-  {i:'pipe', t:'Plumber', d:'Leaks, taps, blockages, fittings, motor & tank connections — fixed fast.', s:'Plumber'},
-  {i:'bolt', t:'Electrician', d:'Wiring, switches, fans, lights, MCB and inverter connections done safely.', s:'Electrician'},
-  {i:'clean', t:'Home Cleaning', d:'Full home, kitchen, bathroom, sofa & deep cleaning by trained teams.', s:'Home Cleaning'}
+  {i:'clean', id:'cleaning', t:'Home Cleaning', b:'FESTIVE SPECIAL', d:'Bathroom, kitchen, sofa, rooms & festive combos – book 30, 45 or 60 minutes at a fixed price.'},
+  {i:'phone', id:'mobile', t:'Mobile Repair', b:'60 MIN', d:'Pick your brand, model and issue to see the exact price – repaired at your doorstep in about an hour.'},
+  {i:'ac', id:'ac', t:'AC Repair, Service & Installation', d:'Jet service, gas refill, cooling issues, installation, uninstallation & shifting – split and window ACs.'},
+  {i:'shield', id:'amc', t:'AC AMC Plans', b:'SAVE', d:'Yearly AC care with scheduled services and priority breakdown support. Price per AC.'},
+  {i:'wash', id:'home', t:'Washing Machine, Plumber & Electrician', d:'Every job has its own fixed price – drum issues, leaks, blockages, fans, switches, wiring and more.'}
 ];
 document.getElementById('svcGrid').innerHTML = services.map(x=>`
-  <div class="svc rv">
+  <div class="svc rv${x.id==='cleaning'?' feat':''}">
     <div class="ico">${ic[x.i]}</div>
     ${x.b?`<span class="badge">${x.b}</span>`:''}
     <h3>${x.t}</h3><p>${x.d}</p>
-    <a class="more" href="#book" data-svc="${x.s}">Book now <span>→</span></a>
+    <a class="more" href="#book" data-book="${x.id}">See prices &amp; book <span>→</span></a>
   </div>`).join('');
 
-// Pre-select service when a "Book now" / plan button is clicked
-const sel = document.getElementById('service');
-document.addEventListener('click', e=>{
-  const a = e.target.closest('[data-svc],[data-plan]');
-  if(!a) return;
-  if(a.dataset.svc) sel.value = a.dataset.svc;
-  if(a.dataset.plan){ sel.value = 'AC AMC Plan'; document.getElementById('issue').value = 'Interested in: ' + a.dataset.plan; }
-  setTimeout(()=>document.getElementById('name').focus({preventScroll:true}), 500);
+// AMC plan prices come from the admin price list (/pricing.html)
+document.addEventListener('zh-services', e=>{
+  const amc = (e.detail.services||[]).find(s=>s.id==='amc'); if(!amc) return;
+  document.querySelectorAll('[data-book-item]').forEach(btn=>{
+    const it = amc.items.find(i=>i.id===btn.dataset.bookItem); if(!it) return;
+    const el = btn.closest('.plan').querySelector('.amt'); if(!el) return;
+    const v = amc.variants||[]; const p = it.prices||{};
+    el.innerHTML = v.map(x=>`<b>₹${Number(p[x]||0).toLocaleString('en-IN')}</b> ${x.replace(' AC','')}`).join(' · ') + ' <small>per AC / year</small>';
+  });
 });
-
-// Booking form -> saved straight to the ZippHive dashboard (no WhatsApp needed).
-// The store confirms on WhatsApp with the tracking link once the job is accepted.
-let opsP = null;
-const ops = () => (opsP ||= import('/zh-ops.js?v=14').then(async m => ({ m, be: await m.backend() })));
-setTimeout(() => ops().catch(() => {}), 2500); // warm up in the background
-const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
-document.getElementById('bookForm').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const v = id => document.getElementById(id).value.trim();
-  const phone = v('phone').replace(/\D/g,'');
-  const ok = v('name') && /^[6-9]\d{9}$/.test(phone) && v('service') && v('area');
-  const er0 = document.getElementById('err'); er0.textContent = er0.dataset.msg || (er0.dataset.msg = er0.textContent); er0.style.display = ok ? 'none' : 'block';
-  if(!ok) return;
-  const btn = e.target.querySelector('.form-btn'); btn.disabled = true; btn.textContent = 'Booking…';
-  const svc = v('service');
-  const data = { kind: /^Mobile/.test(svc) ? 'phone' : 'service', service: svc.slice(0,80), name: v('name').slice(0,60), mobile: phone,
-    area: v('area').slice(0,60) };
-  const pk = document.getElementById('when');
-  data.time = String(pk.value || "Will call to fix a time").slice(0,40);
-  if (pk.slotKey) data.slot = pk.slotKey;
-  if (v('issue')) data.problem = v('issue').slice(0,200);
-  let job = null;
-  try {
-    const { m, be } = await ops();
-    // the slot may have been taken while the customer was typing
-    if (data.slot && window.ZHSlots && !(await window.ZHSlots.stillFree(data.slot))) {
-      await pk.refresh(); btn.disabled = false; btn.textContent = 'Book now';
-      const er = document.getElementById('err'); er.textContent = 'Sorry, that time slot just got booked – please pick another one.'; er.style.display = 'block';
-      return;
-    }
-    if (be && be.createBooking) {
-      try { job = await be.createBooking(data); }
-      catch (e1) { if (!data.slot) throw e1; const { slot, ...rest } = data; job = await be.createBooking(rest); } // older rules without "slot"
-      if (data.slot) window.ZHSlots && window.ZHSlots.reserve(data.slot);
-    }
-    if (job) job.url = m.trackUrl(job.id);
-  }
-  catch (err) { console.warn('booking not saved', err); }
-  const card = document.querySelector('#book .hero-card');
-  if (job) {
-    card.innerHTML = `<div class="done"><div class="tick">✓</div><h3>Booking received!</h3>
-      <p>Thanks ${escH(data.name.split(' ')[0])} — our team will confirm your technician and time on WhatsApp shortly.</p>
-      <div class="bid">Booking ID <b>${escH(job.code)}</b></div>
-      <a class="btn btn-y form-btn" href="${job.url}">📍 Track your booking</a>
-      <p class="note">Pay after the work is done. Questions? <a href="tel:+919220400950"><b>+91 92204 00950</b></a></p></div>`;
-  } else {
-    // couldn't reach the dashboard: fall back to WhatsApp so the booking isn't lost
-    const msg = `Hi ZippHive, I'd like to book a service.\n\nName: ${data.name}\nMobile: ${phone}\nService: ${svc}\nArea: ${data.area}\nPreferred time: ${data.time}` + (data.problem ? `\nIssue: ${data.problem}` : '');
-    window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-    btn.disabled = false; btn.textContent = 'Book now';
-  }
-});
-document.getElementById('phone').addEventListener('input', e=>{ e.target.value = e.target.value.replace(/\D/g,'').slice(0,10); });
 
 // Mobile menu
 const links = document.getElementById('links'), mb = document.getElementById('menuBtn');
@@ -530,12 +451,8 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-slots.js?v=14"></script>
-<script>
-// show the slots for the chosen service
-document.getElementById('service').addEventListener('change', e => document.getElementById('when').setAttribute('service', e.target.value));
-</script>
-<script src="/zipphive-widget.js?v=14" data-position="right" defer></script>
+<script type="module" src="/zh-book.js?v=15"></script>
+<script src="/zipphive-widget.js?v=15" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
 (function fixLauncher(n){

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#053E40" />
+<title>ZippHive Prices</title>
+<link rel="icon" href="/zh-icon.png" />
+<script src="/zipphive-config.js?v=15"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=15" />
+<style>
+.wrap{max-width:1100px}
+.svcard h2{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.meta{display:grid;grid-template-columns:2fr 3fr 1fr 1fr;gap:10px;margin:10px 0 12px}
+.meta label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--deep)}
+table.pt{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.pt th{background:var(--tint);color:var(--dark);font-size:12.5px;text-align:left;padding:7px 6px;white-space:nowrap}
+table.pt td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.pt input.in,table.pt select.in{min-height:34px;padding:5px 8px}
+table.pt input.num{width:92px;text-align:right}
+table.pt input.qty{width:60px;text-align:right}
+table.pt tr.off td{opacity:.5}
+.grp{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 4px 4px!important;background:#FAFCFC}
+.bar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;z-index:5}
+.ro{background:var(--ylt);color:#7A5A00;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;margin-bottom:12px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.tabs button{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:999px;font-weight:600;font-size:13.5px}
+.tabs button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+@media (max-width:760px){.meta{grid-template-columns:1fr 1fr}table.pt input.num{width:74px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
+<script type="module">
+import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
+import { mergeCatalog } from "/zh-services.js?v=15";
+
+const S = { be: null, user: undefined, ok: false, cat: null, tab: "cleaning", dirty: false, saving: false };
+const app = document.getElementById("app");
+const isAdmin = () => S.user && admins().includes(S.user.email);
+const svc = () => S.cat.services.find((s) => s.id === S.tab);
+const num = (v) => { const n = Number(String(v).replace(/[^\d.]/g, "")); return isFinite(n) ? Math.round(n) : 0; };
+
+function priceCols(s) {
+  if (s.mode === "duration") return s.durations.map((d) => ({ key: String(d), label: `₹ ${d} min` }));
+  if (s.variants) return s.variants.map((v) => ({ key: v, label: `₹ ${v}` }));
+  return [{ key: null, label: "₹ Price" }];
+}
+function rowHtml(s, it, i) {
+  const ro = isAdmin() ? "" : "disabled";
+  const cols = priceCols(s).map((c) => `<td><input class="in num" inputmode="numeric" data-i="${i}" data-p="${esc(c.key ?? "")}" value="${c.key == null ? (it.price ?? "") : (it.prices?.[c.key] ?? "")}" ${ro} aria-label="${esc(c.label)}"></td>`).join("");
+  return `<tr class="${it.active === false ? "off" : ""}">
+    <td><input class="in" data-i="${i}" data-k="name" value="${esc(it.name)}" ${ro} aria-label="Name"></td>
+    ${s.groups ? `<td><select class="in" data-i="${i}" data-k="group" ${ro}>${s.groups.map((g) => `<option ${g === it.group ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></td>` : ""}
+    <td><input class="in" data-i="${i}" data-k="desc" value="${esc(it.desc || "")}" ${ro} aria-label="Description"></td>
+    ${cols}
+    ${s.id === "amc" ? `<td><input class="in qty" inputmode="numeric" data-i="${i}" data-k="minQty" value="${it.minQty || 1}" ${ro} aria-label="Minimum ACs"></td>` : ""}
+    <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="active" ${it.active === false ? "" : "checked"} ${ro} aria-label="Show on website"></td>
+    <td>${isAdmin() ? `<button class="btn sm r" data-act="del" data-i="${i}" aria-label="Delete">✕</button>` : ""}</td></tr>`;
+}
+function serviceCard() {
+  const s = svc(), ro = isAdmin() ? "" : "disabled";
+  if (s.mode === "phone") return `<div class="card svcard"><h2>${s.icon} ${esc(s.name)}</h2>
+    <p>Phone repair prices (every brand, model and part) are managed in the existing <b>Admin → Price list</b>, which already feeds the website and the AI assistant.</p>
+    <a class="btn" href="/admin.html">Open Admin price list</a></div>`;
+  const cols = priceCols(s);
+  let rows = "";
+  const order = s.groups ? s.groups.flatMap((g) => s.items.map((it, i) => [it, i]).filter(([it]) => it.group === g)) : s.items.map((it, i) => [it, i]);
+  let last = null;
+  const ncol = 3 + cols.length + (s.groups ? 1 : 0) + (s.id === "amc" ? 1 : 0);
+  for (const [it, i] of order) {
+    if (s.groups && it.group !== last) { last = it.group; rows += `<tr><td class="grp" colspan="${ncol + 1}">${esc(last)}</td></tr>`; }
+    rows += rowHtml(s, it, i);
+  }
+  const orphans = s.groups ? s.items.map((it, i) => [it, i]).filter(([it]) => !s.groups.includes(it.group)) : [];
+  for (const [it, i] of orphans) rows += rowHtml(s, it, i);
+  return `<div class="card svcard">
+    <h2>${s.icon} ${esc(s.name)}</h2>
+    <div class="meta">
+      <label>Name on website<input class="in" data-s="name" value="${esc(s.name)}" ${ro}></label>
+      <label>Short description<input class="in" data-s="tagline" value="${esc(s.tagline || "")}" ${ro}></label>
+      <label>Badge<input class="in" data-s="badge" value="${esc(s.badge || "")}" placeholder="e.g. FESTIVE" ${ro}></label>
+      ${s.otherPrice != null ? `<label>"Other / not listed" visit ₹<input class="in" data-s="otherPrice" inputmode="numeric" value="${s.otherPrice}" ${ro}></label>` : "<span></span>"}
+    </div>
+    <div style="overflow-x:auto"><table class="pt"><thead><tr><th>Item</th>${s.groups ? "<th>Category</th>" : ""}<th>Description (shown to customer)</th>
+      ${cols.map((c) => `<th>${esc(c.label)}</th>`).join("")}${s.id === "amc" ? "<th>Min ACs</th>" : ""}<th>Show</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${isAdmin() ? `<div class="row" style="margin-top:10px">${(s.groups || [null]).map((g) => `<button class="btn sm o" data-act="add" data-g="${esc(g || "")}">+ Add ${g ? esc(g) + " item" : "item"}</button>`).join("")}</div>` : ""}
+    <p class="muted" style="margin-top:10px">Prices are what the customer pays (ex-GST). ${s.mode === "duration" ? "Each item has its own price for 30, 45 and 60 minutes." : s.variants ? "Set a price for each AC type." : "Each job has its own fixed price; parts extra."} Untick “Show” to hide an item without deleting it.</p>
+  </div>`;
+}
+function render() {
+  const head = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Prices</span><span class="sp"></span>
+    ${S.user ? `<a class="btn sm ghost" href="/manager.html">← Dashboard</a><button class="btn sm ghost" data-act="signout">Sign out</button>` : ""}</header>`;
+  if (!S.be) { app.innerHTML = head + `<div class="card login"><h2>Not configured</h2></div>`; return; }
+  if (S.user === undefined) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading…</div>`; return; }
+  if (!S.user) { app.innerHTML = head + `<div class="card login"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`; return; }
+  if (!S.ok) { app.innerHTML = head + `<div class="card login"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive admin or store manager.</p></div>`; return; }
+  if (!S.cat) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading prices…</div>`; return; }
+  app.innerHTML = head + `<div class="wrap">
+    <h1 style="margin:6px 0 2px">Service prices</h1><p class="muted" style="margin:0 0 12px">These prices appear in the website booking flow straight after you save.</p>
+    ${isAdmin() ? "" : `<div class="ro">View only – only the admin (${esc(admins()[0])}) can change prices.</div>`}
+    <div class="tabs">${S.cat.services.map((s) => `<button class="${s.id === S.tab ? "on" : ""}" data-act="tab" data-v="${s.id}">${s.icon} ${esc(s.name)}</button>`).join("")}</div>
+    ${serviceCard()}</div>
+    ${isAdmin() ? `<div class="bar"><span class="muted">${S.dirty ? "Unsaved changes" : "All changes saved"}</span><a class="btn sm g" href="/#book" target="_blank" rel="noopener">View booking flow</a><button class="btn" data-act="save" ${S.dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "💾 Save & publish"}</button></div>` : ""}`;
+}
+const dirty = () => { if (!S.dirty) { S.dirty = true; const b = app.querySelector("[data-act=save]"); if (b) { b.disabled = false; b.previousElementSibling.previousElementSibling.textContent = "Unsaved changes"; } } };
+
+app.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const a = el.dataset.act, s = S.cat && svc();
+  if (a === "signin") return S.be.signIn();
+  if (a === "signout") return S.be.signOut();
+  if (a === "tab") { S.tab = el.dataset.v; return render(); }
+  if (a === "add") {
+    const it = { id: "x" + Date.now().toString(36), name: "New item", desc: "", active: true };
+    if (s.groups) it.group = el.dataset.g || s.groups[0];
+    if (s.mode === "duration") it.prices = Object.fromEntries(s.durations.map((d) => [d, 0]));
+    else if (s.variants) it.prices = Object.fromEntries(s.variants.map((v) => [v, 0]));
+    else it.price = 0;
+    s.items.push(it); S.dirty = true; render();
+    return;
+  }
+  if (a === "del") {
+    const it = s.items[+el.dataset.i];
+    if (!confirm(`Delete “${it.name}”? (Untick “Show” instead to hide it for now.)`)) return;
+    s.items.splice(+el.dataset.i, 1); S.dirty = true; return render();
+  }
+  if (a === "save") {
+    for (const sv of S.cat.services) for (const it of sv.items || []) if (!String(it.name || "").trim()) { S.tab = sv.id; render(); return toast("Every item needs a name", true); }
+    S.saving = true; render();
+    try {
+      await S.be.saveServiceCatalog({ version: 1, services: S.cat.services.filter((x) => x.mode !== "phone") });
+      S.dirty = false; toast("Saved – live on the website");
+    } catch (x) { toast("Save failed: " + (x.message || x), true); }
+    S.saving = false; render();
+  }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target, s = S.cat && svc();
+  if (!s) return;
+  if (t.dataset.s) { s[t.dataset.s] = t.dataset.s === "otherPrice" ? num(t.value) : t.value; return dirty(); }
+  if (t.dataset.i == null) return;
+  const it = s.items[+t.dataset.i];
+  if (t.dataset.p != null && t.dataset.p !== undefined && "p" in t.dataset) {
+    if (t.dataset.p === "") it.price = num(t.value); else (it.prices ||= {})[t.dataset.p] = num(t.value);
+  } else if (t.dataset.k === "active") { it.active = t.checked; t.closest("tr").classList.toggle("off", !t.checked); }
+  else if (t.dataset.k === "minQty") it.minQty = Math.max(1, num(t.value));
+  else if (t.dataset.k) it[t.dataset.k] = t.value;
+  dirty();
+});
+app.addEventListener("change", (e) => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") e.target.dispatchEvent(new Event("input", { bubbles: true })); });
+window.addEventListener("beforeunload", (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+S.be = await backend();
+render();
+if (S.be) S.be.onUser(async (u) => {
+  S.user = u; S.ok = false;
+  if (u) {
+    S.ok = await S.be.isManager(u.email);
+    if (S.ok) S.cat = mergeCatalog(await S.be.getServiceCatalog().catch(() => null));
+  }
+  render();
+});
+</script>
+</body>
+</html>
