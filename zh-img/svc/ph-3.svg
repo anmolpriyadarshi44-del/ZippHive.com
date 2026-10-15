@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="800" height="800">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4CC"/><stop offset="1" stop-color="#FFE9A8"/></linearGradient>
+<pattern id="hx" width="40" height="46" patternUnits="userSpaceOnUse"><polygon points="20.0,4.0 36.5,13.5 36.5,32.5 20.0,42.0 3.5,32.5 3.5,13.5" fill="none" stroke="#0B6E6E" stroke-opacity=".08" stroke-width="1.5"/></pattern>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9F8F7"/><stop offset="1" stop-color="#BFE3E0"/></linearGradient>
+<linearGradient id="scr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0E8080"/><stop offset="1" stop-color="#042F31"/></linearGradient></defs>
+<rect width="400" height="400" fill="url(#bg)"/><rect width="400" height="400" fill="url(#hx)"/>
+<rect x="130" y="50" width="140" height="290" rx="28" fill="#042F31"/><rect x="139" y="59" width="122" height="272" rx="21" fill="url(#scr)"/><rect x="176.0" y="68" width="48" height="12" rx="6" fill="#042F31"/><path d="M200 170l-40-60M200 170l50-44M200 170l-60 34M200 170l30 70M200 170l60 20M160 110l-14 20M250 126l20 6M230 240l-18 16" stroke="#fff" stroke-width="3" fill="none" opacity=".9"/><polygon points="330.0,30.0 366.4,51.0 366.4,93.0 330.0,114.0 293.6,93.0 293.6,51.0" fill="#FFC93C" stroke="#fff" stroke-width="5"/><g transform="translate(330,72)"><path d="M-12-12l24 24M12-12l-24 24" stroke="#042F31" stroke-width="7" stroke-linecap="round"/></g>
+</svg>

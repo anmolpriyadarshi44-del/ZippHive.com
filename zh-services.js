@@ -172,3 +172,19 @@ export function itemFrom(s, it) {
   const d = (s.durations || []).filter((x) => itemPrice(s, it, x) > 0).sort((a, b) => itemPrice(s, it, a) - itemPrice(s, it, b))[0];
   return d ? { d, price: itemPrice(s, it, d), mrp: itemMrp(s, it, d) } : null;
 }
+
+// ZippHive illustrations for every other service (tools/service_illustrations.py → /zh-img/svc/*.svg)
+const SVC_ART = new Set(['ac-check', 'ac-foam', 'ac-gasfull', 'ac-gastop', 'ac-install', 'ac-jet', 'ac-leak', 'ac-noise', 'ac-pcb', 'ac-shift', 'ac-split', 'ac-stand', 'ac-uninstall', 'ac-window', 'amc', 'amc-basic', 'amc-comfort', 'amc-family', 'el-bell', 'el-fan', 'el-fanrep', 'el-inverter', 'el-light', 'el-mcb', 'el-switch', 'el-wiring', 'electrician', 'mobile', 'ph-1', 'ph-10', 'ph-11', 'ph-12', 'ph-13', 'ph-14', 'ph-15', 'ph-16', 'ph-17', 'ph-18', 'ph-19', 'ph-2', 'ph-20', 'ph-21', 'ph-22', 'ph-3', 'ph-4', 'ph-5', 'ph-6', 'ph-7', 'ph-8', 'ph-9', 'ph-other', 'pl-basin', 'pl-block', 'pl-flush', 'pl-geyser', 'pl-leak', 'pl-motor', 'pl-tank', 'pl-tap', 'plumber', 'washing', 'wm-drain', 'wm-install', 'wm-leak', 'wm-noise', 'wm-service', 'wm-spin', 'wm-start', 'wm-uninstall']);
+const GROUP_ART = { "Washing machine": "washing", Plumber: "plumber", Electrician: "electrician", "Service & repair": "ac-check", "Installation & shifting": "ac-install" };
+export const SVC_COVER = { cleaning: "/zh-img/clean-living-room.jpg", mobile: "/zh-img/svc/mobile.svg", ac: "/zh-img/svc/ac-split.svg", amc: "/zh-img/svc/amc.svg", home: "/zh-img/svc/washing.svg" };
+// Picture for an item of any service: admin "img" → own illustration → group / service fallback
+export function svcItemImg(s, it) {
+  if (it && it.img) return it.img;
+  if (s.mode === "duration") return itemImg(it);
+  const key = s.id === "ac" ? "ac-" + it.id : s.id === "amc" ? "amc-" + it.id : it.id;
+  if (SVC_ART.has(key)) return `/zh-img/svc/${key}.svg`;
+  const g = GROUP_ART[it.group];
+  return g ? `/zh-img/svc/${g}.svg` : SVC_COVER[s.id] || "/zh-img/clean-other.svg";
+}
+export const variantImg = (v) => `/zh-img/svc/${/window/i.test(v) ? "ac-window" : "ac-split"}.svg`;
+export const issueImg = (id) => (SVC_ART.has("ph-" + id) ? `/zh-img/svc/ph-${id}.svg` : "/zh-img/svc/ph-other.svg");
