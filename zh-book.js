@@ -164,7 +164,7 @@ picker.id = "zbSlot";
 let phoneP = null;
 function loadPhone() {
   return (phoneP ||= Promise.all([
-    fetch("/zipphive-catalog.json").then((r) => r.json()),
+    fetch("/zipphive-catalog.json?v=20").then((r) => r.json()),
     backend().then((be) => (be && be.getPriceOverrides ? be.getPriceOverrides() : {})).catch(() => ({})),
   ]).then(([c, ov]) => {
     const hidden = new Set();
@@ -248,8 +248,8 @@ function vSvc() {
 function vBrand() {
   if (!P()) return `<div class="zb-load">Loading phone models…</div>`;
   return `<h3>Which phone brand?</h3><p class="zb-sub">Mobile repair at your doorstep in about 60 minutes.</p>
-    <div class="zb-grid three">${P().brands.map((b) => `<button class="zb-opt" data-a="brand" data-v="${b.id}"><b>${esc(b.name)}</b></button>`).join("")}
-    <button class="zb-opt zb-other" data-a="brand" data-v="other"><b>Other brand</b><small>Vivo, Oppo, Xiaomi, Realme…</small></button></div>`;
+    <div class="zb-grid three">${P().brands.map((b) => `<button class="zb-opt" data-a="brand" data-v="${b.id}"><b>${esc(b.name)}</b>${b.name === "Xiaomi" ? "<small>Redmi · POCO</small>" : ""}</button>`).join("")}
+    <button class="zb-opt zb-other" data-a="brand" data-v="other"><b>Other brand</b><small>iQOO, Infinix, Tecno, Lava, Honor…</small></button></div>`;
 }
 function modelList() {
   const q = S.q.trim().toLowerCase();

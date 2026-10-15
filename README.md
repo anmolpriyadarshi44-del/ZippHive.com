@@ -141,3 +141,7 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 - The booking flow's details step asks for a **pincode** (or "📍 Use my location"). Bookings are accepted only for Patna: pincodes starting 800 plus nearby 801103/801104/801105/801503/801505/801506, or a GPS location within 22 km of Patna centre. Outside → the booking button is disabled and the customer can ask to be notified on WhatsApp.
 - The pincode is saved with the area; a shared location adds a Google Maps link to the booking notes for the technician.
 - To add a city later, edit `SERVICE_AREA` at the top of `zh-book.js`.
+
+## Oppo, Vivo, Xiaomi (Redmi/POCO) & Realme
+- 68 models launched above ₹15,000 were added to `zipphive-catalog.json` (brands 7–10, SKU codes `Z9xxxxx`), using the OnePlus Nord 4 repair structure with prices scaled by price band (₹15–20k, ₹20–30k, ₹30–45k, ₹45–75k, ₹75k+). Flagships have no "Display Compatible" option.
+- Prices are illustrative – edit them in Admin → 📱 Phone prices. `tools/add_brands.py` is the script that generated them.
