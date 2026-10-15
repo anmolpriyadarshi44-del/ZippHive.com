@@ -27,6 +27,8 @@ table.pt input.num{width:84px;text-align:right}
 .pc .off.bad{background:#FDECEC;color:#C62828}
 .tool{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#F6FAF9;border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin:4px 0 12px;font-size:13.5px}
 .tool input{width:70px}
+.embed header.top{display:none}
+.embed .wrap{padding-top:8px}
 table.pt input.qty{width:60px;text-align:right}
 table.pt tr.off td{opacity:.5}
 .grp{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 4px 4px!important;background:#FAFCFC}
@@ -44,6 +46,8 @@ table.pt tr.off td{opacity:.5}
 import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
 import { mergeCatalog, offPct } from "/zh-services.js?v=16";
 
+const EMBED = new URLSearchParams(location.search).has("embed"); // shown inside the Admin portal tab
+if (EMBED) document.documentElement.classList.add("embed");
 const S = { be: null, user: undefined, ok: false, cat: null, tab: "cleaning", dirty: false, saving: false };
 const app = document.getElementById("app");
 const isAdmin = () => S.user && admins().includes(S.user.email);
@@ -84,7 +88,7 @@ function serviceCard() {
   const s = svc(), ro = isAdmin() ? "" : "disabled";
   if (s.mode === "phone") return `<div class="card svcard"><h2>${s.icon} ${esc(s.name)}</h2>
     <p>Phone repair prices (every brand, model and part) are managed in the existing <b>Admin → Price list</b>, which already feeds the website and the AI assistant.</p>
-    <a class="btn" href="/admin.html">Open Admin price list</a></div>`;
+    ${EMBED ? `<p class="muted">Use the <b>📱 Phone prices</b> tab above.</p>` : `<a class="btn" href="/admin.html">Open Admin price list</a>`}</div>`;
   const cols = priceCols(s);
   let rows = "";
   const order = s.groups ? s.groups.flatMap((g) => s.items.map((it, i) => [it, i]).filter(([it]) => it.group === g)) : s.items.map((it, i) => [it, i]);
