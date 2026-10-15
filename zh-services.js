@@ -133,3 +133,23 @@ export function loadServices(force) {
     .then(mergeCatalog);
   return cache;
 }
+
+// Cheapest active option and best discount of a service, for "from ₹X · up to Y% off" labels
+export function svcStats(s) {
+  let min = 0, off = 0;
+  for (const it of s.items || []) {
+    if (it.active === false) continue;
+    const keys = s.mode === "duration" ? s.durations : s.variants?.length ? s.variants : [null];
+    for (const k of keys) {
+      const p = itemPrice(s, it, k), m = itemMrp(s, it, k);
+      if (p > 0 && (!min || p < min)) min = p;
+      off = Math.max(off, offPct(m, p));
+    }
+  }
+  return { min, off };
+}
+// Brand accent per service (hexagon icon colours)
+export const SVC_TONE = {
+  cleaning: { tint: "#FFF4CC", ink: "#8A5A00" }, mobile: { tint: "#ECE8FD", ink: "#5B3FD1" },
+  ac: { tint: "#E2F1FB", ink: "#1769AA" }, amc: { tint: "#E6F4F3", ink: "#0B6E6E" }, home: { tint: "#E4F5EC", ink: "#1E7B4F" },
+};
