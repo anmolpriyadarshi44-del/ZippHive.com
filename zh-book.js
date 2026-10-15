@@ -2,7 +2,7 @@
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
 import { backend, trackUrl } from "/zh-ops.js?v=15";
-import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock } from "/zh-services.js?v=22";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=23";
 import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
@@ -70,6 +70,12 @@ const CSS = `
 #zhBook .zb-banner div{position:relative;z-index:1;padding:14px 16px;color:#fff}
 #zhBook .zb-banner h3{color:#fff;margin:0 0 2px}
 #zhBook .zb-banner p{margin:0;font-size:13px;opacity:.9}
+#zhBook .zb-hex img{width:100%;height:100%;object-fit:cover}
+#zhBook .zb-th{flex:none;width:64px;height:64px;border-radius:14px;overflow:hidden;background:linear-gradient(140deg,#E6F4F3,#FFF4CC)}
+#zhBook .zb-th img{width:100%;height:100%;object-fit:cover;display:block}
+#zhBook .zb-art{display:block;aspect-ratio:1/1;border-radius:12px;overflow:hidden;margin:-2px -2px 8px;background:linear-gradient(140deg,#E6F4F3,#FFF4CC)}
+#zhBook .zb-art img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:440px){#zhBook .zb-th{width:54px;height:54px;border-radius:12px}}
 @media (max-width:520px){#zhBook .zb-pics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#zhBook .zb-pic.wide .ph{aspect-ratio:2/1;flex:none}}
 #zhBook .zb-opt{position:relative;text-align:left;border:1.5px solid var(--ln);background:#fff;border-radius:14px;padding:12px;cursor:pointer;font:inherit;color:var(--ink);transition:border-color .15s,box-shadow .15s}
 #zhBook .zb-opt:hover{border-color:var(--t);box-shadow:0 4px 14px rgba(7,72,72,.08)}
@@ -267,7 +273,7 @@ function vSvc() {
       const st = s.mode === "phone" ? null : svcStats(s), tone = SVC_TONE[s.id] || {};
       const meta = s.mode === "phone" ? `<span>Exact price for your model</span>` : st.min ? `<span>from ${rs(st.min)}</span>${st.off ? `<span class="o">up to ${st.off}% off</span>` : ""}` : "";
       return `<button class="zb-opt zb-svc ${s.id === "cleaning" ? "feat" : ""}" data-a="svc" data-v="${s.id}">
-      ${s.badge ? `<span class="zb-badge">${esc(s.badge)}</span>` : ""}<span class="zb-hex" style="--tn:${tone.tint || "#E6F4F3"}">${s.icon}</span>
+      ${s.badge ? `<span class="zb-badge">${esc(s.badge)}</span>` : ""}<span class="zb-hex" style="--tn:${tone.tint || "#E6F4F3"}">${SVC_COVER[s.id] ? `<img src="${SVC_COVER[s.id]}" alt="" onerror="this.replaceWith('${s.icon}')">` : s.icon}</span>
       <span class="tx"><b>${esc(s.name)}</b><small>${esc(s.tagline || "")}</small>${meta ? `<span class="zb-meta">${meta}</span>` : ""}</span><span class="chev" aria-hidden="true">›</span></button>`;
     }).join("")}</div>`;
 }
@@ -306,8 +312,8 @@ function vOtherModel(brand) {
 function vIssue() {
   const m = S.model;
   return `<h3>What's wrong with your ${esc(m.name)}?</h3><p class="zb-sub">Pick the problem.</p>
-    <div class="zb-grid three">${modelIssues(m).map((i) => `<button class="zb-opt" data-a="issue" data-v="${i.id}"><span class="ic">${ISSUE_ICON[i.id] || "🛠️"}</span><b>${esc(i.name)}</b></button>`).join("")}
-    <button class="zb-opt zb-other" data-a="issue" data-v="other"><span class="ic">✍️</span><b>Other / not sure</b></button></div>`;
+    <div class="zb-grid three">${modelIssues(m).map((i) => `<button class="zb-opt" data-a="issue" data-v="${i.id}"><span class="zb-art"><img src="${issueImg(i.id)}" alt="" loading="lazy" onerror="this.replaceWith('${ISSUE_ICON[i.id] || "🛠️"}')"></span><b>${esc(i.name)}</b></button>`).join("")}
+    <button class="zb-opt zb-other" data-a="issue" data-v="other"><span class="zb-art"><img src="/zh-img/svc/ph-other.svg" alt="" loading="lazy"></span><b>Other / not sure</b></button></div>`;
 }
 function vSub() {
   const m = S.model;
@@ -377,7 +383,7 @@ function vPriceDuration() {
 function vVariant() {
   const s = svc();
   return `<h3>${esc(s.variantLabel || "Type")}</h3><p class="zb-sub">${esc(s.name)} – prices depend on the AC type.</p>
-    <div class="zb-grid">${s.variants.map((v) => `<button class="zb-opt" data-a="variant" data-v="${esc(v)}"><span class="ic">${/window/i.test(v) ? "🪟" : "❄️"}</span><b>${esc(v)}</b></button>`).join("")}</div>`;
+    <div class="zb-grid">${s.variants.map((v) => `<button class="zb-opt" data-a="variant" data-v="${esc(v)}"><span class="zb-art"><img src="${variantImg(v)}" alt="" loading="lazy"></span><b>${esc(v)}</b></button>`).join("")}</div>`;
 }
 function vPriceItems() {
   const s = svc();
@@ -386,7 +392,7 @@ function vPriceItems() {
   const items = s.items.filter((i) => i.active !== false && (!g || i.group === g));
   const row = (it) => {
     const q = S.sel[it.id] || 0, p = itemPrice(s, it, S.variant), m = itemMrp(s, it, S.variant);
-    return `<div class="zb-row ${q ? "on" : ""}"><div class="tx"><b>${esc(it.name)}${it.hot ? ` <span class="zb-badge" style="position:static;margin-left:4px">POPULAR</span>` : ""}</b><small>${esc(it.desc || "")}</small>
+    return `<div class="zb-row ${q ? "on" : ""}"><span class="zb-th"><img src="${esc(svcItemImg(s, it))}" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(it.name)}${it.hot ? ` <span class="zb-badge" style="position:static;margin-left:4px">POPULAR</span>` : ""}</b><small>${esc(it.desc || "")}</small>
       <span class="pr">${tag(p, m)}${s.qtyLabel === "ACs" ? " <small style=\"display:inline;font-weight:600\">/ AC</small>" : ""}</span></div>
       ${q ? `<span class="zb-qty"><button data-a="qty" data-v="${it.id}" data-d="-1" aria-label="Less">−</button><span>${q}</span><button data-a="qty" data-v="${it.id}" data-d="1" aria-label="More">+</button></span>`
         : `<button class="zb-add" data-a="qty" data-v="${it.id}" data-d="${it.minQty || 1}">Add</button>`}</div>`;
@@ -395,7 +401,7 @@ function vPriceItems() {
   return `<h3>${esc(s.name)}</h3><p class="zb-sub">${S.variant ? esc(S.variant) + " · " : ""}${s.single ? "Choose a plan and the number of ACs." : "Add everything you need – each has its own price."}</p>
     ${groups[0] ? `<div class="zb-tabs">${groups.map((x) => `<button class="${x === g ? "on" : ""}" data-a="group" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
     <div class="zb-list">${items.map(row).join("")}
-    ${s.otherPrice != null && !s.single ? `<div class="zb-row zb-other ${S.other ? "on" : ""}"><div class="tx"><b>Other issue – not listed</b><small>Describe it below; technician inspects and quotes (visit ${rs(s.otherPrice)})</small></div>
+    ${s.otherPrice != null && !s.single ? `<div class="zb-row zb-other ${S.other ? "on" : ""}"><span class="zb-th"><img src="/zh-img/svc/${s.id === "ac" ? "ac-check" : "electrician"}.svg" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>Other issue – not listed</b><small>Describe it below; technician inspects and quotes (visit ${rs(s.otherPrice)})</small></div>
       <button class="zb-add" data-a="other">${S.other ? "Remove" : "Add"}</button></div>` : ""}</div>
     ${S.other ? `<label for="zbOR">Describe the issue *</label><textarea id="zbOR" data-f="remarks" rows="2" placeholder="e.g. geyser not heating, MCB trips again and again">${esc(S.remarks)}</textarea>`
       : `<label for="zbOR">Notes (optional)</label><textarea id="zbOR" data-f="remarks" rows="2" placeholder="Brand, model, floor, anything useful">${esc(S.remarks)}</textarea>`}

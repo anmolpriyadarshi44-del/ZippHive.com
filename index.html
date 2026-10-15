@@ -125,6 +125,12 @@ ol.next li::before{content:counter(n);flex:none;width:32px;height:32px;border-ra
 .svc:hover::after{transform:rotate(18deg) scale(1.08)}
 .svc .hex{width:54px;height:60px;display:grid;place-items:center;background:var(--ink2);color:#fff;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
 .svc .hex svg{width:26px;height:26px}
+.svc .art{display:block;width:92px;height:92px;border-radius:22px;overflow:hidden;background:var(--tint);box-shadow:0 6px 16px rgba(7,72,72,.12);transition:transform .3s}
+.svc .art img{width:100%;height:100%;object-fit:cover;display:block}
+.svc:hover .art{transform:rotate(-3deg) scale(1.04)}
+.svc.hero-svc .art{position:absolute;right:30px;bottom:104px;width:min(36%,210px);height:auto;aspect-ratio:4/5;border-radius:26px;border:4px solid rgba(255,255,255,.15)}
+.svc.hero-svc .art img{object-position:center 20%}
+@media (max-width:720px){.svc.hero-svc .art{position:static;width:100%;aspect-ratio:16/10}}
 .svc h3{font-size:19px;letter-spacing:-.02em;line-height:1.2;margin-top:4px}
 .svc p{color:var(--muted);font-size:14px;line-height:1.5}
 .svc .facts{display:flex;flex-wrap:wrap;gap:6px}
@@ -580,6 +586,7 @@ const services = [
   {i:'shield', id:'amc', t:'AC AMC Plans', b:'Save', d:'Scheduled services and priority breakdown help all year.', f:['Price per AC'], tint:'#E6F4F3', ink:'#0B6E6E'},
   {i:'wash', id:'home', t:'Washing Machine, Plumber & Electrician', d:'Every job has its own fixed price – parts at actual cost.', f:['3 trades, 1 visit'], tint:'#E4F5EC', ink:'#1E7B4F'}
 ];
+const ART = {cleaning:'/zh-img/clean-living-room.jpg', mobile:'/zh-img/svc/mobile.svg', ac:'/zh-img/svc/ac-split.svg', amc:'/zh-img/svc/amc.svg', home:'/zh-img/svc/washing.svg'};
 const arrow = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const rupee = n => '₹' + Number(n).toLocaleString('en-IN');
 function svcCard(x, cat){
@@ -600,7 +607,7 @@ function svcCard(x, cat){
   const hero = x.id==='cleaning';
   return `<a class="svc${hero?' hero-svc':''}" href="#book" data-book="${x.id}" style="--tint:${x.tint};--ink2:${x.ink}" aria-label="${x.t} – see prices and book">
     ${x.b?`<span class="tagx">${x.b}</span>`:''}
-    <span class="hex">${ic[x.i]}</span>
+    <span class="art"><img src="${ART[x.id]}" alt="" loading="lazy" onerror="this.parentNode.classList.add('hex');this.parentNode.classList.remove('art');this.outerHTML=ic['${x.i}']"></span>
     <h3>${x.t}</h3><p>${x.d}</p>
     <div class="facts">${x.f.map(t=>`<span>${t}</span>`).join('')}</div>
     ${menu}
@@ -647,7 +654,7 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-book.js?v=23"></script>
+<script type="module" src="/zh-book.js?v=24"></script>
 <script src="/zipphive-widget.js?v=20" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
