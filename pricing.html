@@ -34,6 +34,7 @@ table.pt tr.off td{opacity:.5}
 .grp{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 4px 4px!important;background:#FAFCFC}
 .bar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;z-index:5}
 .ro{background:var(--ylt);color:#7A5A00;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;margin-bottom:12px}
+.imgf{display:flex;gap:6px;align-items:center;margin-top:4px}.imgf img{width:34px;height:34px;border-radius:8px;object-fit:cover;background:var(--tint);flex:none}.imgf input{font-size:12px;min-height:30px!important}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .tabs button{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:999px;font-weight:600;font-size:13.5px}
 .tabs button.on{background:var(--teal);border-color:var(--teal);color:#fff}
@@ -44,7 +45,7 @@ table.pt tr.off td{opacity:.5}
 <div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
 <script type="module">
 import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
-import { mergeCatalog, offPct } from "/zh-services.js?v=19";
+import { mergeCatalog, offPct, itemImg } from "/zh-services.js?v=20";
 
 const EMBED = new URLSearchParams(location.search).has("embed"); // shown inside the Admin portal tab
 if (EMBED) document.documentElement.classList.add("embed");
@@ -78,7 +79,8 @@ function rowHtml(s, it, i) {
   return `<tr class="${it.active === false ? "off" : ""}">
     <td><input class="in" data-i="${i}" data-k="name" value="${esc(it.name)}" ${ro} aria-label="Name"></td>
     ${s.groups ? `<td><select class="in" data-i="${i}" data-k="group" ${ro}>${s.groups.map((g) => `<option ${g === it.group ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></td>` : ""}
-    <td><input class="in" data-i="${i}" data-k="desc" value="${esc(it.desc || "")}" ${ro} aria-label="Description"></td>
+    <td><input class="in" data-i="${i}" data-k="desc" value="${esc(it.desc || "")}" ${ro} aria-label="Description">
+      ${s.mode === "duration" ? `<div class="imgf"><img src="${esc(itemImg(it, 120))}" alt="" onerror="this.style.visibility='hidden'"><input class="in" data-i="${i}" data-k="img" value="${esc(it.img || "")}" placeholder="Photo URL (blank = default photo)" ${ro} aria-label="Photo URL"></div>` : ""}</td>
     ${cols}
     ${s.id === "amc" ? `<td><input class="in qty" inputmode="numeric" data-i="${i}" data-k="minQty" value="${it.minQty || 1}" ${ro} aria-label="Minimum ACs"></td>` : ""}
     <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="active" ${it.active === false ? "" : "checked"} ${ro} aria-label="Show on website"></td>
@@ -112,7 +114,7 @@ function serviceCard(s) {
     <div style="overflow-x:auto"><table class="pt"><thead><tr><th>Item</th>${s.groups ? "<th>Category</th>" : ""}<th>Description (shown to customer)</th>
       ${cols.map((c) => `<th style="text-align:center">${esc(c.label.replace("₹ ", ""))}<br><span style="font-weight:500">MRP · Price · Off</span></th>`).join("")}${s.id === "amc" ? "<th>Min ACs</th>" : ""}<th>Show</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     ${isAdmin() ? `<div class="row" style="margin-top:10px">${(s.groups || [null]).map((g) => `<button class="btn sm o" data-act="add" data-g="${esc(g || "")}">+ Add ${g ? esc(g) + " item" : "item"}</button>`).join("")}</div>` : ""}
-    <p class="muted" style="margin-top:10px">Prices are what the customer pays (ex-GST). ${s.mode === "duration" ? "Each item has its own price for 30, 45 and 60 minutes." : s.variants ? "Set a price for each AC type." : "Each job has its own fixed price; parts extra."} Untick “Show” to hide an item without deleting it.</p>
+    <p class="muted" style="margin-top:10px">Prices are what the customer pays (ex-GST). ${s.mode === "duration" ? "Each item has its own price for 30, 45 and 60 minutes. Paste a photo link (https://…) to replace an item’s picture on the website – blank keeps the default photo." : s.variants ? "Set a price for each AC type." : "Each job has its own fixed price; parts extra."} Untick “Show” to hide an item without deleting it.</p>
   </div>`;
 }
 function render() {
@@ -207,6 +209,7 @@ app.addEventListener("input", (e) => {
     cell.querySelector(".off").outerHTML = offHtml(mr, pr);
   } else if (t.dataset.k === "active") { it.active = t.checked; t.closest("tr").classList.toggle("off", !t.checked); }
   else if (t.dataset.k === "minQty") it.minQty = Math.max(1, num(t.value));
+  else if (t.dataset.k === "img") { const v = t.value.trim(); if (v && !/^https:\/\//.test(v)) return; if (v) it.img = v; else delete it.img; const im = t.parentNode.querySelector("img"); im.style.visibility = ""; im.src = itemImg(it, 120); }
   else if (t.dataset.k) it[t.dataset.k] = t.value;
   dirty();
 });

@@ -145,3 +145,11 @@ The store manager sees all of it live in `/manager.html`: current step ("Pre-rep
 ## Oppo, Vivo, Xiaomi (Redmi/POCO) & Realme
 - 68 models launched above ₹15,000 were added to `zipphive-catalog.json` (brands 7–10, SKU codes `Z9xxxxx`), using the OnePlus Nord 4 repair structure with prices scaled by price band (₹15–20k, ₹20–30k, ₹30–45k, ₹45–75k, ₹75k+). Flagships have no "Display Compatible" option.
 - Prices are illustrative – edit them in Admin → 📱 Phone prices. `tools/add_brands.py` is the script that generated them.
+
+## Home Cleaning landing page (`/cleaning.html`)
+Photo-first page for the cleaning service: hero photo collage, trust strip, a grid of photo cards (one per cleaning item, with live "from ₹" price and % off), book-by-the-clock cards for 30 / 45 / 60 min, what's included, why ZippHive, how it works, the booking flow (opens straight at Home Cleaning via `data-start="cleaning"`), service areas and FAQ.
+- Prices, % off and which items show all come from **Admin → 💰 Service prices** – nothing to edit in the HTML.
+- Each cleaning item has a default photo (Unsplash, free licence). To use your own team's photo, paste its https link in the **Photo URL** box under the item in Service prices and save.
+- Tapping a photo card opens the booking flow on that item (`data-book="cleaning" data-book-item="sofa"`, optional `data-book-dur="45"`).
+- The booking flow's Home Cleaning step on the homepage uses the same photo cards.
+- If a photo can't load, the card falls back to a coloured tile with an emoji, so nothing looks broken.
