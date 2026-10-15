@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#042F31">
 <meta property="og:title" content="ZippHive Home Cleaning – Patna">
 <meta property="og:description" content="Bathroom, kitchen, sofa & more – book a cleaner for 30, 45 or 60 minutes.">
-<meta property="og:image" content="https://images.unsplash.com/photo-1646980241033-cd7abda2ee88?auto=format&fit=crop&w=1200&q=70">
+<meta property="og:image" content="https://zipphive.com/zh-img/cleaning-poster.jpg">
 <script src="/zipphive-config.js?v=15"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -102,6 +102,12 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdro
 .tile.more h3{font-size:26px}
 .tile.sk{animation:pulse 1.4s infinite}
 @keyframes pulse{50%{opacity:.55}}
+
+/* stock photos get a teal brand tint until own ZippHive photos replace them */
+.tile.st::after{background:linear-gradient(180deg,rgba(11,110,110,.24) 0%,rgba(4,47,49,.12) 40%,rgba(4,47,49,.9) 100%)}
+.collage figure.st::after,.wcard .ph.st::after,.step .ph.st::after,.tcard .ph.st::after{content:"";position:absolute;inset:0;background:rgba(11,110,110,.2);pointer-events:none}
+.wcard .ph,.step .ph{position:relative}
+.tile img{object-position:center 25%}
 
 /* pricing by time */
 .times{background:var(--night);color:#fff;position:relative;overflow:hidden}
@@ -257,9 +263,9 @@ footer a{color:#fff}
       </div>
     </div>
     <div class="collage" aria-hidden="true">
-      <figure><img src="https://images.unsplash.com/photo-1691496550053-80260c93db8f?auto=format&fit=crop&w=700&q=70" alt="" onerror="this.remove()"><figcaption>✨ Mirror & glass</figcaption></figure>
-      <figure><img src="https://images.unsplash.com/photo-1736433622548-4adbbc1c2cf2?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🍳 Kitchen</figcaption></figure>
-      <figure><img src="https://images.unsplash.com/photo-1686178827149-6d55c72d81df?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🛋️ Sofa</figcaption></figure>
+      <figure><img src="/zh-img/clean-living-room.jpg" alt="ZippHive cleaner wiping a table" style="object-position:center 20%" onerror="this.remove()"><figcaption>✨ ZippHive cleaner at work</figcaption></figure>
+      <figure class="st"><img src="https://images.unsplash.com/photo-1736433622548-4adbbc1c2cf2?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🍳 Kitchen</figcaption></figure>
+      <figure class="st"><img src="https://images.unsplash.com/photo-1686178827149-6d55c72d81df?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🛋️ Sofa</figcaption></figure>
       <div class="badge-hex" hidden><span>up to<b id="pOff"></b>OFF festive</span></div>
     </div>
   </div>
@@ -313,10 +319,10 @@ footer a{color:#fff}
   <div class="wrap">
     <div class="rv"><span class="tag">Why ZippHive</span><h2>Clean homes, zero hassle</h2></div>
     <div class="wgrid">
-      <div class="wcard rv"><div class="ph"><img src="https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Trained & verified</h3><p>Every cleaner is ID-checked and trained on surfaces, chemicals and safety.</p></div></div>
-      <div class="wcard rv"><div class="ph"><img src="https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>We bring everything</h3><p>Vacuum, scrubbers, mops and eco-safe chemicals – you don't need to arrange a thing.</p></div></div>
-      <div class="wcard rv"><div class="ph"><img src="https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Fixed, honest prices</h3><p>See the exact price before you book. Pay after the job, by UPI or cash.</p></div></div>
-      <div class="wcard rv"><div class="ph"><img src="https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Live tracking</h3><p>Get a WhatsApp link to see when your cleaner is assigned and on the way.</p></div></div>
+      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Trained & verified</h3><p>Every cleaner is ID-checked and trained on surfaces, chemicals and safety.</p></div></div>
+      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>We bring everything</h3><p>Vacuum, scrubbers, mops and eco-safe chemicals – you don't need to arrange a thing.</p></div></div>
+      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Fixed, honest prices</h3><p>See the exact price before you book. Pay after the job, by UPI or cash.</p></div></div>
+      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Live tracking</h3><p>Get a WhatsApp link to see when your cleaner is assigned and on the way.</p></div></div>
     </div>
   </div>
 </section>
@@ -325,9 +331,9 @@ footer a{color:#fff}
   <div class="wrap">
     <div class="rv"><span class="tag">How it works</span><h2>Booked in under a minute</h2></div>
     <div class="steps">
-      <div class="step rv"><div class="ph"><img src="https://images.unsplash.com/photo-1714479120969-436c216a3cd4?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">1</span><h3>Choose what to clean</h3><p>Bathroom, kitchen, sofa or a festive combo – then pick 30, 45 or 60 minutes.</p></div>
-      <div class="step rv"><div class="ph"><img src="https://images.unsplash.com/photo-1646980241033-cd7abda2ee88?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">2</span><h3>Pick a time slot</h3><p>See open slots for today and the next days. We confirm on WhatsApp instantly.</p></div>
-      <div class="step rv"><div class="ph"><img src="https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">3</span><h3>Relax, it's sparkling</h3><p>Your cleaner arrives with every tool, finishes on time, and you pay after.</p></div>
+      <div class="step rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1714479120969-436c216a3cd4?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">1</span><h3>Choose what to clean</h3><p>Bathroom, kitchen, sofa or a festive combo – then pick 30, 45 or 60 minutes.</p></div>
+      <div class="step rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1646980241033-cd7abda2ee88?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">2</span><h3>Pick a time slot</h3><p>See open slots for today and the next days. We confirm on WhatsApp instantly.</p></div>
+      <div class="step rv"><div class="ph"><img src="/zh-img/clean-living-room.jpg" style="object-position:center 20%" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">3</span><h3>Relax, it's sparkling</h3><p>Your cleaner arrives with every tool, finishes on time, and you pay after.</p></div>
     </div>
   </div>
 </section>
@@ -397,7 +403,7 @@ footer a{color:#fff}
 </a>
 
 <script type="module">
-import { itemImg, itemFrom, itemPrice, itemMrp, offPct, CLEAN_EMOJI } from "/zh-services.js?v=20";
+import { itemImg, itemFrom, itemPrice, itemMrp, offPct, CLEAN_EMOJI, isStock } from "/zh-services.js?v=21";
 const rs = (n) => "₹" + Number(n).toLocaleString("en-IN");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const arrow = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -416,17 +422,17 @@ function draw(cat) {
     if (f && (!min || f.price < min)) min = f.price;
     for (const d of s.durations) best = Math.max(best, offPct(itemMrp(s, it, d), itemPrice(s, it, d)));
     const big = n === 0;
-    return `<a class="tile${big ? " big" : ""} rv" href="#book" data-book="cleaning" data-book-item="${esc(it.id)}" data-e="${CLEAN_EMOJI[it.id] || "✨"}" aria-label="${esc(it.name)} – see prices">
+    return `<a class="tile${big ? " big" : ""}${isStock(itemImg(it)) ? " st" : ""} rv" href="#book" data-book="cleaning" data-book-item="${esc(it.id)}" data-e="${CLEAN_EMOJI[it.id] || "✨"}" aria-label="${esc(it.name)} – see prices">
       <img src="${esc(itemImg(it, big ? 1000 : 520))}" alt="" loading="lazy" onerror="this.remove()">
       ${off ? `<span class="off">${off}% OFF</span>` : ""}${it.id === "combo" ? '<span class="star">★ Most booked</span>' : ""}
       <span class="txt"><h3>${esc(it.name.replace(/ cleaning$/i, "").replace(/^Festive combo – /, "Festive combo: "))}</h3>${big && it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ""}
       <span class="fr">${f ? `from <b>${rs(f.price)}</b>${f.mrp > f.price ? `<s>${rs(f.mrp)}</s>` : ""}` : ""}</span></span>
       <span class="go">${arrow}</span></a>`;
-  }).join("") + `<a class="tile more rv" href="#book" data-book="cleaning" data-book-item="other" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 520))}" alt="" loading="lazy" onerror="this.remove()"><span class="txt"><h3>Full-home deep cleaning & more</h3><span class="fr">Move-in, office, 2–3 BHK – tell us the job, we share a fixed quote</span></span><span class="go">${arrow}</span></a>`;
+  }).join("") + `<a class="tile more st rv" href="#book" data-book="cleaning" data-book-item="other" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 520))}" alt="" loading="lazy" onerror="this.remove()"><span class="txt"><h3>Full-home deep cleaning & more</h3><span class="fr">Move-in, office, 2–3 BHK – tell us the job, we share a fixed quote</span></span><span class="go">${arrow}</span></a>`;
   document.getElementById("tgrid").innerHTML = s.durations.map((d) => {
     const ps = items.map((it) => ({ p: itemPrice(s, it, d), m: itemMrp(s, it, d) })).filter((x) => x.p > 0).sort((a, b) => a.p - b.p);
     const t = TIME[d] || { t: `${d} minutes`, d: "", img: "1583847268964-b28dc8f51f92" };
-    return `<div class="tcard${d === 45 ? " pop" : ""} rv"><div class="ph"><img src="https://images.unsplash.com/photo-${t.img}?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"><span class="min"><span><b>${d}</b>MIN</span></span></div>
+    return `<div class="tcard${d === 45 ? " pop" : ""} rv"><div class="ph st"><img src="https://images.unsplash.com/photo-${t.img}?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"><span class="min"><span><b>${d}</b>MIN</span></span></div>
       <div class="bd"><h3>${t.t}</h3><p>${t.d}</p>
       <div class="price">from<b>${ps[0] ? rs(ps[0].p) : "–"}</b>${ps[0] && ps[0].m > ps[0].p ? `<s>${rs(ps[0].m)}</s>` : ""}</div>
       <a class="btn ${d === 45 ? "btn-y" : "btn-o"}" href="#book" data-book="cleaning">Book ${d} min</a></div></div>`;
@@ -443,7 +449,7 @@ document.addEventListener("zh-services", (e) => draw(e.detail));
 if (window.ZHBook) draw(window.ZHBook.catalog);
 document.getElementById("yr").textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-book.js?v=21"></script>
+<script type="module" src="/zh-book.js?v=22"></script>
 <script src="/zipphive-widget.js?v=20" data-position="right" data-inline="off" defer></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
 import { backend, trackUrl } from "/zh-ops.js?v=15";
-import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI } from "/zh-services.js?v=20";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock } from "/zh-services.js?v=21";
 import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
@@ -52,6 +52,8 @@ const CSS = `
 #zhBook .zb-pic .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .4s}
 #zhBook .zb-pic:hover .ph img{transform:scale(1.06)}
 #zhBook .zb-pic .ph::after{content:"";position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(transparent,rgba(4,47,49,.35))}
+#zhBook .zb-pic .ph.st::after{inset:0;height:auto;background:linear-gradient(180deg,rgba(11,110,110,.22),rgba(4,47,49,.38))}
+#zhBook .zb-pic .ph img{object-position:center 25%}
 #zhBook .zb-pic .ph em{position:absolute;z-index:1;left:8px;top:8px;font-style:normal;font-size:10.5px;font-weight:800;background:var(--y,#FFC93C);color:#3A2A00;border-radius:999px;padding:3px 8px}
 #zhBook .zb-pic .ph i{position:absolute;z-index:1;right:8px;top:8px;font-style:normal;font-size:10.5px;font-weight:800;background:#042F31;color:#fff;border-radius:999px;padding:3px 8px}
 #zhBook .zb-pic b{display:block;font-size:14px;line-height:1.25;margin:8px 2px 2px}
@@ -348,13 +350,13 @@ function vItem() {
   const card = (i) => {
     const f = itemFrom(s, i), off = f && f.mrp > f.price ? offPct(f.mrp, f.price) : 0;
     return `<button class="zb-pic ${i.id === "combo" ? "wide" : ""}" data-a="item" data-v="${i.id}" aria-label="${esc(i.name)}">
-      <span class="ph" data-e="${CLEAN_EMOJI[i.id] || "✨"}"><img src="${esc(itemImg(i, i.id === "combo" ? 900 : 480))}" alt="" loading="lazy" onerror="this.remove()">${off ? `<em>${off}% OFF</em>` : ""}${i.id === "combo" ? `<i>★ Most booked</i>` : ""}</span>
+      <span class="ph${isStock(itemImg(i)) ? " st" : ""}" data-e="${CLEAN_EMOJI[i.id] || "✨"}"><img src="${esc(itemImg(i, i.id === "combo" ? 900 : 480))}" alt="" loading="lazy" onerror="this.remove()">${off ? `<em>${off}% OFF</em>` : ""}${i.id === "combo" ? `<i>★ Most booked</i>` : ""}</span>
       <b>${esc(i.name)}</b><span class="fr">${f ? `from <strong>${rs(f.price)}</strong>${f.mrp > f.price ? `<s>${rs(f.mrp)}</s>` : ""}` : "–"}</span></button>`;
   };
   const items = s.items.filter((i) => i.active !== false).sort((a, b) => (b.id === "combo") - (a.id === "combo"));
   return `<h3>${esc(s.name)}</h3><p class="zb-sub">${esc(s.tagline || "")}</p>
     <div class="zb-pics">${items.map(card).join("")}
-    <button class="zb-pic wide" data-a="item" data-v="other"><span class="ph" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 480))}" alt="" loading="lazy" onerror="this.remove()"></span><b>Something else</b><span class="fr">Full-home, move-in, office…</span></button></div>
+    <button class="zb-pic wide" data-a="item" data-v="other"><span class="ph st" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 480))}" alt="" loading="lazy" onerror="this.remove()"></span><b>Something else</b><span class="fr">Full-home, move-in, office…</span></button></div>
     <p class="zb-note">Pick what to clean → choose 30, 45 or 60 min → pick a slot. Cleaners bring all equipment.</p>`;
 }
 function vPriceDuration() {
@@ -366,7 +368,7 @@ function vPriceDuration() {
       ${S.err ? `<div class="zb-err">${esc(S.err)}</div>` : ""}${summary(true, "Choose time slot →")}`;
   }
   const it = S.item;
-  return `<div class="zb-banner" data-e="${CLEAN_EMOJI[it.id] || "✨"}"><img src="${esc(itemImg(it, 900))}" alt="" onerror="this.remove()"><div><h3>${esc(it.name)}</h3><p>${esc(it.desc || "")}</p></div></div>
+  return `<div class="zb-banner" data-e="${CLEAN_EMOJI[it.id] || "✨"}"><img src="${esc(itemImg(it, 900))}" style="object-position:center 25%" alt="" onerror="this.remove()"><div><h3>${esc(it.name)}</h3><p>${esc(it.desc || "")}</p></div></div>
     <label>How long should the cleaner spend?</label>
     <div class="zb-dur">${s.durations.map((d) => `<button class="${S.dur === d ? "on" : ""}" data-a="dur" data-v="${d}"><b>${d} min</b><span>${rs(itemPrice(s, it, d))}</span>${itemMrp(s, it, d) > itemPrice(s, it, d) ? `<s>${rs(itemMrp(s, it, d))}</s><em class="off">${offPct(itemMrp(s, it, d), itemPrice(s, it, d))}% OFF</em>` : ""}</button>`).join("")}</div>
     <label for="zbOR">Notes for the cleaner (optional)</label><textarea id="zbOR" data-f="remarks" rows="2" placeholder="e.g. 2 bathrooms, hard water stains">${esc(S.remarks)}</textarea>

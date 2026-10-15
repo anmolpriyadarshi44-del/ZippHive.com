@@ -153,15 +153,17 @@ export const SVC_TONE = {
   cleaning: { tint: "#FFF4CC", ink: "#8A5A00" }, mobile: { tint: "#ECE8FD", ink: "#5B3FD1" },
   ac: { tint: "#E2F1FB", ink: "#1769AA" }, amc: { tint: "#E6F4F3", ink: "#0B6E6E" }, home: { tint: "#E4F5EC", ink: "#1E7B4F" },
 };
-// Photos for the cleaning cards (Unsplash, free licence). Admin can override any item with its own "img" URL.
+// Photos for the cleaning cards. Own ZippHive photos live in /zh-img/ (teal uniform, yellow gloves – see README);
+// items without one yet use an Unsplash stock photo (free licence) with a teal brand tint. Admin can override any item with an "img" URL.
 const U = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=70`;
 export const CLEAN_IMG = {
   bathroom: U("1714479120969-436c216a3cd4"), kitchen: U("1736433622548-4adbbc1c2cf2"), sofa: U("1686178827149-6d55c72d81df"),
-  room: U("1740657254989-42fe9c3b8cce"), mattress: U("1597665863042-47e00964d899"), carpet: U("1527515637462-cff94eecc1ac"),
+  room: "/zh-img/clean-living-room.jpg", mattress: U("1597665863042-47e00964d899"), carpet: U("1527515637462-cff94eecc1ac"),
   windows: U("1581578731548-c64695cc6952"), appliance: U("1484154218962-a197022b5858"), combo: U("1646980241033-cd7abda2ee88"),
   other: U("1583847268964-b28dc8f51f92"),
 };
 export const CLEAN_EMOJI = { bathroom: "🚿", kitchen: "🍳", sofa: "🛋️", room: "🛏️", mattress: "🛌", carpet: "🧶", windows: "🪟", appliance: "🧊", combo: "🪔", other: "🏠" };
+export const isStock = (src) => /images\.unsplash\.com/.test(src || "");
 export function itemImg(it, w = 600) {
   const src = (it && it.img) || CLEAN_IMG[it && it.id] || CLEAN_IMG.other;
   return src.includes("images.unsplash.com") ? src.replace(/([?&])w=\d+&?/, "$1") + `&w=${w}` : src;
