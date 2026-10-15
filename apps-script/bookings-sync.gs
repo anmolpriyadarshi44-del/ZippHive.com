@@ -31,7 +31,7 @@ const STATUS_LABEL = {
 const MASK = ["code", "createdAt", "status", "statusAt", "kind", "service", "device", "item", "problem", "price",
   "name", "mobile", "area", "time", "note", "eta", "techName", "techPhone", "offerName", "assignState", "acceptedAt",
   "declinedByName", "declineReason", "confirmSentAt", "times", "preQc", "postQc", "payment", "techRemarks",
-  "warranty.claimId", "warranty.invoiceNo", "warranty.origCode", "warrantyReview"];
+  "warranty.claimId", "warranty.invoiceNo", "warranty.origCode", "warrantyReview", "slot"];
 
 /** Run once from the editor: formats the tab, sets India time, adds the 5-minute timer, does a first sync. */
 function setupBookingSync() {
@@ -50,6 +50,7 @@ function syncBookings() {
   if (!lock.tryLock(25000)) return -1;
   try {
     const docs = fetchBookings_();
+    try { notifyNewBookings_(docs); } catch (e) { console.warn("booking email failed: " + e); }
     const sh = bookingsSheet_();
     // keep staff notes typed in the sheet
     const notes = {};
@@ -85,6 +86,58 @@ function markClaims_(docs) {
     if (i < 0 || ids[i][1] === want || ["Closed"].includes(ids[i][1])) return;
     sh.getRange(i + 2, 3).setValue(want);
   });
+}
+
+// ---------- Gmail alert for every new booking ----------
+// Sent to ALERT_EMAIL (warranty-claims.gs) the moment the website pings the script, or at the latest at the 5-minute sync.
+// The first run only remembers the bookings that already exist, so you don't get a flood of old orders.
+function notifyNewBookings_(docs) {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty("notifiedIds");
+  const seen = new Set(raw ? JSON.parse(raw) : []);
+  const fresh = raw ? docs.filter((b) => !seen.has(b.id) && (b.createdAt || 0) > Date.now() - 2 * 86400000) : [];
+  fresh.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 20).forEach(sendBookingEmail_);
+  docs.forEach((b) => seen.add(b.id));
+  // keep the newest 800 ids (properties are size-limited)
+  const keep = docs.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 800).map((b) => b.id);
+  props.setProperty("notifiedIds", JSON.stringify(keep));
+}
+
+function sendBookingEmail_(b) {
+  const tz = "Asia/Kolkata";
+  const h = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const rupee = (n) => (n == null || n === "" ? "To be quoted" : "₹" + Number(n).toLocaleString("en-IN"));
+  const w = b.kind === "warranty";
+  const what = [b.device, b.item].filter(Boolean).join(" – ") || b.service || "";
+  const subject = `🔔 New ${w ? "warranty job" : "booking"} ${b.code || ""} – ${b.service || ""}${b.name ? " – " + b.name : ""}${b.area ? " (" + b.area + ")" : ""}`;
+  const track = `${SITE}/track.html?b=${b.id}`;
+  const wa = `https://wa.me/91${String(b.mobile || "").replace(/\D/g, "").slice(-10)}`;
+  const rows = [
+    ["Booking", b.code], ["Service", b.service], ["Device / type", b.device], ["Selected", b.item], ["Problem", b.problem],
+    ["Price", w ? "Warranty (₹0 if covered)" : rupee(b.price)], ["Time slot", b.time], ["Customer", b.name],
+    ["Mobile", b.mobile ? `<a href="tel:+91${h(b.mobile)}">${h(b.mobile)}</a>` : ""], ["Area", b.area], ["Notes", b.note],
+    ["Booked at", b.createdAt ? Utilities.formatDate(new Date(b.createdAt), tz, "dd MMM yyyy, hh:mm a") : ""],
+  ].filter((r) => r[1]);
+  const btn = (href, label, bg) => `<a href="${href}" style="display:inline-block;background:${bg};color:#fff;text-decoration:none;font-weight:bold;padding:10px 16px;border-radius:8px;margin:4px 6px 4px 0">${label}</a>`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#0F2424">
+    <div style="background:#053E40;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;font-size:18px;font-weight:bold">Zipp<span style="color:#FFC72C">Hive</span> · New ${w ? "warranty job" : "booking"}</div>
+    <div style="border:1px solid #DCE8E7;border-top:0;padding:16px 18px;border-radius:0 0 10px 10px">
+      <div style="font-size:20px;font-weight:bold;margin-bottom:4px">${h(what)}</div>
+      <div style="color:#5B6F6F;margin-bottom:12px">${h(b.time || "")}</div>
+      <table style="border-collapse:collapse;width:100%;font-size:14px">${rows.map(([k, v]) => `<tr><td style="padding:6px 8px;color:#5B6F6F;width:120px;vertical-align:top;border-bottom:1px solid #EEF3F3">${k}</td><td style="padding:6px 8px;font-weight:bold;border-bottom:1px solid #EEF3F3">${k === "Mobile" ? v : h(v)}</td></tr>`).join("")}</table>
+      <div style="margin-top:14px">${btn(SITE + "/manager.html", "Open dashboard – assign technician", "#0B7F7D")}${b.mobile ? btn(wa, "WhatsApp customer", "#1FAF54") : ""}${btn(track, "Customer tracking page", "#5B6F6F")}</div>
+      <p style="color:#5B6F6F;font-size:12px;margin-top:14px">Confirm the booking and send the tracking link from the dashboard (✅ Confirm & send WhatsApp).</p>
+    </div></div>`;
+  const text = rows.map(([k, v]) => `${k}: ${String(v).replace(/<[^>]+>/g, "")}`).join("\n") + `\n\nDashboard: ${SITE}/manager.html\nTracking: ${track}`;
+  MailApp.sendEmail({ to: ALERT_EMAIL, subject, body: text, htmlBody: html, name: "ZippHive Bookings" });
+}
+
+/** Run once from the editor to check the email arrives (sends a sample using the newest booking). */
+function testBookingEmail() {
+  const docs = fetchBookings_().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  if (!docs.length) throw new Error("No bookings yet");
+  sendBookingEmail_(docs[0]);
+  Logger.log("Sent a test email for " + docs[0].code + " to " + ALERT_EMAIL);
 }
 
 /** Ping from the website (throttled so a burst of changes only syncs once). */
