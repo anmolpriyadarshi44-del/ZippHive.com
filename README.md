@@ -153,3 +153,9 @@ Photo-first page for the cleaning service: hero photo collage, trust strip, a gr
 - Tapping a photo card opens the booking flow on that item (`data-book="cleaning" data-book-item="sofa"`, optional `data-book-dur="45"`).
 - The booking flow's Home Cleaning step on the homepage uses the same photo cards.
 - If a photo can't load, the card falls back to a coloured tile with an emoji, so nothing looks broken.
+
+### Own photos (`zh-img/`)
+Website photos should show ZippHive technicians in the teal polo with the yellow hexagon logo and yellow gloves (see `ZippHive_Photo_Prompts.md` in the Claude project for the image-generation prompts).
+- `zh-img/clean-living-room.jpg`: cleaner wiping a table (cut from the cleaning poster). Used for "Bedroom / living room", the cleaning hero and how-it-works.
+- `zh-img/cleaning-poster.jpg`: full poster, used as the WhatsApp/social share image for /cleaning.html.
+- To add another: save as `zh-img/clean-<item id>.jpg` and point that item to it in `CLEAN_IMG` in `zh-services.js` (or paste the URL in Admin → Service prices → Photo URL). Stock photos still in use get a teal tint so they match the theme.
