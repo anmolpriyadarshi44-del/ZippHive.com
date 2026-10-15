@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="800" height="800">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4CC"/><stop offset="1" stop-color="#FFE9A8"/></linearGradient>
+<pattern id="hx" width="40" height="46" patternUnits="userSpaceOnUse"><polygon points="20.0,4.0 36.5,13.5 36.5,32.5 20.0,42.0 3.5,32.5 3.5,13.5" fill="none" stroke="#0B6E6E" stroke-opacity=".08" stroke-width="1.5"/></pattern>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9F8F7"/><stop offset="1" stop-color="#BFE3E0"/></linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/><rect width="400" height="400" fill="url(#hx)"/>
+<ellipse cx="200" cy="360" rx="110" ry="16" fill="#042F31" opacity=".14"/>
+<rect x="112" y="40" width="176" height="310" rx="30" fill="#042F31"/><rect x="122" y="54" width="156" height="282" rx="22" fill="#fff"/>
+<rect x="122" y="54" width="156" height="70" rx="22" fill="#0B6E6E"/><rect x="122" y="100" width="156" height="24" fill="#0B6E6E"/><polygon points="150.0,72.0 162.1,79.0 162.1,93.0 150.0,100.0 137.9,93.0 137.9,79.0" fill="#FFC93C"/><path d="M144.7 80.1h10.6l-8.4 11.8h8.4" fill="none" stroke="#042F31" stroke-width="3.1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="172" y="76" width="80" height="10" rx="5" fill="#fff" opacity=".9"/><rect x="172" y="92" width="52" height="8" rx="4" fill="#fff" opacity=".6"/>
+<rect x="132" y="140" width="40" height="44" rx="10" fill="#FFC93C"/><rect x="180" y="140" width="40" height="44" rx="10" fill="#E6F4F3"/><rect x="228" y="140" width="40" height="44" rx="10" fill="#E6F4F3"/>
+<rect x="138" y="150" width="28" height="6" rx="3" fill="#042F31"/><rect x="142" y="162" width="20" height="12" rx="3" fill="#042F31"/>
+<rect x="132" y="196" width="58" height="30" rx="10" fill="#0B6E6E"/><text x="161" y="216" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">9 AM</text><rect x="198" y="196" width="58" height="30" rx="10" fill="#fff"/><text x="227" y="216" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#0B6E6E">10 AM</text><rect x="132" y="236" width="58" height="30" rx="10" fill="#fff"/><text x="161" y="256" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#0B6E6E">11 AM</text><rect x="198" y="236" width="58" height="30" rx="10" fill="#fff"/><text x="227" y="256" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#0B6E6E">12 PM</text><rect x="132" y="276" width="58" height="30" rx="10" fill="#fff"/><text x="161" y="296" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#0B6E6E">2 PM</text><rect x="198" y="276" width="58" height="30" rx="10" fill="#fff"/><text x="227" y="296" font-family="Arial" font-size="12" font-weight="700" text-anchor="middle" fill="#0B6E6E">4 PM</text>
+<rect x="132" y="316" width="136" height="10" rx="5" fill="#DCE8E7"/>
+<circle cx="296" cy="112" r="30" fill="#FFC93C"/><path d="M282 112l10 10 18-20" stroke="#042F31" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="translate(70,90) scale(1.2)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#fff"/><path transform="translate(330,260) scale(1.1)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/><path transform="translate(80,300) scale(0.9)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/>
+</svg>

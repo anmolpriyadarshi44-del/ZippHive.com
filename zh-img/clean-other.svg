@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="800" height="800">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E6F4F3"/><stop offset="1" stop-color="#CFE9E6"/></linearGradient>
+<pattern id="hx" width="40" height="46" patternUnits="userSpaceOnUse"><polygon points="20.0,4.0 36.5,13.5 36.5,32.5 20.0,42.0 3.5,32.5 3.5,13.5" fill="none" stroke="#0B6E6E" stroke-opacity=".08" stroke-width="1.5"/></pattern>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9F8F7"/><stop offset="1" stop-color="#BFE3E0"/></linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/><rect width="400" height="400" fill="url(#hx)"/>
+<ellipse cx="200" cy="340" rx="170" ry="16" fill="#042F31" opacity=".14"/>
+<path d="M200 66 L330 150 V330 H70 V150 Z" fill="#fff" stroke="#DCE8E7" stroke-width="3"/>
+<path d="M200 50 L350 148 L330 166 L200 82 L70 166 L50 148 Z" fill="#0B6E6E"/>
+<rect x="170" y="232" width="60" height="98" rx="8" fill="#FFC93C"/><circle cx="218" cy="284" r="5" fill="#042F31"/>
+<rect x="96" y="184" width="54" height="54" rx="8" fill="url(#glass)" stroke="#0B6E6E" stroke-width="5"/><rect x="250" y="184" width="54" height="54" rx="8" fill="url(#glass)" stroke="#0B6E6E" stroke-width="5"/>
+<path d="M123 184v54M96 211h54M277 184v54M250 211h54" stroke="#0B6E6E" stroke-width="4"/>
+<polygon points="200.0,128.0 217.3,138.0 217.3,158.0 200.0,168.0 182.7,158.0 182.7,138.0" fill="#FFC93C"/><path d="M192.4 139.6h15.2l-12.0 16.8h12.0" fill="none" stroke="#042F31" stroke-width="4.4" stroke-linejoin="round" stroke-linecap="round"/>
+<path transform="translate(64,74) scale(1.3)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/><path transform="translate(340,70) scale(1)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/><path transform="translate(110,290) scale(0.9)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/><path transform="translate(300,292) scale(1.1)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#FFC93C"/><path transform="translate(220,30) scale(0.8)" d="M0-16C2-4 4-2 16 0 4 2 2 4 0 16-2 4-4 2-16 0-4-2-2-4 0-16z" fill="#fff"/>
+</svg>

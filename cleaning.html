@@ -13,7 +13,6 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://images.unsplash.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--teal:#0B6E6E;--teal-d:#074848;--teal-l:#E6F4F3;--night:#042F31;--yellow:#FFC93C;--yellow-d:#F2B200;--ink:#0F1F1F;--muted:#506363;--line:#DCE8E7;--soft:#F5F9F8;
@@ -97,6 +96,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdro
 .tile.big h3{font-size:30px}
 .tile.big .desc{color:#DCEDEB;font-size:15px;max-width:380px;margin-bottom:8px}
 .tile.more{grid-column:1/-1;aspect-ratio:auto;height:150px}
+.tile.more img{object-position:center 38%}
 .tile.more::after{background:linear-gradient(90deg,rgba(4,47,49,.92) 30%,rgba(4,47,49,.2))}
 .tile.more .txt{top:0;display:flex;flex-direction:column;justify-content:center;padding:0 28px}
 .tile.more h3{font-size:26px}
@@ -264,8 +264,8 @@ footer a{color:#fff}
     </div>
     <div class="collage" aria-hidden="true">
       <figure><img src="/zh-img/clean-living-room.jpg" alt="ZippHive cleaner wiping a table" style="object-position:center 20%" onerror="this.remove()"><figcaption>✨ ZippHive cleaner at work</figcaption></figure>
-      <figure class="st"><img src="https://images.unsplash.com/photo-1736433622548-4adbbc1c2cf2?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🍳 Kitchen</figcaption></figure>
-      <figure class="st"><img src="https://images.unsplash.com/photo-1686178827149-6d55c72d81df?auto=format&fit=crop&w=500&q=70" alt="" onerror="this.remove()"><figcaption>🛋️ Sofa</figcaption></figure>
+      <figure><img src="/zh-img/clean-kitchen.svg" alt="" onerror="this.remove()"><figcaption>🍳 Kitchen</figcaption></figure>
+      <figure><img src="/zh-img/clean-sofa.svg" alt="" onerror="this.remove()"><figcaption>🛋️ Sofa</figcaption></figure>
       <div class="badge-hex" hidden><span>up to<b id="pOff"></b>OFF festive</span></div>
     </div>
   </div>
@@ -319,10 +319,10 @@ footer a{color:#fff}
   <div class="wrap">
     <div class="rv"><span class="tag">Why ZippHive</span><h2>Clean homes, zero hassle</h2></div>
     <div class="wgrid">
-      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Trained & verified</h3><p>Every cleaner is ID-checked and trained on surfaces, chemicals and safety.</p></div></div>
-      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>We bring everything</h3><p>Vacuum, scrubbers, mops and eco-safe chemicals – you don't need to arrange a thing.</p></div></div>
-      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Fixed, honest prices</h3><p>See the exact price before you book. Pay after the job, by UPI or cash.</p></div></div>
-      <div class="wcard rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=500&q=70" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Live tracking</h3><p>Get a WhatsApp link to see when your cleaner is assigned and on the way.</p></div></div>
+      <div class="wcard rv"><div class="ph"><img src="/zh-img/clean-living-room.jpg" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Trained & verified</h3><p>Every cleaner is ID-checked and trained on surfaces, chemicals and safety.</p></div></div>
+      <div class="wcard rv"><div class="ph"><img src="/zh-img/clean-kitchen.svg" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>We bring everything</h3><p>Vacuum, scrubbers, mops and eco-safe chemicals – you don't need to arrange a thing.</p></div></div>
+      <div class="wcard rv"><div class="ph"><img src="/zh-img/book-phone.svg" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Fixed, honest prices</h3><p>See the exact price before you book. Pay after the job, by UPI or cash.</p></div></div>
+      <div class="wcard rv"><div class="ph"><img src="/zh-img/clean-other.svg" alt="" loading="lazy" onerror="this.remove()"></div><div><h3>Live tracking</h3><p>Get a WhatsApp link to see when your cleaner is assigned and on the way.</p></div></div>
     </div>
   </div>
 </section>
@@ -331,8 +331,8 @@ footer a{color:#fff}
   <div class="wrap">
     <div class="rv"><span class="tag">How it works</span><h2>Booked in under a minute</h2></div>
     <div class="steps">
-      <div class="step rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1714479120969-436c216a3cd4?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">1</span><h3>Choose what to clean</h3><p>Bathroom, kitchen, sofa or a festive combo – then pick 30, 45 or 60 minutes.</p></div>
-      <div class="step rv"><div class="ph st"><img src="https://images.unsplash.com/photo-1646980241033-cd7abda2ee88?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">2</span><h3>Pick a time slot</h3><p>See open slots for today and the next days. We confirm on WhatsApp instantly.</p></div>
+      <div class="step rv"><div class="ph"><img src="/zh-img/clean-bathroom.svg" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">1</span><h3>Choose what to clean</h3><p>Bathroom, kitchen, sofa or a festive combo – then pick 30, 45 or 60 minutes.</p></div>
+      <div class="step rv"><div class="ph"><img src="/zh-img/book-phone.svg" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">2</span><h3>Pick a time slot</h3><p>See open slots for today and the next days. We confirm on WhatsApp instantly.</p></div>
       <div class="step rv"><div class="ph"><img src="/zh-img/clean-living-room.jpg" style="object-position:center 20%" alt="" loading="lazy" onerror="this.remove()"></div><span class="n">3</span><h3>Relax, it's sparkling</h3><p>Your cleaner arrives with every tool, finishes on time, and you pay after.</p></div>
     </div>
   </div>
@@ -393,7 +393,7 @@ footer a{color:#fff}
 <footer>
   <div class="wrap">
     <span>© <span id="yr"></span> ZippHive · Patna, Bihar · <a href="tel:+919220400950">+91 92204 00950</a> · <a href="/">All services</a> · <a href="/warranty.html">Warranty</a></span>
-    <span class="credit">Photos: Unsplash</span>
+    <span class="credit">Book online · pay after work</span>
   </div>
 </footer>
 
@@ -403,14 +403,14 @@ footer a{color:#fff}
 </a>
 
 <script type="module">
-import { itemImg, itemFrom, itemPrice, itemMrp, offPct, CLEAN_EMOJI, isStock } from "/zh-services.js?v=21";
+import { itemImg, itemFrom, itemPrice, itemMrp, offPct, CLEAN_EMOJI, isStock } from "/zh-services.js?v=22";
 const rs = (n) => "₹" + Number(n).toLocaleString("en-IN");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const arrow = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const TIME = {
-  30: { t: "Quick refresh", d: "One bathroom, a 3-seat sofa, or a room's dusting & floor.", img: "1737372805905-be0b91ec86fb" },
-  45: { t: "Deep clean", d: "Kitchen slab, sink & tiles degreased, or a bedroom top to bottom.", img: "1714479120969-436c216a3cd4" },
-  60: { t: "Thorough", d: "Full kitchen degrease, 5-seat sofa shampoo, or the festive combo.", img: "1646980241033-cd7abda2ee88" },
+  30: { t: "Quick refresh", d: "One bathroom, a 3-seat sofa, or a room's dusting & floor.", img: "/zh-img/clean-bathroom.svg" },
+  45: { t: "Deep clean", d: "Kitchen slab, sink & tiles degreased, or a bedroom top to bottom.", img: "/zh-img/clean-kitchen.svg" },
+  60: { t: "Thorough", d: "Full kitchen degrease, 5-seat sofa shampoo, or the festive combo.", img: "/zh-img/clean-combo.svg" },
 };
 function draw(cat) {
   const s = (cat.services || []).find((x) => x.id === "cleaning");
@@ -431,8 +431,8 @@ function draw(cat) {
   }).join("") + `<a class="tile more st rv" href="#book" data-book="cleaning" data-book-item="other" data-e="🏠"><img src="${esc(itemImg({ id: "other" }, 520))}" alt="" loading="lazy" onerror="this.remove()"><span class="txt"><h3>Full-home deep cleaning & more</h3><span class="fr">Move-in, office, 2–3 BHK – tell us the job, we share a fixed quote</span></span><span class="go">${arrow}</span></a>`;
   document.getElementById("tgrid").innerHTML = s.durations.map((d) => {
     const ps = items.map((it) => ({ p: itemPrice(s, it, d), m: itemMrp(s, it, d) })).filter((x) => x.p > 0).sort((a, b) => a.p - b.p);
-    const t = TIME[d] || { t: `${d} minutes`, d: "", img: "1583847268964-b28dc8f51f92" };
-    return `<div class="tcard${d === 45 ? " pop" : ""} rv"><div class="ph st"><img src="https://images.unsplash.com/photo-${t.img}?auto=format&fit=crop&w=600&q=70" alt="" loading="lazy" onerror="this.remove()"><span class="min"><span><b>${d}</b>MIN</span></span></div>
+    const t = TIME[d] || { t: `${d} minutes`, d: "", img: "/zh-img/clean-other.svg" };
+    return `<div class="tcard${d === 45 ? " pop" : ""} rv"><div class="ph"><img src="${t.img}" alt="" loading="lazy" onerror="this.remove()"><span class="min"><span><b>${d}</b>MIN</span></span></div>
       <div class="bd"><h3>${t.t}</h3><p>${t.d}</p>
       <div class="price">from<b>${ps[0] ? rs(ps[0].p) : "–"}</b>${ps[0] && ps[0].m > ps[0].p ? `<s>${rs(ps[0].m)}</s>` : ""}</div>
       <a class="btn ${d === 45 ? "btn-y" : "btn-o"}" href="#book" data-book="cleaning">Book ${d} min</a></div></div>`;
@@ -449,7 +449,7 @@ document.addEventListener("zh-services", (e) => draw(e.detail));
 if (window.ZHBook) draw(window.ZHBook.catalog);
 document.getElementById("yr").textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-book.js?v=22"></script>
+<script type="module" src="/zh-book.js?v=23"></script>
 <script src="/zipphive-widget.js?v=20" data-position="right" data-inline="off" defer></script>
 </body>
 </html>
