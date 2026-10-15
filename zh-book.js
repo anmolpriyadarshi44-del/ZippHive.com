@@ -2,7 +2,7 @@
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
 import { backend, trackUrl } from "/zh-ops.js?v=15";
-import { loadServices, svcById, itemPrice, itemMrp, offPct } from "/zh-services.js?v=16";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE } from "/zh-services.js?v=19";
 import "/zh-slots.js?v=15";
 
 const root = document.getElementById("zhBook");
@@ -98,6 +98,53 @@ const CSS = `
 #zhBook .zb-done .tick{width:64px;height:64px;border-radius:50%;background:var(--tl);color:var(--t);display:grid;place-items:center;font-size:32px;margin:0 auto 10px}
 #zhBook .zb-done .bid{background:#F6FAF9;border:1px dashed var(--t);border-radius:12px;padding:10px;margin:12px 0;font-size:15px}
 #zhBook .zb-load{padding:30px 0;text-align:center;color:var(--mu)}
+/* ---- refreshed look ---- */
+#zhBook h3{font-size:22px;letter-spacing:-.02em}
+#zhBook .zb-prog i{height:6px;transition:background .3s}
+#zhBook .zb-prog i.on{background:linear-gradient(90deg,var(--t),#14A3A0)}
+#zhBook .zb-svc{gap:14px;padding:14px 16px 14px 14px;border-radius:18px;align-items:center;transition:transform .2s,box-shadow .2s,border-color .2s}
+#zhBook .zb-svc:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(7,72,72,.5)}
+#zhBook .zb-hex{flex:none;width:48px;height:54px;display:grid;place-items:center;font-size:24px;background:var(--tn,#E6F4F3);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+#zhBook .zb-svc .tx{flex:1;min-width:0;display:block}
+#zhBook .zb-svc .tx b{font-size:15.5px}
+#zhBook .zb-svc .zb-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+#zhBook .zb-svc .zb-meta span{font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 8px;background:#F1F5F5;color:var(--ink)}
+#zhBook .zb-svc .zb-meta .o{background:#DDF3E6;color:#1E7B4F}
+#zhBook .zb-svc .chev{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#F1F5F5;color:var(--td);font-size:18px;transition:background .2s,transform .2s}
+#zhBook .zb-svc:hover .chev{background:var(--y);transform:translateX(2px)}
+#zhBook .zb-svc.feat{background:radial-gradient(120% 140% at 100% 0%,#0E8A87 0%,#0B6E6E 40%,#053E40 100%);border:0;color:#fff}
+#zhBook .zb-svc.feat .tx small{color:#CFE9E7}
+#zhBook .zb-svc.feat .zb-hex{background:var(--y)}
+#zhBook .zb-svc.feat .zb-meta span{background:rgba(255,255,255,.14);color:#fff}
+#zhBook .zb-svc.feat .zb-meta .o{background:var(--y);color:var(--ink)}
+#zhBook .zb-svc.feat .chev{background:var(--y);color:var(--ink)}
+#zhBook .zb-badge{top:-9px;right:14px;box-shadow:0 4px 10px rgba(242,178,0,.35)}
+#zhBook .zb-row{border-radius:16px;padding:12px 12px 12px 14px;position:relative;transition:border-color .2s,background .2s,box-shadow .2s}
+#zhBook .zb-row:hover{border-color:#B9DCD9}
+#zhBook .zb-row.on{border-color:var(--t);background:linear-gradient(90deg,#E6F4F3,#fff 70%);box-shadow:inset 4px 0 0 var(--t)}
+#zhBook .zb-row .pr{display:flex;align-items:center;flex-wrap:wrap;gap:0 2px;font-size:16px;margin-top:4px}
+#zhBook .zb-add{background:var(--y);border-color:var(--y);color:var(--ink);border-radius:999px;padding:8px 18px;box-shadow:0 6px 14px -6px rgba(242,178,0,.7)}
+#zhBook .zb-add:hover{filter:brightness(.96)}
+#zhBook .zb-qty{border-radius:999px;border-color:var(--t)}
+#zhBook .zb-qty button{width:34px}
+#zhBook .zb-tabs{background:#F1F5F5;border-radius:999px;padding:4px;display:flex;gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}
+#zhBook .zb-tabs::-webkit-scrollbar{display:none}
+#zhBook .zb-tabs button{white-space:nowrap;flex:1 0 auto}
+#zhBook .zb-tabs button{border:0;background:transparent;padding:8px 16px}
+#zhBook .zb-tabs button.on{background:#fff;color:var(--td);box-shadow:0 2px 8px rgba(7,72,72,.15)}
+#zhBook .zb-dur button{border-radius:16px;padding:12px 6px}
+#zhBook .zb-dur button.on{background:var(--td);border-color:var(--td);color:#fff;box-shadow:none}
+#zhBook .zb-dur button.on span{color:var(--y)}
+#zhBook .zb-dur button.on s{color:#9EC9C6}
+#zhBook .zb-opt{border-radius:16px}
+#zhBook .zb-sum{background:#053E40;color:#E6F4F3;border:0;border-radius:18px;padding:14px 16px}
+#zhBook .zb-sum b{color:#fff}
+#zhBook .zb-sum s{color:#7FB1AE}
+#zhBook .zb-sum .tot{color:#fff;border-top-color:rgba(255,255,255,.18)}
+#zhBook .zb-sum .save{color:var(--y)}
+#zhBook .zb-cta{transition:transform .15s,box-shadow .15s}
+#zhBook .zb-cta:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(242,178,0,.45)}
+@media (max-width:440px){#zhBook .zb-svc .chev{display:none}#zhBook .zb-hex{width:42px;height:48px;font-size:21px}#zhBook .zb-svc{gap:12px}}
 @media (max-width:420px){#zhBook .zb-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
 
@@ -190,9 +237,13 @@ const summary = (showCta, ctaLabel, disabled) => {
 // ---------------- views ----------------
 function vSvc() {
   return `<h3>What do you need?</h3><p class="zb-sub">Pick a service – you'll see the price before you book.</p>
-    <div class="zb-list">${S.cat.services.map((s) => `<button class="zb-opt zb-svc ${s.badge === "FESTIVE SPECIAL" ? "feat" : ""}" data-a="svc" data-v="${s.id}">
-      ${s.badge ? `<span class="zb-badge">${esc(s.badge)}</span>` : ""}<span class="ic">${s.icon}</span>
-      <span><b>${esc(s.name)}</b><small>${esc(s.tagline || "")}</small></span></button>`).join("")}</div>`;
+    <div class="zb-list">${S.cat.services.map((s) => {
+      const st = s.mode === "phone" ? null : svcStats(s), tone = SVC_TONE[s.id] || {};
+      const meta = s.mode === "phone" ? `<span>Exact price for your model</span>` : st.min ? `<span>from ${rs(st.min)}</span>${st.off ? `<span class="o">up to ${st.off}% off</span>` : ""}` : "";
+      return `<button class="zb-opt zb-svc ${s.id === "cleaning" ? "feat" : ""}" data-a="svc" data-v="${s.id}">
+      ${s.badge ? `<span class="zb-badge">${esc(s.badge)}</span>` : ""}<span class="zb-hex" style="--tn:${tone.tint || "#E6F4F3"}">${s.icon}</span>
+      <span class="tx"><b>${esc(s.name)}</b><small>${esc(s.tagline || "")}</small>${meta ? `<span class="zb-meta">${meta}</span>` : ""}</span><span class="chev" aria-hidden="true">›</span></button>`;
+    }).join("")}</div>`;
 }
 function vBrand() {
   if (!P()) return `<div class="zb-load">Loading phone models…</div>`;
