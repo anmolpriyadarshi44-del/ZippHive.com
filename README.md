@@ -167,3 +167,11 @@ Every service has ZippHive-themed pictures (teal/yellow, hexagon pattern, yellow
 - Phone repair problems (`ph-<issue id>.svg`, ids from `zipphive-catalog.json`) – shown on the "What's wrong with your phone?" step
 - Service covers on the homepage cards and the first booking step
 Regenerate with `python3 tools/service_illustrations.py zh-img`. New admin-added items fall back to their category picture; paste a Photo URL in Admin → Service prices to use your own picture for any item.
+
+## AI Assistant – service knowledge & diagnosis (`zh-assistant-kb.js`)
+The chat assistant now answers more than prices, in **English, हिंदी and Hinglish** (it replies in the language the customer writes in):
+- **Process / technician steps** – "AC gas refill kaise hota hai?", "what does the technician do in sofa cleaning?"
+- **Time required** – "AC installation me kitna time lagta hai?", "how long does a battery replacement take?"
+- **Diagnosis** – yes/no troubleshooting with safe self-checks and the likely fault, then the right service + live price + "Book a slot": AC not cooling, AC water leak, washing machine, phone not charging / battery / not turning on / water damage, MCB tripping, fan slow, drain blocked, geyser not heating. Safety advice comes first (swollen battery, sparks, water-damaged phone).
+- General: technician verification, how ZippHive works, which services we offer.
+Phone model + problem (e.g. "iPhone 13 screen broken") still goes to the instant price engine. All texts live in `zh-assistant-kb.js` (topics `T`, diagnosis flows `F`) – edit there to change times or wording.
