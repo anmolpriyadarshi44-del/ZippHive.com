@@ -29,6 +29,16 @@
 #map{height:420px;border-radius:12px;border:1px solid var(--line);z-index:0}
 .zone{display:grid;grid-template-columns:1.4fr 2fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .zone input[type=range]{width:100%}
+.zone .coord{display:block;font-size:11.5px;color:var(--muted);margin:3px 2px 0}
+.zone .zb{display:flex;gap:6px}
+.srch{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 8px}
+.srch input{flex:1;min-width:220px}
+.gres{border:1px solid var(--line);border-radius:12px;margin:0 0 8px;overflow:hidden}
+.gres .r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+.gres .r:last-child{border-bottom:0}
+.gres .r .nm{flex:1;min-width:200px}
+.gres .r .nm b{display:block}
+.gres .r select{width:auto;min-height:34px}
 .zone .km{font-weight:800;color:var(--dark);white-space:nowrap}
 .test{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .res{font-weight:700;padding:6px 10px;border-radius:8px}
@@ -63,10 +73,57 @@ function zonesHtml() {
   const ro = isAdmin() ? "" : "disabled";
   if (!S.a.zones.length) return `<p class="hint">No map zones – “Use my location” on the website will ask customers for their pincode instead.</p>`;
   return S.a.zones.map((z, i) => `<div class="zone" data-z="${i}">
-    <input class="in" data-zk="name" value="${esc(z.name)}" ${ro} aria-label="Zone name">
-    <input type="range" min="1" max="50" step="0.5" data-zk="km" value="${z.km}" ${ro} aria-label="Radius">
+    <div><input class="in" data-zk="name" value="${esc(z.name)}" ${ro} aria-label="Zone name – type a place and press Enter to move the zone there" title="Type a place name (e.g. Delhi, Saket) and press Enter – the zone moves there"><span class="coord">${z.lat.toFixed(4)}, ${z.lng.toFixed(4)}</span></div>
+    <input type="range" min="1" max="60" step="0.5" data-zk="km" value="${z.km}" ${ro} aria-label="Radius">
     <span class="km">${z.km} km</span>
-    ${isAdmin() ? `<button class="btn sm r" data-act="rmzone" data-i="${i}">✕</button>` : "<span></span>"}</div>`).join("");
+    <span class="zb">${isAdmin() ? `<button class="btn sm o" data-act="findzone" data-i="${i}" title="Find this name on the map and move the zone there">📍 Find</button>` : ""}<button class="btn sm g" data-act="showzone" data-i="${i}" title="Show on map">👁</button>${isAdmin() ? `<button class="btn sm r" data-act="rmzone" data-i="${i}">✕</button>` : ""}</span></div>`).join("");
+}
+// ---- place search (OpenStreetMap Nominatim, India only; 6 digits = pincode)
+async function geocode(q) {
+  q = String(q || "").trim();
+  if (!q) return [];
+  const u = new URL("https://nominatim.openstreetmap.org/search");
+  u.searchParams.set("format", "jsonv2"); u.searchParams.set("limit", "5"); u.searchParams.set("countrycodes", "in"); u.searchParams.set("accept-language", "en");
+  if (/^\d{6}$/.test(q)) u.searchParams.set("postalcode", q); else u.searchParams.set("q", q);
+  const r = await fetch(u, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error("search failed (" + r.status + ")");
+  return (await r.json()).map((x) => ({ name: x.display_name, short: x.name || x.display_name.split(",")[0], lat: +(+x.lat).toFixed(5), lng: +(+x.lon).toFixed(5), bb: x.boundingbox }))
+    .filter((x) => isFinite(x.lat) && isFinite(x.lng));
+}
+// suggested radius from the place size (city ≈ 15–25 km, locality ≈ 3–5 km)
+function radiusFor(g) {
+  if (!g.bb) return 5;
+  const [s1, n1, w1, e1] = g.bb.map(Number);
+  const km = Math.max(Math.abs(n1 - s1) * 111, Math.abs(e1 - w1) * 111 * Math.cos((g.lat * Math.PI) / 180)) / 2;
+  return Math.min(60, Math.max(2, Math.round(km * 2) / 2));
+}
+function geoResHtml() {
+  if (S.geoBusy) return `<p class="hint">Searching…</p>`;
+  if (!S.geoRes) return "";
+  if (!S.geoRes.length) return `<p class="hint">No place found – try a different spelling or a pincode.</p>`;
+  const opts = S.a.zones.map((z, i) => `<option value="${i}">${esc(z.name)}</option>`).join("");
+  return `<div class="gres">${S.geoRes.map((g, j) => `<div class="r"><span class="nm"><b>${esc(g.short)}</b><span class="hint">${esc(g.name)}</span></span>
+    <button class="btn sm g" data-act="georshow" data-j="${j}">👁 Show</button>
+    <button class="btn sm" data-act="georadd" data-j="${j}">+ Add as zone (${radiusFor(g)} km)</button>
+    ${opts ? `<select class="in" data-gsel="${j}" aria-label="Zone to move">${opts}</select><button class="btn sm o" data-act="geormove" data-j="${j}">Move zone here</button>` : ""}</div>`).join("")}</div>`;
+}
+function focusZone(z) {
+  if (!map) return;
+  const c = L.circle([z.lat, z.lng], { radius: z.km * 1000 }).addTo(map), b = c.getBounds(); c.remove();
+  map.fitBounds(b.pad(0.15), { animate: false });
+}
+function moveZone(z, g, toastMsg) {
+  z.lat = g.lat; z.lng = g.lng; dirty(); render(); focusZone(z);
+  toast(toastMsg || `${z.name} moved to ${g.short}`);
+}
+async function findZone(i) {
+  const z = S.a.zones[i];
+  if (!z || !z.name.trim()) return toast("Type a place name first", true);
+  try {
+    const r = await geocode(z.name);
+    if (!r.length) return toast(`Couldn't find “${z.name}” – try “${z.name}, Delhi” or a pincode`, true);
+    moveZone(z, r[0], `📍 ${z.name} → ${r[0].name.split(",").slice(0, 3).join(",")}`);
+  } catch (x) { toast("Place search failed: " + (x.message || x), true); }
 }
 function testHtml() {
   if (!S.test) return "";
@@ -102,9 +159,11 @@ function render() {
         ${isAdmin() ? `<div class="addrow"><textarea class="in" id="addBlocked" rows="1" placeholder="e.g. 800013"></textarea><button class="btn r" data-act="add" data-k="blocked">Block</button></div>` : ""}</div>
     </div>
     <div class="card"><h2>🗺️ Service map zones</h2>
-      <p class="muted">Used when a customer taps “📍 Use my location”. They can book if they are inside any circle. ${isAdmin() ? "Drag a centre pin to move a zone, use the slider to change its radius." : ""}</p>
+      <p class="muted">Used when a customer taps “📍 Use my location”. They can book if they are inside any circle. ${isAdmin() ? "Search a place to add or move a zone, type a place name in a zone row (it moves there automatically), or drag the yellow pin. Use the slider to change the radius." : ""}</p>
       <label class="hint" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="checkbox" data-s="allowGps" ${S.a.allowGps ? "checked" : ""} ${ro}> Allow “Use my location” check on the website</label>
       ${isAdmin() ? `<div class="row" style="margin-bottom:6px"><button class="btn sm ${S.adding ? "y" : "o"}" data-act="addzone">${S.adding ? "👆 Now click on the map…" : "+ Add zone on map"}</button><button class="btn sm g" data-act="fit">Fit all zones</button></div>` : ""}
+      ${isAdmin() ? `<div class="srch"><input class="in" id="geoQ" value="${esc(S.geoQ || "")}" placeholder="Search a place or pincode – e.g. Delhi, Saket, Gurugram, 110017" aria-label="Search a place"><button class="btn sm" data-act="geo">🔎 Find on map</button><button class="btn sm g" data-act="mypos">📍 My current location</button></div>
+      <div id="geoRes">${geoResHtml()}</div>` : ""}
       <div id="map"></div>
       <div class="mapnote" id="mapFail" hidden>The map couldn't load (no internet?) – zones below can still be edited.</div>
       <div id="zones">${zonesHtml()}</div></div>
@@ -148,6 +207,7 @@ app.addEventListener("click", async (e) => {
   const a = el.dataset.act;
   if (a === "signin") return S.be.signIn();
   if (a === "signout") return S.be.signOut();
+  if (a === "showzone") return focusZone(S.a.zones[+el.dataset.i]);
   if (!isAdmin() && a !== "fit") return;
   if (a === "add") {
     const k = el.dataset.k, inp = el.previousElementSibling, vals = pinsIn(inp.value);
@@ -161,6 +221,26 @@ app.addEventListener("click", async (e) => {
   }
   if (a === "rm") { S.a[el.dataset.k].splice(+el.dataset.i, 1); dirty(); return render(); }
   if (a === "addzone") { S.adding = !S.adding; return render(); }
+  if (a === "geo") {
+    S.geoQ = document.getElementById("geoQ").value.trim();
+    if (!S.geoQ) return toast("Type a place or pincode", true);
+    S.geoBusy = true; document.getElementById("geoRes").innerHTML = geoResHtml();
+    try { S.geoRes = await geocode(S.geoQ); } catch (x) { S.geoRes = null; toast("Place search failed: " + (x.message || x), true); }
+    S.geoBusy = false; document.getElementById("geoRes").innerHTML = geoResHtml();
+    if (S.geoRes && S.geoRes[0] && map) map.setView([S.geoRes[0].lat, S.geoRes[0].lng], 11, { animate: false });
+    return;
+  }
+  if (a === "georshow") { const g = S.geoRes[+el.dataset.j]; if (map) { map.setView([g.lat, g.lng], 12, { animate: false }); L.popup().setLatLng([g.lat, g.lng]).setContent(esc(g.short)).openOn(map); } return; }
+  if (a === "georadd") { const g = S.geoRes[+el.dataset.j]; const z = { name: g.short, lat: g.lat, lng: g.lng, km: radiusFor(g) }; S.a.zones.push(z); S.geoRes = null; S.geoQ = ""; dirty(); render(); focusZone(z); return toast(`Zone “${z.name}” added – adjust the radius, then Save`); }
+  if (a === "geormove") { const g = S.geoRes[+el.dataset.j], i = +app.querySelector(`[data-gsel="${el.dataset.j}"]`).value, z = S.a.zones[i]; S.geoRes = null; return moveZone(z, g); }
+  if (a === "findzone") return findZone(+el.dataset.i);
+  if (a === "mypos") {
+    if (!navigator.geolocation) return toast("Location isn't available on this device", true);
+    toast("Getting your location…");
+    navigator.geolocation.getCurrentPosition((p) => { const z = { name: "My area", lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), km: 5 }; S.a.zones.push(z); dirty(); render(); focusZone(z); toast("Zone added at your location – rename it and adjust the radius"); },
+      () => toast("Couldn't get your location – allow location access or search by name", true), { enableHighAccuracy: true, timeout: 12000 });
+    return;
+  }
   if (a === "fit") return drawZones(true);
   if (a === "rmzone") { S.a.zones.splice(+el.dataset.i, 1); dirty(); return render(); }
   if (a === "reset") { if (!confirm("Replace the current service area with the default (all 800xxx pincodes + 22 km around Patna)?")) return; S.a = normalizeArea(null); dirty(); return render(); }
@@ -186,8 +266,17 @@ app.addEventListener("input", (e) => {
     dirty();
   }
 });
-app.addEventListener("change", (e) => { if (e.target.type === "checkbox") e.target.dispatchEvent(new Event("input", { bubbles: true })); });
-app.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches(".addrow .in")) { e.preventDefault(); e.target.nextElementSibling.click(); } });
+app.addEventListener("change", (e) => {
+  if (e.target.type === "checkbox") return e.target.dispatchEvent(new Event("input", { bubbles: true }));
+  // typing a new zone name auto-moves the zone to that place
+  if (e.target.dataset.zk === "name" && isAdmin()) { const row = e.target.closest("[data-z]"); if (row && e.target.value.trim()) findZone(+row.dataset.z); }
+});
+app.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  if (e.target.matches(".addrow .in")) { e.preventDefault(); e.target.nextElementSibling.click(); }
+  else if (e.target.id === "geoQ") { e.preventDefault(); app.querySelector("[data-act=geo]").click(); }
+  else if (e.target.dataset.zk === "name") { e.preventDefault(); e.target.blur(); }
+});
 window.addEventListener("beforeunload", (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 S.be = await backend();
