@@ -4,14 +4,14 @@
 //   prefixes  – pincode starts we serve (e.g. "800" = every 800xxx pincode)
 //   blocked   – pincodes we never serve (wins over prefixes)
 //   zones     – map circles {name, lat, lng, km}; used when a customer shares GPS location
-import { backend } from "/zh-ops.js?v=15";
+import { backend } from "/zh-ops.js?v=16";
 
 export const DEFAULT_AREA = {
-  city: "Patna",
+  city: "",
   prefixes: ["800"],
   pins: ["801103", "801104", "801105", "801503", "801505", "801506"],
   blocked: [],
-  zones: [{ name: "Patna", lat: 25.5941, lng: 85.1376, km: 22 }],
+  zones: [{ name: "Main zone", lat: 25.5941, lng: 85.1376, km: 22 }],
   allowGps: true,
   note: "",
 };

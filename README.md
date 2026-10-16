@@ -193,3 +193,9 @@ Saved to Firestore `content/serviceArea` (public read, admin write – existing 
 - Period KPIs: bookings received, completed, cancelled, collected ₹ (by payment mode), average bill, completion rate – with ▲▼ vs the previous period of the same length. **📊 Report**: bookings by service, technician performance, payments by mode.
 - **Table** view (sortable columns; click a row to open the full job card with all actions) or **Cards** view. A banner warns when open jobs fall outside the chosen dates. Search always looks across all dates.
 - **⬇ Export** downloads the filtered list as a CSV that opens in Excel / Google Sheets.
+
+## Technician assignment window
+Store managers can send a job to a technician only from **3 hours before the booked slot** (`ASSIGN_WINDOW_H` in `zh-ops.js`). Before that the job card shows 🔒 “Technician can be assigned from …” with a countdown, the booking is left out of “Needs action”, and the “Need a technician” box shows “+N scheduled later”. It unlocks by itself (the dashboard refreshes every 30 s). Bookings without a slot (“as soon as possible”) can be assigned any time. Confirming the booking / sending the WhatsApp confirmation is still allowed any time.
+
+## No city names on the website
+Customer-facing pages, the AI assistant, WhatsApp messages, tracking page, invoices and the technician app no longer mention a city/state. The service area is decided only by pincode / map zones (Admin → Service area). The optional “City name shown to customers” on that page is blank by default.

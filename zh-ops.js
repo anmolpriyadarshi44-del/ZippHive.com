@@ -31,7 +31,7 @@ export const trackUrl = (id) => `${siteUrl()}/track.html?b=${id}`;
 export const reviewUrl = () => (cfg().googleReviewUrl || "").trim();
 export const invoiceUrl = (id) => `${siteUrl()}/invoice.html?b=${id}`;
 export const business = () => ({
-  name: "ZippHive", tagline: "Doorstep phone & home repairs", address: "Patna, Bihar",
+  name: "ZippHive", tagline: "Doorstep phone & home repairs", address: "India",
   phone: "+91 92204 00950", email: "ZippHive@gmail.com", web: "www.zipphive.com", gstin: "",
   ...(cfg().business || {}),
 });
@@ -285,6 +285,15 @@ export function backend() {
 }
 
 // ---------- Assignment actions (one place, so manager and technician pages agree) ----------
+// Store managers can send a job to a technician only from ASSIGN_WINDOW_H hours before the booked slot starts.
+// Bookings without a slot ("as soon as possible") can be assigned any time.
+export const ASSIGN_WINDOW_H = 3;
+export function slotStart(b) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})\/.*_(\d{2})(\d{2})$/.exec((b && b.slot) || "");
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime() : null;
+}
+export const assignOpensAt = (b) => { const t = slotStart(b); return t ? t - ASSIGN_WINDOW_H * 3600000 : null; };
+export const canAssignNow = (b, now = Date.now()) => { const o = assignOpensAt(b); return !o || now >= o; };
 export const actions = {
   // Manager → offer the job to a technician (waits for their Accept)
   offer: (be, b, tech) =>

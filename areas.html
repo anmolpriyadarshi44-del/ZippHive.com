@@ -62,8 +62,8 @@
 <body>
 <div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
 <script type="module">
-import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
-import { normalizeArea, checkPin, DEFAULT_AREA } from "/zh-area.js?v=1";
+import { backend, admins, esc, toast } from "/zh-ops.js?v=16";
+import { normalizeArea, checkPin, DEFAULT_AREA } from "/zh-area.js?v=2";
 
 const EMBED = new URLSearchParams(location.search).has("embed");
 if (EMBED) document.documentElement.classList.add("embed");
@@ -200,7 +200,7 @@ function render() {
       <div class="card"><h2>📮 Serviceable pincodes (${S.a.pins.length})</h2><p class="muted">Exact pincodes you serve. Paste many at once – separated by comma, space or new line.</p>
         <div class="chips">${chipList(S.a.pins, "pins")}</div>
         ${isAdmin() ? `<div class="addrow"><textarea class="in" id="addPins" rows="1" placeholder="800001, 800004, 800020"></textarea><button class="btn" data-act="add" data-k="pins">Add</button></div>` : ""}</div>
-      <div class="card"><h2>🔢 Whole pincode ranges (${S.a.prefixes.length})</h2><p class="muted">Serve every pincode starting with these digits. “800” = all 800xxx (Patna city). Leave empty to use only the exact list.</p>
+      <div class="card"><h2>🔢 Whole pincode ranges (${S.a.prefixes.length})</h2><p class="muted">Serve every pincode starting with these digits. e.g. “800” = every 800xxx pincode. Leave empty to use only the exact list.</p>
         <div class="chips">${chipList(S.a.prefixes, "prefixes")}</div>
         ${isAdmin() ? `<div class="addrow"><input class="in" id="addPrefix" inputmode="numeric" maxlength="5" placeholder="e.g. 800"><button class="btn" data-act="add" data-k="prefixes">Add</button></div>` : ""}
         <h2 style="margin-top:14px">⛔ Blocked pincodes (${S.a.blocked.length})</h2><p class="muted">Never served, even if inside a range above.</p>
@@ -217,7 +217,7 @@ function render() {
       <div class="mapnote" id="mapFail" hidden>The map couldn't load (no internet?) – zones below can still be edited.</div>
       <div id="foundBox">${foundHtml()}</div>
       <div id="zones">${zonesHtml()}</div></div>
-    ${isAdmin() ? `<div class="row"><button class="btn link" data-act="reset">Reset to default (Patna 800xxx + 22 km zone)</button></div>` : ""}
+    ${isAdmin() ? `<div class="row"><button class="btn link" data-act="reset">Reset to default (800xxx + 22 km zone)</button></div>` : ""}
   </div>
   ${isAdmin() ? `<div class="bar"><span class="muted" id="dstate">${S.dirty ? "Unsaved changes" : "All changes saved"}</span><a class="btn sm g" href="/#book" target="_blank" rel="noopener">View booking flow</a><button class="btn" data-act="save" ${S.dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "💾 Save & publish"}</button></div>` : ""}`;
   drawMap();
@@ -312,7 +312,7 @@ app.addEventListener("click", async (e) => {
   }
   if (a === "fit") return drawZones(true);
   if (a === "rmzone") { S.a.zones.splice(+el.dataset.i, 1); S.found = null; dirty(); return render(); }
-  if (a === "reset") { if (!confirm("Replace the current service area with the default (all 800xxx pincodes + 22 km around Patna)?")) return; S.a = normalizeArea(null); dirty(); return render(); }
+  if (a === "reset") { if (!confirm("Replace the current service area with the default (all 800xxx pincodes + the default 22 km zone)?")) return; S.a = normalizeArea(null); dirty(); return render(); }
   if (a === "save") {
     if (!S.a.pins.length && !S.a.prefixes.length && !(S.a.allowGps && S.a.zones.length)) return toast("Add at least one pincode, range or map zone – otherwise nobody can book.", true);
     S.saving = true; render();

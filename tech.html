@@ -77,7 +77,7 @@ details.remarks summary{cursor:pointer;font-weight:600;color:var(--teal);font-si
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=15";
+import { invoiceUrl, backend, STATUS, CLOSED, actions, waLink, ago, when, esc, toast, newQc, qcSum, qcCompare, PAY_MODES, rupees, upiLink, qrSvg, cfg, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=16";
 
 const REASONS = ["Busy on another job", "Too far away", "Not my skill", "Off duty", "Part not available"];
 const S = { be: undefined, user: undefined, me: undefined, jobs: [], declining: null, reason: "", other: "", busy: {}, qc: {}, pay: {}, notes: {}, rem: {} };
@@ -184,7 +184,7 @@ function reqCard(j) {
     <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
     ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
     <dl class="kv">
-      <dt>Area</dt><dd>${esc(j.area)}, Patna</dd>
+      <dt>Area</dt><dd>${esc(j.area)}</dd>
       <dt>Time</dt><dd>${esc(j.time)}</dd>
       ${j.price ? `<dt>Price</dt><dd>${rupees(j.price)}</dd>` : isWarranty(j) ? `<dt>Charge</dt><dd>Free if covered</dd>` : ""}
       ${isWarranty(j) && j.warranty?.repairDate ? `<dt>Repaired</dt><dd>${esc(j.warranty.repairDate)}${j.warranty.technician ? " by " + esc(j.warranty.technician) : ""}</dd>` : ""}
@@ -310,12 +310,12 @@ function jobCard(j) {
     <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
     ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
     ${isWarranty(j) ? `<div class="wbanner" style="display:flex;gap:10px;align-items:center">${j.warranty?.photo ? `<a href="${esc(j.warranty.photo)}" target="_blank" rel="noopener"><img class="wphoto" src="${esc(j.warranty.photo)}" alt="Customer photo"></a>` : ""}<span>Claim ${esc(j.warranty?.claimId || "")}${j.warranty?.invoiceNo || j.warranty?.origCode ? ` · original ${esc(j.warranty.invoiceNo || j.warranty.origCode)}` : ""}${j.warranty?.repairDate ? ` · repaired ${esc(j.warranty.repairDate)}` : ""}${j.warranty?.technician ? ` by ${esc(j.warranty.technician)}` : ""}${j.warranty?.origBookingId ? `<br><a href="${invoiceUrl(j.warranty.origBookingId)}" target="_blank" rel="noopener">Open original invoice & QC report →</a>` : ""}</span></div>${j.payment ? "" : wDecision(j)}` : ""}
-    <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)}, Patna · ${esc(j.time)}${j.price ? ` · ${rupees(j.price)}` : ""}</p>
+    <p style="margin:8px 0"><b>${esc(j.name)}</b> · ${esc(j.area)} · ${esc(j.time)}${j.price ? ` · ${rupees(j.price)}` : ""}</p>
     ${j.note ? `<p class="muted">Note: ${esc(j.note)}</p>` : ""}
     <div class="row">
       <a class="btn sm o" href="tel:+91${esc(j.mobile)}">📞 Call customer</a>
       <a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(j.mobile, `Hi ${j.name}, I'm your ZippHive technician for booking ${j.code}.`)}">WhatsApp</a>
-      <a class="btn sm g" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(`${j.area}, Patna`)}">🗺️ Map</a>
+      <a class="btn sm g" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(`${j.area}, India`)}">🗺️ Map</a>
     </div>
     <div class="flow" aria-hidden="true">${FLOW_LABELS.map(([l], i) => `<span class="${i < k ? "done" : i === k ? "now" : ""}">${l}</span>`).join("")}</div>
     ${action}

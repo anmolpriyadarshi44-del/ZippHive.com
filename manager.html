@@ -68,6 +68,8 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 .wr .reasons button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
 .wr .reasons button.on{background:var(--red);border-color:var(--red);color:#fff}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+.lock{background:#fff;border:1px dashed #C9D6D5;border-radius:10px;padding:8px 10px;font-size:13px;color:var(--deep)}
+.lock span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 /* ---- tracking toolbar, KPI groups, table ---- */
 .sec{display:flex;align-items:baseline;gap:10px;margin:2px 0 8px}
 .sec h2{margin:0;font-size:15px;color:var(--deep);letter-spacing:.01em}
@@ -125,7 +127,7 @@ details.repd summary{cursor:pointer;font-weight:800;color:var(--deep);margin-bot
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS } from "/zh-ops.js?v=15";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=16";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const LS = (k, d) => { try { const v = localStorage.getItem("zhm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
@@ -201,10 +203,11 @@ function period(R) {
 }
 
 function counts() {
-  const c = { new: 0, need: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0, free: 0 };
+  const c = { new: 0, need: 0, sched: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0, free: 0 };
   for (const b of S.bookings || []) {
     const s = stage(b);
     if (s === "new") c.new++;
+    else if ((s === "unassigned" || s === "declined") && locked(b)) c.sched++;
     else if (s === "unassigned" || s === "declined") c.need++;
     else if (s === "waiting") c.wait++;
     else if (s === "active") c.act++;
@@ -224,7 +227,10 @@ function techLoad(email) {
 
 // warranty job whose defect has been checked by the technician but the store hasn't decided yet
 const wReady = (b) => warrantyInfo(b)?.state === "pending" && !!b.preQc?.doneAt && b.status !== "cancelled";
-const needsAction = (b) => ["new", "unassigned", "declined"].includes(stage(b)) || wReady(b);
+const locked = (b) => !canAssignNow(b);
+const needsAction = (b) => stage(b) === "new" || (["unassigned", "declined"].includes(stage(b)) && !locked(b)) || wReady(b);
+const tFmt = (t) => new Date(t).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const untilTxt = (t) => { const m = Math.max(0, Math.round((t - Date.now()) / 60000)); return m >= 1440 ? `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h` : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; };
 
 function visible() {
   const order = { new: 0, declined: 1, unassigned: 2, waiting: 3, active: 4, done: 5, cancelled: 6 };
@@ -269,14 +275,14 @@ function techOptions(b) {
 
 function assignBox(b) {
   const s = stage(b);
-  const pick = (label) => `
+  const pick = (label) => locked(b) ? `<div class="lock">🔒 Technician can be assigned from <b>${tFmt(assignOpensAt(b))}</b> – ${ASSIGN_WINDOW_H} hrs before the ${new Date(slotStart(b)).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })} slot.<span>Opens in ${untilTxt(assignOpensAt(b))}</span></div>` : `
     <div class="pickrow">
       <select class="in" id="pick-${b.id}" data-pick="${b.id}" aria-label="Technician for ${esc(b.code)}">${techOptions(b)}</select>
       <button class="btn sm" data-act="send" data-id="${b.id}">${label}</button>
     </div>`;
   if (s === "new") return `<div class="asg new"><div class="t">New booking — confirm it and send to a technician</div>
     <button class="btn sm wa" data-act="confirm-wa" data-id="${b.id}">✅ Confirm &amp; send WhatsApp</button>${pick("Send job")}</div>`;
-  if (s === "unassigned") return `<div class="asg need"><div class="t red">No technician yet</div>${pick("Send job")}</div>`;
+  if (s === "unassigned") return locked(b) ? `<div class="asg"><div class="t">📅 Scheduled – confirmed</div>${pick("Send job")}</div>` : `<div class="asg need"><div class="t red">No technician yet</div>${pick("Send job")}</div>`;
   if (s === "declined") return `<div class="asg need"><div class="t red">✋ ${esc(b.declinedByName || "Technician")} declined${b.declineReason ? ` — “${esc(b.declineReason)}”` : ""}</div><div class="note">${ago(b.declinedAt)} · choose someone else</div>${pick("Send job")}</div>`;
   if (s === "waiting") {
     const t = S.techs.find((x) => x.email === b.techEmail);
@@ -415,7 +421,7 @@ const trackMsg = (b) => [
   `Hi ${b.name}, your ZippHive booking *${b.code}* is confirmed ✅`,
   ``,
   `🛠️ ${b.device ? b.device + " – " : ""}${b.item || b.service}${b.price ? ` · ₹${Number(b.price).toLocaleString("en-IN")}` : isWarranty(b) ? " · warranty (free if covered)" : ""}`,
-  `📍 ${b.area}, Patna · ${b.time}`,
+  `📍 ${b.area} · ${b.time}`,
   b.techName ? `👨‍🔧 Technician: ${b.techName}${b.techPhone ? ` (${b.techPhone})` : ""}` : `👨‍🔧 We're assigning a verified technician now.`,
   b.eta ? `🕒 Expected: ${b.eta}` : "",
   ``,
@@ -466,7 +472,7 @@ function tableView(v) {
       <td>${esc(b.device ? b.device : b.service || "")}<span class="sub">${esc(b.item || "")}</span></td>
       <td>${esc(b.area || "")}</td>
       <td>${esc(b.techName || b.offerName || "—")}${st === "waiting" ? `<span class="sub">awaiting accept</span>` : ""}</td>
-      <td><span class="dot" style="background:${STAGE_DOT[st] || "#999"}"></span>${esc(STATUS[b.status] || b.status)}${needsAction(b) ? `<span class="sub" style="color:var(--red);font-weight:700">needs action</span>` : ""}</td>
+      <td><span class="dot" style="background:${STAGE_DOT[st] || "#999"}"></span>${esc(STATUS[b.status] || b.status)}${needsAction(b) ? `<span class="sub" style="color:var(--red);font-weight:700">needs action</span>` : ["unassigned", "declined"].includes(st) && locked(b) ? `<span class="sub">🔒 assign from ${new Date(assignOpensAt(b)).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>` : ""}</td>
       <td class="num"><b>${amt}</b><span class="sub">${pi.state === "paid" ? esc(pi.mode) : pi.state === "unpaid" ? `<span style="color:var(--red)">unpaid</span>` : pi.state === "free" ? "no charge" : b.status === "completed" ? "not recorded" : "quote"}</span></td>
     </tr>${open ? `<tr><td class="x" colspan="9">${card(b)}</td></tr>` : ""}`;
   }).join("");
@@ -523,7 +529,7 @@ function dashboard() {
     <div class="sec"><h2>Right now</h2><span class="muted">live – all open jobs</span></div>
     <div class="kpis live" style="grid-template-columns:repeat(5,minmax(0,1fr))">
       ${kpi("k-new", "action", c.new, "New bookings", "confirm & assign")}
-      ${kpi("k-need", "action", c.need, "Need a technician")}
+      ${kpi("k-need", "action", c.need, "Need a technician", c.sched ? `+${c.sched} scheduled later 🔒` : `assign ${ASSIGN_WINDOW_H} hrs before slot`)}
       ${kpi("k-wait", "waiting", c.wait, "Waiting for accept")}
       ${kpi("k-act", "active", c.act, "On the job")}
       ${kpi("k-need", "done", c.unpaid, "Unpaid jobs", c.unpaid ? "follow up" : "all collected")}
@@ -678,6 +684,7 @@ app.addEventListener("click", (e) => {
     const email = S.draft.pick[b.id];
     const t = S.techs.find((x) => x.email === email);
     if (!t) return toast("Choose a technician first", true);
+    if (!canAssignNow(b)) return toast(`Technician can be assigned only from ${tFmt(assignOpensAt(b))} (${ASSIGN_WINDOW_H} hrs before the slot)`, true);
     delete S.draft.pick[b.id];
     return run(actions.offer(S.be, b, t), `Sent to ${t.name} — waiting for them to accept`);
   }

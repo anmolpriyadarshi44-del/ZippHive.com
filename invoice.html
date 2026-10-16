@@ -67,7 +67,7 @@ table{width:100%;border-collapse:collapse}
 <body>
 <div id="app"><div class="msg">Loading…</div></div>
 <script type="module">
-import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=15";
+import { backend, esc, rupees, when, trackUrl, invoiceUrl, invoiceNo, business, CHECKLISTS, qcCompare, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=16";
 
 const app = document.getElementById("app");
 const id = new URLSearchParams(location.search).get("b");
@@ -156,7 +156,7 @@ function render(b) {
         ${p ? `<div class="stamp ${paid ? "" : "due"}">${pst === "free" ? (isWarranty(b) && warrantyInfo(b).state !== "rejected" ? "WARRANTY · ₹0" : "NO CHARGE") : paid ? "PAID" : "DUE"}</div>` : ""}</div>
     </div>
     <div class="cols">
-      <div class="box"><h3>Billed to</h3><p><b>${esc(b.name)}</b></p><p>${esc(mask(b.mobile))}</p><p>${esc(b.area)}, Patna</p></div>
+      <div class="box"><h3>Billed to</h3><p><b>${esc(b.name)}</b></p><p>${esc(mask(b.mobile))}</p><p>${esc(b.area)}</p></div>
       <div class="box"><h3>Service</h3><p><b>${b.device ? esc(b.device) + " – " : ""}${esc(b.item || b.service)}</b></p>${b.problem ? `<p>${esc(b.problem)}</p>` : ""}<p>Technician: ${esc(b.techName || "—")}</p>${b.times?.completed ? `<p>Completed: ${when(b.times.completed)}</p>` : ""}</div>
       ${(() => { const wi = warrantyInfo(b); return wi ? `<div class="box"><h3>Warranty claim ${esc(b.warranty?.claimId || "")}</h3><p><b style="color:${wi.state === "approved" ? "#1E8E3E" : wi.state === "rejected" ? "#C62828" : "#8A5A00"}">${wi.state === "approved" ? "✅ Approved – covered" : wi.state === "rejected" ? "❌ Not covered" : "⏳ Under review"}</b></p>${wi.defect ? `<p>Defect: ${esc(wi.defect)}</p>` : ""}${wi.reason ? `<p>Reason: ${esc(wi.reason)}</p>` : ""}${wi.at ? `<p>${when(wi.at)}</p>` : ""}</div>` : ""; })()}
     </div>

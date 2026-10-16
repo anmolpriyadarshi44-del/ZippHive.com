@@ -1,6 +1,6 @@
 // Adds payment, invoice and quality-check report to the customer tracking page (track.html).
 // Runs alongside the existing tracker without changing it; updates live as the technician works.
-import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=15";
+import { backend, esc, rupees, when, invoiceUrl, qcSum, payInfo, isWarranty, reviewUrl, warrantyInfo } from "/zh-ops.js?v=16";
 
 const id = new URLSearchParams(location.search).get("b");
 
@@ -72,7 +72,7 @@ function view(b) {
       <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
       <p>Thanks for choosing ZippHive for your ${b.device ? esc(b.device) : "service"}${wi && wi.state !== "rejected" ? " warranty repair" : ""}. We hope everything works perfectly — we're always just a WhatsApp away.</p>
       ${rv ? `<div class="stars" aria-hidden="true">★★★★★</div>
-        <p style="margin-bottom:14px">Happy with ${b.techName ? esc(b.techName) + "'s" : "our"} service? A quick Google review helps other families in Patna find us.</p>
+        <p style="margin-bottom:14px">Happy with ${b.techName ? esc(b.techName) + "'s" : "our"} service? A quick Google review helps other families find us.</p>
         <a class="gbtn" href="${esc(rv)}" target="_blank" rel="noopener">${g}Rate us on Google</a><br>` : `<div style="height:14px"></div>`}
       <a class="alt" href="${fb}" target="_blank" rel="noopener">💬 Share feedback with us on WhatsApp</a>
     </div>`);
