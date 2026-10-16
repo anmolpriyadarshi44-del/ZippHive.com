@@ -346,6 +346,14 @@ ol.next li::before{border-radius:0;clip-path:polygon(50% 0,100% 25%,100% 75%,50%
 .plan.hot li::before{background-color:rgba(255,201,60,.2)}
 .plan h3{font-size:24px}
 /* areas */
+.pinchk{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:22px;max-width:560px}
+.pinchk input{flex:1;min-width:180px;height:54px;border:2px solid var(--line);border-radius:14px;padding:0 18px;font:inherit;font-size:18px;font-weight:700;letter-spacing:.12em;background:#fff;color:var(--ink)}
+.pinchk input:focus{outline:none;border-color:var(--teal)}
+.pinchk button{height:54px;border:0;border-radius:14px;padding:0 24px;font:inherit;font-weight:800;font-size:15px;background:var(--teal);color:#fff;cursor:pointer}
+.pinres{margin-top:14px;font-weight:700;font-size:15px;min-height:24px}
+.pinres.ok{color:#1E8E3E}.pinres.no{color:#C62828}
+.pinres a{color:inherit}
+
 .areas{background:var(--paper)}
 .chips{gap:8px}
 .chip{border-radius:12px;padding:10px 16px;transition:border-color .2s,background .2s}
@@ -510,15 +518,17 @@ footer{background:var(--night)}
   </div>
 </section>
 
-<!-- AREAS -->
-<section class="areas">
+<!-- SERVICE AREA (pincode check) -->
+<section class="areas" id="area">
   <div class="wrap">
-    <span class="tag">Service areas</span>
-    <h2>Serving homes across Patna</h2>
-    <p class="sub">Don't see your locality? Message us — we're expanding every week.</p>
-    <div class="chips">
-      <span class="chip">Boring Road</span><span class="chip">Kankarbagh</span><span class="chip">Rajendra Nagar</span><span class="chip">Patliputra Colony</span><span class="chip">Bailey Road</span><span class="chip">Fraser Road</span><span class="chip">Ashiana Nagar</span><span class="chip">Danapur</span><span class="chip">Raja Bazar</span><span class="chip">Anisabad</span><span class="chip">Gardanibagh</span><span class="chip">Saguna More</span><span class="chip">Kurji</span><span class="chip">Gandhi Maidan</span>
-    </div>
+    <span class="tag">Service area</span>
+    <h2>Do we serve your area?</h2>
+    <p class="sub">Enter your 6-digit pincode to check. We're adding new pincodes every week.</p>
+    <form class="pinchk" id="pinChk" autocomplete="off">
+      <input id="pinIn" inputmode="numeric" maxlength="6" placeholder="Pincode e.g. 800001" aria-label="Your pincode">
+      <button type="submit">Check</button>
+    </form>
+    <div class="pinres" id="pinRes" role="status"></div>
   </div>
 </section>
 
@@ -654,9 +664,26 @@ document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
-<script type="module" src="/zh-book.js?v=24"></script>
-<script src="/zh-assistant-kb.js?v=1" defer></script>
-<script src="/zipphive-widget.js?v=21" data-position="right" defer></script>
+<script>
+// Pincode checker – serviceable pincodes come from Admin → Service area (zh-area.js)
+(function(){
+  const f=document.getElementById('pinChk'), inp=document.getElementById('pinIn'), out=document.getElementById('pinRes');
+  if(!f) return;
+  inp.addEventListener('input',()=>{inp.value=inp.value.replace(/\D/g,'').slice(0,6);out.textContent='';out.className='pinres';});
+  f.addEventListener('submit',async e=>{
+    e.preventDefault(); const p=inp.value;
+    if(p.length!==6){out.className='pinres no';out.textContent='Please enter a 6-digit pincode.';return;}
+    if(window.ZHArea&&window.ZHArea.ready) await window.ZHArea.ready;
+    const ok=window.ZHArea&&window.ZHArea.okPin(p);
+    out.className='pinres '+(ok?'ok':'no');
+    out.innerHTML=ok?'✅ Yes! We serve '+p+'. <a href="#book">Book now →</a>':'❌ Sorry, we don\'t serve '+p+' yet. <a href="https://wa.me/919220400950?text='+encodeURIComponent('Hi ZippHive, please tell me when you start serving pincode '+p)+'" target="_blank" rel="noopener">Get notified on WhatsApp</a>';
+  });
+})();
+</script>
+<script type="module" src="/zh-area.js?v=1"></script>
+<script type="module" src="/zh-book.js?v=25"></script>
+<script src="/zh-assistant-kb.js?v=2" defer></script>
+<script src="/zipphive-widget.js?v=22" data-position="right" defer></script>
 <script>
 // AI button and WhatsApp button now sit on opposite sides, so on phones the AI button no longer needs to stack above WhatsApp
 (function fixLauncher(n){

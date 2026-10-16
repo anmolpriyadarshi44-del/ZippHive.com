@@ -340,7 +340,7 @@ function dashboard() {
   const kpi = (cls, f, num, label, sub = "") => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
   return `
   <header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span><span class="live"><i></i>Live</span>
-    <span class="sp"></span><a class="btn sm ghost" href="/slots.html">📅 Time slots</a><a class="btn sm ghost" href="/pricing.html">💰 Prices</a><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
+    <span class="sp"></span><a class="btn sm ghost" href="/slots.html">📅 Time slots</a><a class="btn sm ghost" href="/pricing.html">💰 Prices</a><a class="btn sm ghost" href="/areas.html">🗺️ Service area</a><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
   <div class="wrap">
     <div class="kpis">
       ${kpi("k-new", "action", c.new, "New bookings")}

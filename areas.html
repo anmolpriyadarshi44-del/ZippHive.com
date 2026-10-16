@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#053E40" />
+<title>ZippHive Service Area</title>
+<link rel="icon" href="/zh-icon.png" />
+<script src="/zipphive-config.js?v=15"></script>
+<link rel="stylesheet" href="/zh-ops.css?v=15" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+.wrap{max-width:1100px}
+.embed header.top{display:none}
+.embed .wrap{padding-top:8px}
+.ro{background:var(--ylt);color:#7A5A00;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card h2{margin:0 0 4px;font-size:18px}
+.card p.muted{margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--tint);color:var(--dark);border-radius:999px;padding:4px 6px 4px 12px;font-weight:700;font-size:13.5px}
+.chip.b{background:var(--redlt);color:var(--red)}
+.chip.pf{background:var(--ylt);color:#7A5A00}
+.chip button{border:0;background:rgba(0,0,0,.08);color:inherit;width:22px;height:22px;border-radius:50%;cursor:pointer;font-weight:800;line-height:1}
+.addrow{display:flex;gap:8px}
+.addrow textarea{min-height:40px;resize:vertical}
+#map{height:420px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.zone{display:grid;grid-template-columns:1.4fr 2fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.zone input[type=range]{width:100%}
+.zone .km{font-weight:800;color:var(--dark);white-space:nowrap}
+.test{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.res{font-weight:700;padding:6px 10px;border-radius:8px}
+.res.ok{background:var(--greenlt);color:var(--green)}
+.res.no{background:var(--redlt);color:var(--red)}
+.bar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;z-index:5}
+.hint{font-size:12.5px;color:var(--muted)}
+.zpin span{display:block;width:28px;height:32px;background:#FFC93C;border:3px solid #053E40;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);cursor:grab}
+.mapnote{background:#F6FAF9;border:1px dashed var(--line);border-radius:10px;padding:8px 10px;font-size:13px;margin:8px 0}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}.zone{grid-template-columns:1fr 1fr}#map{height:320px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
+<script type="module">
+import { backend, admins, esc, toast } from "/zh-ops.js?v=15";
+import { normalizeArea, checkPin, DEFAULT_AREA } from "/zh-area.js?v=1";
+
+const EMBED = new URLSearchParams(location.search).has("embed");
+if (EMBED) document.documentElement.classList.add("embed");
+const S = { be: null, user: undefined, ok: false, a: null, dirty: false, saving: false, adding: false, test: "" };
+const app = document.getElementById("app");
+const isAdmin = () => S.user && admins().includes(S.user.email);
+const pinsIn = (txt) => (String(txt).match(/\d+/g) || []);
+let map = null, layers = [];
+
+function chipList(list, kind) {
+  if (!list.length) return `<span class="hint">None yet</span>`;
+  return list.map((p, i) => `<span class="chip ${kind === "blocked" ? "b" : kind === "prefixes" ? "pf" : ""}">${kind === "prefixes" ? esc(p) + "xxx" : esc(p)}${isAdmin() ? `<button data-act="rm" data-k="${kind}" data-i="${i}" aria-label="Remove ${esc(p)}">×</button>` : ""}</span>`).join("");
+}
+function zonesHtml() {
+  const ro = isAdmin() ? "" : "disabled";
+  if (!S.a.zones.length) return `<p class="hint">No map zones – “Use my location” on the website will ask customers for their pincode instead.</p>`;
+  return S.a.zones.map((z, i) => `<div class="zone" data-z="${i}">
+    <input class="in" data-zk="name" value="${esc(z.name)}" ${ro} aria-label="Zone name">
+    <input type="range" min="1" max="50" step="0.5" data-zk="km" value="${z.km}" ${ro} aria-label="Radius">
+    <span class="km">${z.km} km</span>
+    ${isAdmin() ? `<button class="btn sm r" data-act="rmzone" data-i="${i}">✕</button>` : "<span></span>"}</div>`).join("");
+}
+function testHtml() {
+  if (!S.test) return "";
+  const r = checkPin(S.a, S.test);
+  if (r.reason === "format") return `<span class="res no">Enter 6 digits</span>`;
+  return r.ok ? `<span class="res ok">✅ ${esc(S.test)} is serviceable${r.how === "prefix" ? " (by prefix rule)" : ""}</span>` : `<span class="res no">❌ ${esc(S.test)} is not served${r.reason === "blocked" ? " (blocked)" : ""}</span>`;
+}
+function render() {
+  const head = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Service area</span><span class="sp"></span>
+    ${S.user ? `<a class="btn sm ghost" href="/manager.html">← Dashboard</a><button class="btn sm ghost" data-act="signout">Sign out</button>` : ""}</header>`;
+  if (!S.be) { app.innerHTML = head + `<div class="card login"><h2>Not configured</h2></div>`; return; }
+  if (S.user === undefined) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading…</div>`; return; }
+  if (!S.user) { app.innerHTML = head + `<div class="card login"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`; return; }
+  if (!S.ok) { app.innerHTML = head + `<div class="card login"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive admin or store manager.</p></div>`; return; }
+  if (!S.a) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading service area…</div>`; return; }
+  const ro = isAdmin() ? "" : "disabled";
+  if (map) { try { map.stop(); map.off(); map.remove(); } catch (e) {} map = null; layers = []; }
+  app.innerHTML = head + `<div class="wrap">
+    <h1 style="margin:6px 0 2px">Serviceable area</h1>
+    <p class="muted" style="margin:0 0 12px">Customers can only book when their <b>pincode</b> is served here (or, if they tap “Use my location”, when they are inside a <b>map zone</b>). The AI assistant and the pincode checker on the website use the same list.</p>
+    ${isAdmin() ? "" : `<div class="ro">View only – only the admin (${esc(admins()[0])}) can change the service area.</div>`}
+    <div class="card"><div class="test"><b>Test a pincode</b><input class="in" id="tPin" inputmode="numeric" maxlength="6" placeholder="e.g. 800001" value="${esc(S.test)}" style="width:150px"><span id="tRes">${testHtml()}</span>
+      <span style="flex:1"></span><label class="hint">City name shown to customers <input class="in" data-s="city" value="${esc(S.a.city)}" ${ro} style="width:160px;display:inline-block;margin-left:6px"></label></div></div>
+    <div class="grid2">
+      <div class="card"><h2>📮 Serviceable pincodes (${S.a.pins.length})</h2><p class="muted">Exact pincodes you serve. Paste many at once – separated by comma, space or new line.</p>
+        <div class="chips">${chipList(S.a.pins, "pins")}</div>
+        ${isAdmin() ? `<div class="addrow"><textarea class="in" id="addPins" rows="1" placeholder="800001, 800004, 800020"></textarea><button class="btn" data-act="add" data-k="pins">Add</button></div>` : ""}</div>
+      <div class="card"><h2>🔢 Whole pincode ranges (${S.a.prefixes.length})</h2><p class="muted">Serve every pincode starting with these digits. “800” = all 800xxx (Patna city). Leave empty to use only the exact list.</p>
+        <div class="chips">${chipList(S.a.prefixes, "prefixes")}</div>
+        ${isAdmin() ? `<div class="addrow"><input class="in" id="addPrefix" inputmode="numeric" maxlength="5" placeholder="e.g. 800"><button class="btn" data-act="add" data-k="prefixes">Add</button></div>` : ""}
+        <h2 style="margin-top:14px">⛔ Blocked pincodes (${S.a.blocked.length})</h2><p class="muted">Never served, even if inside a range above.</p>
+        <div class="chips">${chipList(S.a.blocked, "blocked")}</div>
+        ${isAdmin() ? `<div class="addrow"><textarea class="in" id="addBlocked" rows="1" placeholder="e.g. 800013"></textarea><button class="btn r" data-act="add" data-k="blocked">Block</button></div>` : ""}</div>
+    </div>
+    <div class="card"><h2>🗺️ Service map zones</h2>
+      <p class="muted">Used when a customer taps “📍 Use my location”. They can book if they are inside any circle. ${isAdmin() ? "Drag a centre pin to move a zone, use the slider to change its radius." : ""}</p>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="checkbox" data-s="allowGps" ${S.a.allowGps ? "checked" : ""} ${ro}> Allow “Use my location” check on the website</label>
+      ${isAdmin() ? `<div class="row" style="margin-bottom:6px"><button class="btn sm ${S.adding ? "y" : "o"}" data-act="addzone">${S.adding ? "👆 Now click on the map…" : "+ Add zone on map"}</button><button class="btn sm g" data-act="fit">Fit all zones</button></div>` : ""}
+      <div id="map"></div>
+      <div class="mapnote" id="mapFail" hidden>The map couldn't load (no internet?) – zones below can still be edited.</div>
+      <div id="zones">${zonesHtml()}</div></div>
+    ${isAdmin() ? `<div class="row"><button class="btn link" data-act="reset">Reset to default (Patna 800xxx + 22 km zone)</button></div>` : ""}
+  </div>
+  ${isAdmin() ? `<div class="bar"><span class="muted" id="dstate">${S.dirty ? "Unsaved changes" : "All changes saved"}</span><a class="btn sm g" href="/#book" target="_blank" rel="noopener">View booking flow</a><button class="btn" data-act="save" ${S.dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "💾 Save & publish"}</button></div>` : ""}`;
+  drawMap();
+}
+
+function drawMap() {
+  const el = document.getElementById("map");
+  if (!window.L) { el.hidden = true; document.getElementById("mapFail").hidden = false; return; }
+  const z0 = S.a.zones[0] || DEFAULT_AREA.zones[0];
+  map = L.map(el, { zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView([z0.lat, z0.lng], 11);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+  drawZones(true);
+  map.on("click", (e) => {
+    if (!S.adding || !isAdmin()) return;
+    S.a.zones.push({ name: "Zone " + (S.a.zones.length + 1), lat: +e.latlng.lat.toFixed(5), lng: +e.latlng.lng.toFixed(5), km: 5 });
+    S.adding = false; dirty(); render();
+  });
+}
+const PIN = window.L ? L.divIcon({ className: "zpin", html: "<span></span>", iconSize: [28, 32], iconAnchor: [14, 30] }) : null;
+function drawZones(fit) {
+  if (!map) return;
+  layers.forEach((l) => l.remove()); layers = [];
+  S.a.zones.forEach((z, i) => {
+    const c = L.circle([z.lat, z.lng], { radius: z.km * 1000, color: "#0B6E6E", weight: 2, fillColor: "#0B6E6E", fillOpacity: 0.12 }).addTo(map).bindTooltip(`${z.name} · ${z.km} km`);
+    const m = L.marker([z.lat, z.lng], { draggable: !!isAdmin(), title: z.name, icon: PIN }).addTo(map);
+    m.on("drag", (e) => c.setLatLng(e.latlng));
+    m.on("dragend", (e) => { const p = e.target.getLatLng(); z.lat = +p.lat.toFixed(5); z.lng = +p.lng.toFixed(5); dirty(); });
+    layers.push(c, m);
+  });
+  if (fit && S.a.zones.length) map.fitBounds(L.featureGroup(layers.filter((l) => l.getBounds)).getBounds().pad(0.1), { animate: false });
+}
+const dirty = () => { S.dirty = true; const b = app.querySelector("[data-act=save]"); if (b) b.disabled = false; const d = document.getElementById("dstate"); if (d) d.textContent = "Unsaved changes"; };
+
+app.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const a = el.dataset.act;
+  if (a === "signin") return S.be.signIn();
+  if (a === "signout") return S.be.signOut();
+  if (!isAdmin() && a !== "fit") return;
+  if (a === "add") {
+    const k = el.dataset.k, inp = el.previousElementSibling, vals = pinsIn(inp.value);
+    const okLen = k === "prefixes" ? (p) => p.length >= 2 && p.length <= 5 : (p) => p.length === 6;
+    const bad = vals.filter((p) => !okLen(p));
+    S.a[k] = [...new Set([...S.a[k], ...vals.filter(okLen)])].sort();
+    if (k === "pins") S.a.blocked = S.a.blocked.filter((p) => !vals.includes(p));
+    if (k === "blocked") S.a.pins = S.a.pins.filter((p) => !vals.includes(p));
+    if (bad.length) toast(`Skipped ${bad.join(", ")} – ${k === "prefixes" ? "use 2–5 digits" : "pincodes need 6 digits"}`, true);
+    dirty(); return render();
+  }
+  if (a === "rm") { S.a[el.dataset.k].splice(+el.dataset.i, 1); dirty(); return render(); }
+  if (a === "addzone") { S.adding = !S.adding; return render(); }
+  if (a === "fit") return drawZones(true);
+  if (a === "rmzone") { S.a.zones.splice(+el.dataset.i, 1); dirty(); return render(); }
+  if (a === "reset") { if (!confirm("Replace the current service area with the default (all 800xxx pincodes + 22 km around Patna)?")) return; S.a = normalizeArea(null); dirty(); return render(); }
+  if (a === "save") {
+    if (!S.a.pins.length && !S.a.prefixes.length && !(S.a.allowGps && S.a.zones.length)) return toast("Add at least one pincode, range or map zone – otherwise nobody can book.", true);
+    S.saving = true; render();
+    try { const { updatedAt, ...clean } = normalizeArea(S.a); await S.be.saveServiceArea(clean); S.dirty = false; toast("Saved – live on the website"); }
+    catch (x) { toast("Save failed: " + (x.message || x), true); }
+    S.saving = false; render();
+  }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.id === "tPin") { S.test = t.value.replace(/\D/g, "").slice(0, 6); t.value = S.test; document.getElementById("tRes").innerHTML = testHtml(); return; }
+  if (!isAdmin()) return;
+  if (t.dataset.s === "city") { S.a.city = t.value; return dirty(); }
+  if (t.dataset.s === "allowGps") { S.a.allowGps = t.checked; return dirty(); }
+  const row = t.closest("[data-z]");
+  if (row) {
+    const z = S.a.zones[+row.dataset.z];
+    if (t.dataset.zk === "name") z.name = t.value;
+    if (t.dataset.zk === "km") { z.km = +t.value; row.querySelector(".km").textContent = z.km + " km"; drawZones(false); }
+    dirty();
+  }
+});
+app.addEventListener("change", (e) => { if (e.target.type === "checkbox") e.target.dispatchEvent(new Event("input", { bubbles: true })); });
+app.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches(".addrow .in")) { e.preventDefault(); e.target.nextElementSibling.click(); } });
+window.addEventListener("beforeunload", (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+S.be = await backend();
+render();
+if (S.be) S.be.onUser(async (u) => {
+  S.user = u; S.ok = false;
+  if (u) {
+    S.ok = await S.be.isManager(u.email);
+    if (S.ok) S.a = normalizeArea(await S.be.getServiceArea().catch(() => null));
+  }
+  render();
+});
+</script>
+</body>
+</html>
