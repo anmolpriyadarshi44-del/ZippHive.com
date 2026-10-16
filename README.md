@@ -175,3 +175,12 @@ The chat assistant now answers more than prices, in **English, हिंदी a
 - **Diagnosis** – yes/no troubleshooting with safe self-checks and the likely fault, then the right service + live price + "Book a slot": AC not cooling, AC water leak, washing machine, phone not charging / battery / not turning on / water damage, MCB tripping, fan slow, drain blocked, geyser not heating. Safety advice comes first (swollen battery, sparks, water-damaged phone).
 - General: technician verification, how ZippHive works, which services we offer.
 Phone model + problem (e.g. "iPhone 13 screen broken") still goes to the instant price engine. All texts live in `zh-assistant-kb.js` (topics `T`, diagnosis flows `F`) – edit there to change times or wording.
+
+## Serviceable area – pincodes & map (`/areas.html`, Admin → 🗺️ Service area)
+The website no longer lists localities. Bookings are accepted by **pincode** (or GPS inside a map zone), managed by the admin:
+- **Serviceable pincodes** – exact 6-digit pincodes (paste many at once).
+- **Whole pincode ranges** – e.g. `800` serves every 800xxx pincode. Remove it to serve only the exact list.
+- **Blocked pincodes** – never served, even inside a range.
+- **Map zones** – circles (centre + radius km) used when a customer taps “📍 Use my location”. Add on the map, drag to move, slider for radius.
+- **Test a pincode** box to check any pincode before publishing.
+Saved to Firestore `content/serviceArea` (public read, admin write – existing rules). Used by the booking flow, the homepage/cleaning “Do we serve your area?” checker, the AI assistant (“800001 me aate ho?”) and the assistant's booking form (pincode field). Default until first save: all 800xxx + six nearby 801xxx pincodes + a 22 km zone around Patna (same as before). Shared code: `zh-area.js`.

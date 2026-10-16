@@ -11,7 +11,7 @@
   const PHONE = "+91 92204 00950";
 
   // ---------- language
-  const HN_WORDS = /\b(hai|hain|kya|kyu|kyon|kaise|kaisa|kitna|kitne|kitni|kab|nahi|nhi|nahin|mera|meri|mere|apna|karna|karte|karta|karti|krna|kr|raha|rahi|rahe|hota|hoti|chahiye|chaiye|bhai|ji|lagta|lagega|lagenge|kaun|kon|batao|bataiye|btao|kijiye|karo|krdo|wala|wali|thanda|garam|pani|paani|bijli|pankha|safai|jaldi|der|samay|ghanta|ghante|kaam|aur|bhi|toh|se|ka|ki|ke|mein|pe|gaya|gayi|gaye|hua|hui|jata|jati|lag|kuch|abhi|bahut|thoda|kyun|sahi|accha|acha)\b/g;
+  const HN_WORDS = /\b(hai|hain|kya|kyu|kyon|kaise|kaisa|kitna|kitne|kitni|kab|nahi|nhi|nahin|mera|meri|mere|apna|karna|karte|karta|karti|krna|kr|raha|rahi|rahe|hota|hoti|chahiye|chaiye|bhai|ji|lagta|lagega|lagenge|kaun|kon|batao|bataiye|btao|kijiye|karo|krdo|wala|wali|thanda|garam|pani|paani|bijli|pankha|safai|jaldi|der|samay|ghanta|ghante|kaam|aur|bhi|toh|se|ka|ki|ke|mein|pe|gaya|gayi|gaye|hua|hui|jata|jati|lag|kuch|abhi|bahut|thoda|kyun|sahi|accha|acha|aap|aapka|aapke|aate|aati|hum|mujhe|humko)\b/g;
   function detectLang(raw) {
     if (/[ऀ-ॿ]/.test(raw)) return "hi";
     const m = (" " + raw.toLowerCase() + " ").match(HN_WORDS);
@@ -365,6 +365,21 @@
         const r = nodeReply(f, YES.test(raw) ? node.y : node.n, l2);
         return out(r.reply, r.kb);
       }
+    }
+    // 1b) service area – pincode check (list managed by admin on /areas.html via window.ZHArea)
+    const pinM = raw.match(/(?:^|\D)([1-9]\d{5})(?!\d)/);
+    const areaQ = /service ?area|serviceable|do you (serve|come|cover)|which area|kaun ?se area|kis area|area me|area mein|location|aate ho|aaoge|available (in|at)|pin ?code|pincode|my area|mere area/.test(low) || /पिन|पिनकोड|इलाक|एरिया|क्षेत्र|आते हैं|आएंगे/.test(raw);
+    if (pinM && (areaQ || raw.replace(/\D/g, "").length === 6 && raw.length <= 30)) {
+      const pin = pinM[1], A = window.ZHArea, ok = A && A.okPin(pin);
+      const text = ok
+        ? tx(L(`✅ Yes! We serve pincode **${pin}**. Pick a service and time slot to book.`, `✅ Haan! Hum pincode **${pin}** me service dete hain. Service aur time slot chun ke book karein.`, `✅ हाँ! हम पिनकोड **${pin}** में सेवा देते हैं। सेवा और समय चुनकर बुक करें।`), lang)
+        : tx(L(`❌ Sorry, we don't serve pincode **${pin}** yet. We're adding new areas every week – tap below and we'll tell you when we start there.`, `❌ Maaf kijiye, abhi pincode **${pin}** me service nahi hai. Hum har hafte naye area jod rahe hain – neeche tap karein, shuru hote hi batayenge.`, `❌ माफ़ कीजिए, अभी पिनकोड **${pin}** में सेवा नहीं है। हम हर हफ़्ते नए इलाके जोड़ रहे हैं – नीचे टैप करें, शुरू होते ही बताएँगे।`), lang);
+      const chips = ok ? [sayChip(tx(L("📱 Phone repair price", "📱 Phone repair price", "📱 फ़ोन रिपेयर कीमत"), lang), "Phone repair price"), diagChip(lang), waChip(lang, `Hi ZippHive, I want to book a service. Pincode: ${pin}`)]
+                       : [waChip(lang, `Hi ZippHive, please tell me when you start serving pincode ${pin}.`)];
+      return out({ intent: "kb-area", text, chips });
+    }
+    if (areaQ && !/price|kitna|cost|कीमत/.test(low + raw)) {
+      return out({ intent: "kb-area-ask", text: tx(L("📍 We serve selected pincodes in Patna. Send me your **6-digit pincode** and I'll check it right away.", "📍 Hum Patna ke chune hue pincode me service dete hain. Apna **6-digit pincode** bhejiye, main turant check kar deta hoon.", "📍 हम पटना के चुने हुए पिनकोड में सेवा देते हैं। अपना **6 अंकों का पिनकोड** भेजिए, मैं तुरंत जाँच देता हूँ।"), lang), chips: [waChip(lang, "Hi ZippHive, do you serve my area? Pincode:")] });
     }
     // 2) explicit "diagnose" menu
     if (/^\W*(diagnose( a| my)? problem|diagnose|diagnosis|problem diagnose karein|problem batao|troubleshoot|समस्या पहचानें|समस्या पहचानो)\W*$/i.test(raw)) return out(diagMenu(lang));

@@ -166,6 +166,12 @@ async function firebaseBackend(conf) {
       return d.exists() ? d.data() : null;
     },
     saveServiceCatalog: (c) => fs.setDoc(fs.doc(db, "content", "services"), { ...c, updatedAt: Date.now() }),
+    // serviceable area (content/serviceArea): pincodes, pincode prefixes and map zones – edited on /areas.html
+    getServiceArea: async () => {
+      const d = await fs.getDoc(fs.doc(db, "content", "serviceArea"));
+      return d.exists() ? d.data() : null;
+    },
+    saveServiceArea: (c) => fs.setDoc(fs.doc(db, "content", "serviceArea"), { ...c, updatedAt: Date.now() }),
     getPriceOverrides: async () => {
       const d = await fs.getDoc(fs.doc(db, "prices", "overrides"));
       return d.exists() ? d.data() : {};
@@ -255,6 +261,8 @@ function mockBackend() {
     getSlotConfig: async () => get("zhmock:slots", null),
     getServiceCatalog: async () => get("zhmock:services", null),
     saveServiceCatalog: async (c) => put("zhmock:services", { ...c, updatedAt: Date.now() }),
+    getServiceArea: async () => get("zhmock:serviceArea", null),
+    saveServiceArea: async (c) => put("zhmock:serviceArea", { ...c, updatedAt: Date.now() }),
     getPriceOverrides: async () => get("zhmock:overrides", {}),
     saveSlotConfig: async (c) => put("zhmock:slots", { ...c, updatedAt: Date.now() }),
     getSlotUse: async (dates) => { const u = get("zhmock:slotUse", {}); return Object.fromEntries(dates.map((d) => [d, u[d] || {}])); },

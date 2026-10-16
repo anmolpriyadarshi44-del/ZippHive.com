@@ -4,27 +4,13 @@
 import { backend, trackUrl } from "/zh-ops.js?v=15";
 import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=23";
 import "/zh-slots.js?v=15";
+import { checkPin, checkGeo } from "/zh-area.js?v=1";
 
 const root = document.getElementById("zhBook");
-const AREAS = ["Boring Road", "Kankarbagh", "Rajendra Nagar", "Patliputra Colony", "Bailey Road", "Fraser Road", "Ashiana Nagar", "Danapur",
-  "Raja Bazar", "Anisabad", "Gardanibagh", "Saguna More", "Kurji", "Gandhi Maidan", "Kidwaipuri", "Shri Krishna Puri", "Boring Canal Road",
-  "Rukanpura", "Shastri Nagar", "Punaichak", "Lohanipur", "Kadamkuan", "Patna City", "Bahadurpur", "Bypass", "Jakkanpur", "Mithapur",
-  "Phulwari Sharif", "Khagaul", "Digha", "Rajiv Nagar", "Indrapuri", "Exhibition Road", "Bankipur", "Agam Kuan", "Sampatchak", "Beur"];
-// Service area: Patna only. A pincode starting 800 (Patna) or one of these nearby 801xxx pincodes, or a shared GPS location
-// within RADIUS_KM of Patna centre. Edit here to add cities later.
-const SERVICE_AREA = {
-  city: "Patna",
-  pinPrefixes: ["800"],
-  extraPins: ["801103", "801104", "801105", "801503", "801505", "801506"],
-  centre: { lat: 25.5941, lng: 85.1376 },
-  radiusKm: 22,
-};
-const pinOk = (p) => /^\d{6}$/.test(p) && (SERVICE_AREA.pinPrefixes.some((x) => p.startsWith(x)) || SERVICE_AREA.extraPins.includes(p));
-const kmFrom = (a, b) => {
-  const r = (d) => (d * Math.PI) / 180, R = 6371;
-  const x = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(x));
-};
+// Service area comes from Admin → Service area (/areas.html, content/serviceArea) via zh-area.js:
+// served pincodes / pincode prefixes, blocked pincodes, and map zones for "Use my location".
+const AREA = () => window.ZHArea.cfg;
+const pinOk = (p) => checkPin(AREA(), p).ok;
 const NOTIFY = `https://wa.me/919220400950?text=${encodeURIComponent("Hi ZippHive, please tell me when you start in my city: ")}`;
 const ISSUE_ICON = { 1: "📱", 2: "📖", 3: "🪟", 4: "🔗", 5: "🔋", 6: "✨", 7: "🔌", 8: "📷", 9: "🔄", 10: "💥", 11: "💧", 12: "🔊", 13: "🎙️", 14: "🙂", 15: "👆", 16: "📶", 17: "🔘", 18: "📞", 19: "📳", 20: "🛠️", 21: "🧩", 22: "🛡️" };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -415,24 +401,24 @@ function vSlot() {
 // where the customer is: ok / outside / unknown
 function locState() {
   if (S.pin.length === 6) return pinOk(S.pin) ? "ok" : "out";
-  if (S.geo) return S.geo.km <= SERVICE_AREA.radiusKm ? "ok" : "out";
+  if (S.geo && S.geo.lat != null) return S.geo.ok ? "ok" : "out";
   return "unknown";
 }
 function locHtml() {
   const st = locState();
   if (S.geo?.busy) return `<p class="zb-sub" style="margin:6px 0 0">Finding your location…</p>`;
-  if (st === "ok") return `<p style="margin:6px 0 0;color:#1E8E3E;font-weight:700;font-size:13.5px">✅ Great – we serve your area in ${SERVICE_AREA.city}${S.geo && S.pin.length !== 6 ? ` (${S.geo.km.toFixed(1)} km from the city centre)` : ""}.</p>`;
+  if (st === "ok") return `<p style="margin:6px 0 0;color:#1E8E3E;font-weight:700;font-size:13.5px">✅ Great – we serve your area${S.geo && S.pin.length !== 6 && S.geo.zone ? ` (${esc(S.geo.zone.name)} zone)` : ""}.</p>`;
   if (st === "out") return `<div style="margin:8px 0 0;background:#FDECEC;border-radius:12px;padding:10px 12px;color:#9C0006;font-size:13.5px">
-    <b>Sorry, ZippHive is available only in ${SERVICE_AREA.city} right now.</b><br>${S.pin.length === 6 ? `Pincode ${esc(S.pin)} is outside our service area.` : `Your location is ${S.geo.km.toFixed(0)} km from ${SERVICE_AREA.city}.`}
+    <b>Sorry, we don't serve this area yet.</b><br>${S.pin.length === 6 ? `Pincode ${esc(S.pin)} is outside our service area.` : S.geo.km != null ? `Your location is about ${S.geo.km.toFixed(0)} km from our nearest service zone.` : "Please enter your pincode instead."}
     We're expanding soon – <a href="${NOTIFY}" target="_blank" rel="noopener" style="color:#9C0006;font-weight:700">get notified on WhatsApp</a>.</div>`;
   if (S.geo?.error) return `<p class="zb-sub" style="margin:6px 0 0">${esc(S.geo.error)} – please enter your pincode.</p>`;
-  return `<p class="zb-sub" style="margin:6px 0 0">We currently serve ${SERVICE_AREA.city} only.</p>`;
+  return `<p class="zb-sub" style="margin:6px 0 0">Enter your pincode to check we serve your area${AREA().city ? ` in ${esc(AREA().city)}` : ""}.</p>`;
 }
 function vDetails() {
   return `<h3>Your details</h3><p class="zb-sub">📅 ${esc(picker.value || "")}</p>
     <label for="zbN">Your name *</label><input id="zbN" data-f="name" value="${esc(S.name)}" autocomplete="name" placeholder="e.g. Rahul Kumar">
     <label for="zbM">Mobile number *</label><input id="zbM" data-f="mobile" value="${esc(S.mobile)}" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number">
-    <label for="zbA">Area / locality *</label><input id="zbA" data-f="area" value="${esc(S.area)}" list="zbAreas" placeholder="e.g. Boring Road"><datalist id="zbAreas">${AREAS.map((a) => `<option value="${a}">`).join("")}</datalist>
+    <label for="zbA">Area / locality *</label><input id="zbA" data-f="area" value="${esc(S.area)}" autocomplete="address-level3" placeholder="Your locality / colony">
     <label for="zbP">Pincode *</label>
     <div style="display:flex;gap:8px"><input id="zbP" data-f="pin" value="${esc(S.pin)}" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 800001" style="flex:1">
       <button class="zb-add" type="button" data-a="geo" style="white-space:nowrap">📍 Use my location</button></div>
@@ -599,7 +585,7 @@ function useLocation() {
   navigator.geolocation.getCurrentPosition(
     (p) => {
       const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-      S.geo = { ...pos, km: kmFrom(SERVICE_AREA.centre, pos) };
+      S.geo = { ...pos, ...checkGeo(AREA(), pos) };
       render();
     },
     () => { S.geo = { error: "Couldn't get your location" }; render(); },
@@ -613,7 +599,7 @@ async function confirm() {
   if (!/^[6-9]\d{9}$/.test(S.mobile)) { S.err = "Please enter a valid 10-digit mobile number."; return render(); }
   if (S.area.length < 2) { S.err = "Please enter your area."; return render(); }
   const ls = locState();
-  if (ls === "out") { S.err = `Sorry, we only take bookings in ${SERVICE_AREA.city} right now.`; return render(); }
+  if (ls === "out") { S.err = "Sorry, we don't serve this area yet – please check the pincode."; return render(); }
   if (ls !== "ok") { S.err = `Please enter your 6-digit pincode (or tap “Use my location”) so we can check we serve your area.`; return render(); }
   S.busy = true; S.err = ""; render();
   const c = cart();
