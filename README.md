@@ -185,3 +185,11 @@ The website no longer lists localities. Bookings are accepted by **pincode** (or
 - **Map zones** – circles (centre + radius km) used when a customer taps “📍 Use my location”. Search any place or pincode (“Delhi”, “Saket”, “110017”) and add it as a zone or move a zone there; typing a place name in a zone row moves it automatically (📍 Find re-runs it); “My current location” adds a zone where you stand; drag the pin to fine-tune; slider for radius. Place search uses OpenStreetMap Nominatim (India only).
 - **Test a pincode** box to check any pincode before publishing.
 Saved to Firestore `content/serviceArea` (public read, admin write – existing rules). Used by the booking flow, the homepage/cleaning “Do we serve your area?” checker, the AI assistant (“800001 me aate ho?”) and the assistant's booking form (pincode field). Default until first save: all 800xxx + six nearby 801xxx pincodes + a 22 km zone around Patna (same as before). Shared code: `zh-area.js`.
+
+## Store manager dashboard – tracking & date filters (`/manager.html`)
+- **Right now** – live counters for all open jobs (new, need technician, waiting for accept, on the job, unpaid).
+- **Period** – Today · Yesterday · Last 7 days · Last 30 days · This month · Last month · All time · **Custom** (from/to dates). Choice is remembered on this device.
+- **Filter list by** booking date, service (slot) date or completed date.
+- Period KPIs: bookings received, completed, cancelled, collected ₹ (by payment mode), average bill, completion rate – with ▲▼ vs the previous period of the same length. **📊 Report**: bookings by service, technician performance, payments by mode.
+- **Table** view (sortable columns; click a row to open the full job card with all actions) or **Cards** view. A banner warns when open jobs fall outside the chosen dates. Search always looks across all dates.
+- **⬇ Export** downloads the filtered list as a CSV that opens in Excel / Google Sheets.

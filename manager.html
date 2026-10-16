@@ -68,6 +68,55 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 .wr .reasons button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
 .wr .reasons button.on{background:var(--red);border-color:var(--red);color:#fff}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+/* ---- tracking toolbar, KPI groups, table ---- */
+.sec{display:flex;align-items:baseline;gap:10px;margin:2px 0 8px}
+.sec h2{margin:0;font-size:15px;color:var(--deep);letter-spacing:.01em}
+.sec .muted{font-size:12.5px}
+.kpis.live .kpi{border-left-width:5px}
+.kpis.per{grid-template-columns:repeat(6,minmax(0,1fr))}
+.kpis.per .kpi{border-left:0;border-top:4px solid var(--teal);background:linear-gradient(180deg,#fff,#FAFDFC)}
+.kpis.per .kpi.k-done{border-top-color:var(--green)}.kpis.per .kpi.k-can{border-top-color:#B0B8B8}.kpis.per .kpi.k-cash{border-top-color:#7B5CD6}.kpis.per .kpi.k-avg{border-top-color:#E8A317}.kpis.per .kpi.k-rate{border-top-color:#1769AA}
+.kpi .delta{font-size:11.5px;font-weight:700;margin-left:6px}
+.kpi .delta.up{color:var(--green)}.kpi .delta.dn{color:var(--red)}
+.dbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--tint);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 11px;border-radius:8px;font-weight:700;font-size:13px;color:var(--dark);cursor:pointer}
+.seg button.on{background:#fff;color:var(--deep);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dbar input[type=date]{min-height:36px;width:auto;padding:4px 8px}
+.dbar .lbl{font-size:12.5px;font-weight:700;color:var(--muted)}
+.dbar .rng{font-weight:800;color:var(--deep);font-size:13.5px}
+.dbar .sp{flex:1}
+.dbar select.in{width:auto;min-height:36px}
+.hint{background:#FFF6D9;color:#7A5A00;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hint .btn{min-height:28px}
+.tw{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;margin-bottom:12px}
+table.bt{width:100%;border-collapse:collapse;font-size:13.5px;min-width:920px}
+table.bt th{position:sticky;top:0;background:#F3F8F7;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+table.bt th.sorted{color:var(--deep)}
+table.bt td{padding:9px 10px;border-bottom:1px solid #EEF4F3;vertical-align:top}
+table.bt tr.brow{cursor:pointer}
+table.bt tr.brow:hover td{background:#F7FBFA}
+table.bt tr.brow.open td{background:var(--tint)}
+table.bt td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.bt .sub{display:block;color:var(--muted);font-size:12px}
+table.bt td.x{padding:0 10px 10px;background:var(--tint)}
+table.bt td.x .card{margin:0}
+.kpis .kpi{height:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start}
+.layout.wide{grid-template-columns:1fr}
+.layout.wide aside{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.layout.wide aside .card{margin:0}
+table.bt td:first-child{white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.rep{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.rep .card{margin:0}
+.rep h3{margin:0 0 8px;font-size:14px;color:var(--deep)}
+.rl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:13px;align-items:center;margin-bottom:6px}
+.rl .bw{grid-column:1/3;height:6px;border-radius:3px;background:#EEF4F3;overflow:hidden}
+.rl .bw i{display:block;height:100%;background:var(--teal);border-radius:3px}
+.rl b{font-variant-numeric:tabular-nums}
+details.repd summary{cursor:pointer;font-weight:800;color:var(--deep);margin-bottom:10px}
+@media (max-width:1100px){.kpis.per{grid-template-columns:repeat(3,minmax(0,1fr))}.rep{grid-template-columns:1fr}}
+@media (max-width:700px){header.top{overflow-x:auto;flex-wrap:nowrap}header.top .who{display:none}.layout.wide aside{grid-template-columns:1fr}.kpis.live{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpis.per{grid-template-columns:repeat(2,minmax(0,1fr))}.dbar .sp{display:none}}
 @media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:980px){.layout{grid-template-columns:1fr}}
 @media (max-width:700px){.bk{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.bar .in{max-width:none;margin-left:0}}
@@ -79,12 +128,77 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS } from "/zh-ops.js?v=15";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
-const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {}, wr: {} } };
+const LS = (k, d) => { try { const v = localStorage.getItem("zhm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const SAVE = (k, v) => { try { localStorage.setItem("zhm:" + k, JSON.stringify(v)); } catch {} };
+const S = { sheets: new Set(), be: undefined, user: undefined, ok: false, bookings: null, techs: [], managers: [], filter: "action", q: "", draft: { eta: {}, pick: {}, wr: {} },
+  range: LS("range", { preset: "7d", from: "", to: "" }), dateBy: LS("dateBy", "created"), view: LS("view", innerWidth < 700 ? "cards" : "table"),
+  sort: LS("sort", { k: "date", dir: -1 }), open: new Set(), report: LS("report", false) };
 const app = document.getElementById("app");
 let unsub = null;
 
 const isToday = (t) => t && new Date(t).toDateString() === new Date().toDateString();
 const isAdmin = () => S.user && admins().includes(S.user.email);
+
+// ---------- date range ----------
+const DAY = 86400000;
+const sod = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); };
+const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const parseYmd = (s) => { const [y, m, d] = String(s).split("-").map(Number); return y ? new Date(y, m - 1, d).getTime() : NaN; };
+const PRESETS = [["today", "Today"], ["yesterday", "Yesterday"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["month", "This month"], ["lastmonth", "Last month"], ["all", "All time"], ["custom", "Custom"]];
+function rangeOf(r = S.range) {
+  const t0 = sod(Date.now());
+  switch (r.preset) {
+    case "today": return { from: t0, to: t0 + DAY };
+    case "yesterday": return { from: t0 - DAY, to: t0 };
+    case "7d": return { from: t0 - 6 * DAY, to: t0 + DAY };
+    case "30d": return { from: t0 - 29 * DAY, to: t0 + DAY };
+    case "month": { const d = new Date(t0); return { from: new Date(d.getFullYear(), d.getMonth(), 1).getTime(), to: t0 + DAY }; }
+    case "lastmonth": { const d = new Date(t0); return { from: new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime(), to: new Date(d.getFullYear(), d.getMonth(), 1).getTime() }; }
+    case "custom": { const f = parseYmd(r.from), t = parseYmd(r.to); return { from: isNaN(f) ? 0 : f, to: isNaN(t) ? Infinity : t + DAY }; }
+    default: return { from: 0, to: Infinity };
+  }
+}
+// same-length period just before, for ▲▼ comparison
+function prevRange(R) { if (!isFinite(R.to) || !R.from) return null; const len = R.to - R.from; return { from: R.from - len, to: R.from }; }
+const inR = (t, R) => t != null && t >= R.from && t < R.to;
+const fmtD = (t) => new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: new Date(t).getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+function rangeLabel(R) {
+  if (!isFinite(R.to) && !R.from) return "All bookings";
+  if (!isFinite(R.to)) return "From " + fmtD(R.from);
+  const last = R.to - DAY;
+  return R.from === last ? fmtD(R.from) : `${fmtD(R.from || last)} – ${fmtD(last)}`;
+}
+// which date a booking is filtered by
+const serviceDate = (b) => (b.slot && /^\d{4}-\d{2}-\d{2}/.test(b.slot) ? parseYmd(b.slot.slice(0, 10)) : null);
+const dateOf = (b) => S.dateBy === "service" ? serviceDate(b) ?? b.createdAt : S.dateBy === "completed" ? (b.status === "completed" ? b.statusAt : null) : b.createdAt;
+const DATE_BY = { created: "Booking date", service: "Service date", completed: "Completed date" };
+
+// numbers for a period
+function period(R) {
+  const c = { booked: 0, done: 0, cancelled: 0, cash: 0, paidJobs: 0, modes: {}, free: 0, unpaid: 0, svc: {}, tech: {} };
+  for (const b of S.bookings || []) {
+    if (inR(b.createdAt, R)) {
+      c.booked++;
+      const k = b.service || "Other"; (c.svc[k] ||= { n: 0, rev: 0 }).n++;
+    }
+    if (b.status === "completed" && inR(b.statusAt, R)) {
+      c.done++;
+      const t = b.techName || "—"; (c.tech[t] ||= { n: 0, rev: 0 }).n++;
+    }
+    if (b.status === "cancelled" && inR(b.statusAt, R)) c.cancelled++;
+    const p = b.payment;
+    if (p && inR(p.at, R)) {
+      const amt = Number(p.amount) || 0;
+      if (p.status === "paid" && amt > 0) {
+        c.cash += amt; c.paidJobs++; c.modes[p.mode || "Other"] = (c.modes[p.mode || "Other"] || 0) + amt;
+        (c.svc[b.service || "Other"] ||= { n: 0, rev: 0 }).rev += amt;
+        (c.tech[b.techName || "—"] ||= { n: 0, rev: 0 }).rev += amt;
+      } else if (p.status === "free" || (p.status === "paid" && !amt)) c.free++;
+      else if (p.status === "not_collected" && b.status !== "cancelled") c.unpaid++;
+    }
+  }
+  return c;
+}
 
 function counts() {
   const c = { new: 0, need: 0, wait: 0, act: 0, done: 0, cash: 0, modes: {}, unpaid: 0, free: 0 };
@@ -129,8 +243,17 @@ function visible() {
       }
     })
     .filter((b) => !q || `${b.code} ${b.name} ${b.mobile} ${b.area} ${b.device || ""} ${b.item || ""} ${b.service || ""} ${b.techName || b.offerName || ""}`.toLowerCase().includes(q))
-    .sort((a, b) => order[stage(a)] - order[stage(b)] || b.createdAt - a.createdAt);
+    .filter((b) => S.q.trim() || inR(dateOf(b), rangeOf()))
+    .sort((a, b) => S.view === "table" ? sortCmp(a, b) : order[stage(a)] - order[stage(b)] || b.createdAt - a.createdAt);
 }
+const SORTS = {
+  code: (b) => b.code || "", date: (b) => dateOf(b) || 0, cust: (b) => (b.name || "").toLowerCase(), svc: (b) => `${b.service || ""} ${b.item || ""}`.toLowerCase(),
+  area: (b) => (b.area || "").toLowerCase(), tech: (b) => (b.techName || b.offerName || "").toLowerCase(), status: (b) => FLOW.indexOf(b.status) + (b.status === "cancelled" ? 99 : 0),
+  amt: (b) => Number(b.payment?.amount ?? b.price) || 0,
+};
+function sortCmp(a, b) { const f = SORTS[S.sort.k] || SORTS.date, x = f(a), y = f(b); return (x > y ? 1 : x < y ? -1 : 0) * S.sort.dir || b.createdAt - a.createdAt; }
+// open jobs that the current date filter hides
+const hiddenOpen = () => S.q.trim() ? 0 : (S.bookings || []).filter((b) => !CLOSED.includes(b.status) && !inR(dateOf(b), rangeOf())).length;
 
 function techOptions(b) {
   const list = S.techs.filter((t) => t.active !== false).map((t) => ({ t, load: techLoad(t.email) }));
@@ -329,34 +452,120 @@ function managerPanel() {
     </div></div>`;
 }
 
+const STAGE_DOT = { new: "#FFC72C", unassigned: "#C62828", declined: "#C62828", waiting: "#E8A317", active: "#0B7F7D", done: "#1E8E3E", cancelled: "#B0B8B8" };
+function tableView(v) {
+  const th = (k, label, cls = "") => `<th class="${cls} ${S.sort.k === k ? "sorted" : ""}" data-act="sort" data-k="${k}">${label}${S.sort.k === k ? (S.sort.dir < 0 ? " ▾" : " ▴") : ""}</th>`;
+  const rows = v.map((b) => {
+    const st = stage(b), pi = payInfo(b), sd = serviceDate(b), open = S.open.has(b.id);
+    const amt = pi.state === "paid" ? rupees(pi.amount) : b.price ? rupees(b.price) : "—";
+    return `<tr class="brow ${open ? "open" : ""}" data-act="row" data-id="${b.id}">
+      <td><b>${esc(b.code)}</b>${isWarranty(b) ? `<span class="sub">🛡️ warranty</span>` : ""}</td>
+      <td>${new Date(b.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}<span class="sub">${new Date(b.createdAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span></td>
+      <td>${sd ? fmtD(sd) : "—"}<span class="sub">${esc((b.time || "").replace(/^[A-Za-z]{3}, \d+ [A-Za-z]{3}, /, ""))}</span></td>
+      <td><b>${esc(b.name)}</b><span class="sub">${esc(b.mobile)}</span></td>
+      <td>${esc(b.device ? b.device : b.service || "")}<span class="sub">${esc(b.item || "")}</span></td>
+      <td>${esc(b.area || "")}</td>
+      <td>${esc(b.techName || b.offerName || "—")}${st === "waiting" ? `<span class="sub">awaiting accept</span>` : ""}</td>
+      <td><span class="dot" style="background:${STAGE_DOT[st] || "#999"}"></span>${esc(STATUS[b.status] || b.status)}${needsAction(b) ? `<span class="sub" style="color:var(--red);font-weight:700">needs action</span>` : ""}</td>
+      <td class="num"><b>${amt}</b><span class="sub">${pi.state === "paid" ? esc(pi.mode) : pi.state === "unpaid" ? `<span style="color:var(--red)">unpaid</span>` : pi.state === "free" ? "no charge" : b.status === "completed" ? "not recorded" : "quote"}</span></td>
+    </tr>${open ? `<tr><td class="x" colspan="9">${card(b)}</td></tr>` : ""}`;
+  }).join("");
+  return `<div class="tw"><table class="bt"><thead><tr>${th("code", "Booking")}${th("date", "Booked")}<th>Service date</th>${th("cust", "Customer")}${th("svc", "Service")}${th("area", "Area")}${th("tech", "Technician")}${th("status", "Status")}${th("amt", "Amount", "num")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function reportView(P) {
+  const list = (obj, val, fmt) => {
+    const e = Object.entries(obj).filter(([, x]) => val(x) > 0).sort((a, b) => val(b[1]) - val(a[1])).slice(0, 8), max = Math.max(1, ...e.map(([, x]) => val(x)));
+    return e.length ? e.map(([k, x]) => `<div class="rl"><span>${esc(k)}</span><b>${fmt(x)}</b><span class="bw"><i style="width:${(val(x) / max) * 100}%"></i></span></div>`).join("") : `<p class="muted">No data in this period.</p>`;
+  };
+  return `<div class="rep">
+    <div class="card"><h3>Bookings by service</h3>${list(P.svc, (x) => x.n, (x) => `${x.n}${x.rev ? ` · ${rupees(x.rev)}` : ""}`)}</div>
+    <div class="card"><h3>Technician performance</h3>${list(P.tech, (x) => x.n, (x) => `${x.n} done${x.rev ? ` · ${rupees(x.rev)}` : ""}`)}</div>
+    <div class="card"><h3>Payments received</h3>${list(P.modes, (x) => x, (x) => rupees(x))}${P.free || P.unpaid ? `<p class="muted" style="margin:6px 0 0">${P.free ? `${P.free} no-charge` : ""}${P.free && P.unpaid ? " · " : ""}${P.unpaid ? `<b style="color:var(--red)">${P.unpaid} not collected</b>` : ""}</p>` : ""}</div>
+  </div>`;
+}
+function exportCsv(v) {
+  const head = ["Booking", "Booked on", "Service date / slot", "Customer", "Mobile", "Area", "Service", "Device", "Item", "Problem", "Technician", "Status", "Quoted ₹", "Paid ₹", "Payment mode", "Payment status", "Completed on", "Warranty"];
+  const rows = v.map((b) => { const pi = payInfo(b); return [b.code, new Date(b.createdAt).toLocaleString("en-IN"), b.time || "", b.name, b.mobile, b.area, b.service, b.device || "", b.item || "", b.problem || "", b.techName || b.offerName || "", STATUS[b.status] || b.status, b.price || "", pi.state === "paid" ? pi.amount : "", pi.mode || "", pi.state === "none" ? "" : pi.state, b.status === "completed" ? new Date(b.statusAt).toLocaleString("en-IN") : "", isWarranty(b) ? (b.warranty?.claimId || "yes") : ""]; });
+  const csv = "﻿" + [head, ...rows].map((r) => r.map((x) => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const R = rangeOf();
+  a.download = `ZippHive-bookings-${R.from ? ymd(R.from) : "all"}${isFinite(R.to) ? "_to_" + ymd(R.to - DAY) : ""}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 function dashboard() {
   const c = counts();
+  const R = rangeOf(), P = period(R), PR = prevRange(R), PP = PR ? period(PR) : null;
   const v = visible();
+  const inRange = (b) => S.q.trim() || inR(dateOf(b), R);
   const n = (f) => (S.bookings || []).filter((b) => {
+    if (!inRange(b)) return false;
     const s = stage(b);
-    return f === "action" ? needsAction(b) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : false;
+    return f === "action" ? needsAction(b) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : f === "done" ? s === "done" : f === "cancelled" ? s === "cancelled" : f === "warranty" ? isWarranty(b) && s !== "cancelled" : true;
   }).length;
-  const chip = (f, label, count) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}${count != null ? `<em>${count}</em>` : ""}</button>`;
+  const chip = (f, label) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}<em>${n(f)}</em></button>`;
   const kpi = (cls, f, num, label, sub = "") => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
+  const delta = (now, before, money) => {
+    if (!PP || before == null) return "";
+    if (!before) return now ? `<span class="delta up">new</span>` : "";
+    const d = Math.round(((now - before) / before) * 100);
+    return d ? `<span class="delta ${d > 0 ? "up" : "dn"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}%</span>` : `<span class="delta">=</span>`;
+  };
+  const pk = (cls, f, num, label, sub, d) => `<button class="kpi ${cls}" data-act="filter" data-f="${f}"><b>${num}${d || ""}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
+  const avg = P.paidJobs ? Math.round(P.cash / P.paidJobs) : 0;
+  const rate = P.booked ? Math.round((P.done / P.booked) * 100) : 0;
+  const hid = hiddenOpen();
   return `
   <header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span><span class="live"><i></i>Live</span>
     <span class="sp"></span><a class="btn sm ghost" href="/slots.html">📅 Time slots</a><a class="btn sm ghost" href="/pricing.html">💰 Prices</a><a class="btn sm ghost" href="/areas.html">🗺️ Service area</a><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
   <div class="wrap">
-    <div class="kpis">
-      ${kpi("k-new", "action", c.new, "New bookings")}
+    <div class="sec"><h2>Right now</h2><span class="muted">live – all open jobs</span></div>
+    <div class="kpis live" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+      ${kpi("k-new", "action", c.new, "New bookings", "confirm & assign")}
       ${kpi("k-need", "action", c.need, "Need a technician")}
       ${kpi("k-wait", "waiting", c.wait, "Waiting for accept")}
       ${kpi("k-act", "active", c.act, "On the job")}
-      ${kpi("k-done", "done", c.done, "Completed today")}
-      ${kpi("k-cash", "done", rupees(c.cash), "Collected today", [Object.entries(c.modes).map(([m, v]) => `${m} ${rupees(v)}`).join(" · "), c.unpaid ? `${c.unpaid} unpaid` : "", c.free ? `${c.free} free` : ""].filter(Boolean).join(" · "))}
+      ${kpi("k-need", "done", c.unpaid, "Unpaid jobs", c.unpaid ? "follow up" : "all collected")}
     </div>
-    <div class="layout">
+
+    <div class="dbar">
+      <span class="lbl">Period</span>
+      <div class="seg" role="group" aria-label="Date range">${PRESETS.map(([k, l]) => `<button class="${S.range.preset === k ? "on" : ""}" data-act="preset" data-p="${k}">${l}</button>`).join("")}</div>
+      ${S.range.preset === "custom" ? `<input type="date" class="in" id="dFrom" value="${esc(S.range.from)}" max="${ymd(Date.now())}" aria-label="From date"><span class="lbl">to</span><input type="date" class="in" id="dTo" value="${esc(S.range.to)}" max="${ymd(Date.now() + 60 * DAY)}" aria-label="To date">` : ""}
+      <span class="rng">📅 ${rangeLabel(R)}</span>
+      <span class="sp"></span>
+      <span class="lbl">Filter list by</span>
+      <select class="in" id="dateBy" aria-label="Filter list by">${Object.entries(DATE_BY).map(([k, l]) => `<option value="${k}" ${S.dateBy === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+    </div>
+
+    <div class="sec"><h2>${esc(rangeLabel(R))}</h2><span class="muted">${PP ? `compared with the ${Math.round((R.to - R.from) / DAY)} day${R.to - R.from > DAY ? "s" : ""} before` : ""}</span>
+      <span style="flex:1"></span><button class="btn link" data-act="report">${S.report ? "Hide report" : "📊 Show report"}</button></div>
+    <div class="kpis per">
+      ${pk("", "all", P.booked, "Bookings received", "", delta(P.booked, PP?.booked))}
+      ${pk("k-done", "done", P.done, "Completed", "", delta(P.done, PP?.done))}
+      ${pk("k-can", "cancelled", P.cancelled, "Cancelled", P.booked ? `${Math.round((P.cancelled / P.booked) * 100)}% of bookings` : "")}
+      ${pk("k-cash", "done", rupees(P.cash), "Collected", Object.entries(P.modes).map(([m, x]) => `${m} ${rupees(x)}`).join(" · "), delta(P.cash, PP?.cash))}
+      ${pk("k-avg", "done", avg ? rupees(avg) : "—", "Avg. bill", P.paidJobs ? `${P.paidJobs} paid jobs` : "")}
+      ${pk("k-rate", "done", P.booked ? rate + "%" : "—", "Completion rate", "completed ÷ booked")}
+    </div>
+    ${S.report ? reportView(P) : ""}
+
+    <div class="layout ${S.view === "table" ? "wide" : ""}">
       <main>
         <div class="bar">
-          ${chip("action", "Needs action", n("action"))}${chip("waiting", "Waiting", n("waiting"))}${chip("active", "In progress", n("active"))}${chip("done", "Completed")}${chip("warranty", "🛡️ Warranty", (S.bookings || []).filter((b) => isWarranty(b) && !CLOSED.includes(b.status)).length)}${chip("cancelled", "Cancelled")}${chip("all", "All")}
-          <input class="in" id="q" placeholder="Search name, mobile, code…" value="${esc(S.q)}" aria-label="Search bookings">
+          ${chip("action", "Needs action")}${chip("waiting", "Waiting")}${chip("active", "In progress")}${chip("done", "Completed")}${chip("warranty", "🛡️ Warranty")}${chip("cancelled", "Cancelled")}${chip("all", "All")}
         </div>
-        ${S.bookings === null ? `<div class="card empty">Loading bookings…</div>` : v.length ? v.map(card).join("") : `<div class="card empty">${S.filter === "action" ? "All caught up — nothing needs you right now." : "Nothing here."}</div>`}
+        <div class="bar">
+          <input class="in" id="q" placeholder="Search name, mobile, code, technician…" value="${esc(S.q)}" aria-label="Search bookings" style="max-width:none;margin:0;flex:1;min-width:200px">
+          <div class="seg"><button class="${S.view === "table" ? "on" : ""}" data-act="view" data-v="table">☰ Table</button><button class="${S.view === "cards" ? "on" : ""}" data-act="view" data-v="cards">▦ Cards</button></div>
+          <button class="btn sm o" data-act="csv" ${v.length ? "" : "disabled"}>⬇ Export ${v.length} (Excel)</button>
+        </div>
+        ${hid ? `<div class="hint">⚠ ${hid} open job${hid > 1 ? "s are" : " is"} outside ${esc(rangeLabel(R).toLowerCase().startsWith("all") ? "this filter" : rangeLabel(R))}. <button class="btn sm y" data-act="preset" data-p="all">Show all dates</button></div>` : ""}
+        ${S.q.trim() ? `<p class="muted" style="margin:-4px 0 8px">Searching all dates for “${esc(S.q.trim())}”.</p>` : ""}
+        ${S.bookings === null ? `<div class="card empty">Loading bookings…</div>`
+          : !v.length ? `<div class="card empty">${S.filter === "action" ? "All caught up — nothing needs you in this period." : "No bookings match this filter and period."}</div>`
+          : S.view === "table" ? tableView(v) : v.map(card).join("")}
       </main>
       <aside>${techPanel()}${managerPanel()}</aside>
     </div>
@@ -436,6 +645,17 @@ app.addEventListener("click", (e) => {
   if (act === "signin") return S.be.signIn().catch((x) => toast("Sign-in failed: " + (x.message || x), true));
   if (act === "signout") return S.be.signOut();
   if (act === "filter") { S.filter = el.dataset.f; return render(); }
+  if (act === "preset") {
+    const p = el.dataset.p;
+    if (p === "custom" && S.range.preset !== "custom") { const R = rangeOf(); S.range = { preset: "custom", from: R.from ? ymd(R.from) : ymd(Date.now() - 6 * DAY), to: isFinite(R.to) ? ymd(R.to - DAY) : ymd(Date.now()) }; }
+    else S.range = { ...S.range, preset: p };
+    SAVE("range", S.range); return render();
+  }
+  if (act === "view") { S.view = el.dataset.v; SAVE("view", S.view); return render(); }
+  if (act === "sort") { const k = el.dataset.k; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : k === "date" || k === "amt" ? -1 : 1 }; SAVE("sort", S.sort); return render(); }
+  if (act === "report") { S.report = !S.report; SAVE("report", S.report); return render(); }
+  if (act === "csv") return exportCsv(visible());
+  if (act === "row") { if (e.target.closest("a,button,input,select,textarea,details")) return; const id = el.dataset.id; S.open.has(id) ? S.open.delete(id) : S.open.add(id); return render(); }
   if (act === "reload") return loadTechs();
   if (act === "addmgr") {
     const email = document.getElementById("mgr-email").value.trim().toLowerCase();
@@ -494,7 +714,16 @@ app.addEventListener("click", (e) => {
   if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
 });
 app.addEventListener("toggle", (e) => { const d = e.target; if (d.dataset?.sheet) d.open ? S.sheets.add(d.dataset.sheet) : S.sheets.delete(d.dataset.sheet); }, true);
-app.addEventListener("change", (e) => { if (e.target.dataset.pick) S.draft.pick[e.target.dataset.pick] = e.target.value; });
+app.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.dataset.pick) S.draft.pick[t.dataset.pick] = t.value;
+  else if (t.id === "dateBy") { S.dateBy = t.value; SAVE("dateBy", S.dateBy); render(); }
+  else if (t.id === "dFrom" || t.id === "dTo") {
+    S.range[t.id === "dFrom" ? "from" : "to"] = t.value;
+    if (S.range.from && S.range.to && S.range.from > S.range.to) [S.range.from, S.range.to] = [S.range.to, S.range.from];
+    SAVE("range", S.range); render();
+  }
+});
 app.addEventListener("input", (e) => {
   if (e.target.id === "q") { S.q = e.target.value; render(); }
   else if (e.target.dataset.eta) S.draft.eta[e.target.dataset.eta] = e.target.value;
