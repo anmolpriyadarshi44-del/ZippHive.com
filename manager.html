@@ -136,7 +136,7 @@ details.repd summary{cursor:pointer;font-weight:800;color:var(--deep);margin-bot
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=16";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=17";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const LS = (k, d) => { try { const v = localStorage.getItem("zhm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };

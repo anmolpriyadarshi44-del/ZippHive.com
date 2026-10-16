@@ -32,7 +32,7 @@ export const reviewUrl = () => (cfg().googleReviewUrl || "").trim();
 export const invoiceUrl = (id) => `${siteUrl()}/invoice.html?b=${id}`;
 export const business = () => ({
   name: "ZippHive", tagline: "Doorstep phone & home repairs", address: "India",
-  phone: "+91 92204 00950", email: "ZippHive@gmail.com", web: "www.zipphive.com", gstin: "",
+  phone: "+91 92204 00950", email: "hello@zipphive.com", web: "www.zipphive.com", gstin: "",
   ...(cfg().business || {}),
 });
 // Invoice number from the booking code: ZH-QE4YM -> INV-QE4YM
