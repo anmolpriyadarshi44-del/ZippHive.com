@@ -273,7 +273,7 @@
     { m: /(what|which) services|kya kya (service|kaam)|services (list|kya)|aap kya (karte|repair)/, d: ["कौन सी सेवा", "क्या क्या", "सेवाएं", "सेवाएँ"],
       a: L("We do **mobile repair, AC service/repair/installation, AC AMC plans, washing machine, plumber, electrician and home cleaning** – all at your doorstep. Ask me *how any service works* or *how long it takes*, or say **'diagnose'** if something isn't working.",
            "Hum **mobile repair, AC service/repair/installation, AC AMC plan, washing machine, plumber, electrician aur home cleaning** karte hain – aapke ghar pe. Mujhse poochiye *koi service kaise hoti hai* ya *kitna time lagta hai*, ya kuch kharab ho to **'diagnose'** likhiye.",
-           "हम **मोबाइल रिपेयर, एसी सर्विस/रिपेयर/इंस्टॉलेशन, एसी एएमसी प्लान, वॉशिंग मशीन, प्लंबर, इलेक्ट्रीशियन और होम क्लीनिंग** करते हैं – पटना में आपके घर पर। मुझसे पूछिए *कोई सेवा कैसे होती है* या *कितना समय लगता है*, या कुछ खराब हो तो **'समस्या पहचानें'** लिखिए।") },
+           "हम **मोबाइल रिपेयर, एसी सर्विस/रिपेयर/इंस्टॉलेशन, एसी एएमसी प्लान, वॉशिंग मशीन, प्लंबर, इलेक्ट्रीशियन और होम क्लीनिंग** करते हैं – आपके घर पर। मुझसे पूछिए *कोई सेवा कैसे होती है* या *कितना समय लगता है*, या कुछ खराब हो तो **'समस्या पहचानें'** लिखिए।") },
   ];
 
   // ---------- matching helpers
@@ -379,7 +379,7 @@
       return out({ intent: "kb-area", text, chips });
     }
     if (areaQ && !/price|kitna|cost|कीमत/.test(low + raw)) {
-      return out({ intent: "kb-area-ask", text: tx(L("📍 We serve selected pincodes. Send me your **6-digit pincode** and I'll check it right away.", "📍 Hum chune hue pincode me service dete hain. Apna **6-digit pincode** bhejiye, main turant check kar deta hoon.", "📍 हम पटना के चुने हुए पिनकोड में सेवा देते हैं। अपना **6 अंकों का पिनकोड** भेजिए, मैं तुरंत जाँच देता हूँ।"), lang), chips: [waChip(lang, "Hi ZippHive, do you serve my area? Pincode:")] });
+      return out({ intent: "kb-area-ask", text: tx(L("📍 We serve selected pincodes. Send me your **6-digit pincode** and I'll check it right away.", "📍 Hum chune hue pincode me service dete hain. Apna **6-digit pincode** bhejiye, main turant check kar deta hoon.", "📍 हम चुने हुए पिनकोड में सेवा देते हैं। अपना **6 अंकों का पिनकोड** भेजिए, मैं तुरंत जाँच देता हूँ।"), lang), chips: [waChip(lang, "Hi ZippHive, do you serve my area? Pincode:")] });
     }
     // 2) explicit "diagnose" menu
     if (/^\W*(diagnose( a| my)? problem|diagnose|diagnosis|problem diagnose karein|problem batao|troubleshoot|समस्या पहचानें|समस्या पहचानो)\W*$/i.test(raw)) return out(diagMenu(lang));

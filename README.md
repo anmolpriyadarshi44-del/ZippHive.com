@@ -199,3 +199,8 @@ Store managers can send a job to a technician only from **3 hours before the boo
 
 ## No city names on the website
 Customer-facing pages, the AI assistant, WhatsApp messages, tracking page, invoices and the technician app no longer mention a city/state. The service area is decided only by pincode / map zones (Admin → Service area). The optional “City name shown to customers” on that page is blank by default.
+
+## Parts out of stock (store manager → customer tracking page)
+On any open job card in `/manager.html`: **📦 Parts out of stock** → choose how long it will take (30 min · 1 hour · 2 hours · 4 hours · Tomorrow · or pick a date & time) + optional note → **Save & show to customer**. Stored on the booking as `parts {state:"awaiting", eta, etaAt, note, at, by}`.
+- Customer tracking link shows “📦 Sorry, the part is out of stock – we're arranging it, it will take about 30 min” with a live countdown and the expected time (and a softer message if the time passes).
+- Manager card: waiting box with countdown (red when overdue), **⏱ Update time**, **📲 Inform customer** (WhatsApp message), **✅ Parts arrived** (customer then sees “Parts arrived – repair continuing”). Filter chip **📦 Parts awaited**; table shows “📦 parts by …”. The technician app shows the parts status on the job.

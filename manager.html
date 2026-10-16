@@ -68,6 +68,15 @@ details.js summary{cursor:pointer;font-weight:700;color:var(--teal);font-size:13
 .wr .reasons button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
 .wr .reasons button.on{background:var(--red);border-color:var(--red);color:#fff}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+.parts{margin-top:10px;border-radius:12px;padding:10px 12px;background:#FFF4E5;border:1px solid #F5D6A8;display:flex;flex-direction:column;gap:8px}
+.parts.ok{background:var(--greenlt);border-color:#BFE3C8}
+.parts.late{background:var(--redlt);border-color:#F2C2C2}
+.parts .t{font-weight:800;color:var(--deep);font-size:14px}
+.parts .note{font-size:13px;color:var(--muted)}
+.parts .q{display:flex;flex-wrap:wrap;gap:6px}
+.parts .q button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;cursor:pointer}
+.parts .q button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.parts input[type=datetime-local]{width:auto;min-height:34px}
 .lock{background:#fff;border:1px dashed #C9D6D5;border-radius:10px;padding:8px 10px;font-size:13px;color:var(--deep)}
 .lock span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 /* ---- tracking toolbar, KPI groups, table ---- */
@@ -245,6 +254,7 @@ function visible() {
         case "done": return s === "done";
         case "cancelled": return s === "cancelled";
         case "warranty": return isWarranty(b) && s !== "cancelled";
+        case "parts": return awaitingParts(b);
         default: return true;
       }
     })
@@ -310,6 +320,49 @@ function assignBox(b) {
   return `<div class="asg"><div class="t">Cancelled</div><div class="note">${when(b.statusAt)}</div></div>`;
 }
 
+// ---- Parts out of stock: store sets an expected time, customer sees it on the tracking link ----
+const PARTS_Q = [["30 min", 30], ["1 hour", 60], ["2 hours", 120], ["4 hours", 240], ["Tomorrow", "tmr"]];
+const hhmm = (t) => new Date(t).toLocaleString("en-IN", { hour: "numeric", minute: "2-digit", ...(sod(t) !== sod(Date.now()) ? { weekday: "short", day: "numeric", month: "short" } : {}) });
+const pDraft = (b) => (S.draft.parts ||= {})[b.id] ||= { open: false, q: "", at: "", note: b.parts?.note || "" };
+const awaitingParts = (b) => b.parts?.state === "awaiting" && !CLOSED.includes(b.status);
+function etaFromQuick(q) {
+  if (q === "tmr") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0); return d.getTime(); }
+  return Date.now() + Number(q) * 60000;
+}
+function partsMsg(b) {
+  const p = b.parts || {}, what = b.device || b.item || b.service;
+  return p.state === "arrived"
+    ? `Hi ${b.name}, good news! ✅ The part for your ${what} (booking *${b.code}*) has arrived. Our technician is continuing the repair.\n\nTrack live: ${trackUrl(b.id)}`
+    : [`Hi ${b.name}, sorry 🙏 the part needed for your ${what} (booking *${b.code}*) is out of stock right now.`, ``,
+       `We're arranging it – it will take about *${p.eta || "some time"}*${p.etaAt ? ` (expected by ${hhmm(p.etaAt)})` : ""}.`, p.note ? `Note: ${p.note}` : "", ``,
+       `You can see the latest update here: ${trackUrl(b.id)}`].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+function partsBox(b) {
+  if (CLOSED.includes(b.status)) return "";
+  const p = b.parts, d = pDraft(b);
+  const form = () => `<div class="parts">
+      <div class="t">📦 Parts out of stock – how long will it take?</div>
+      <div class="q">${PARTS_Q.map(([l, v]) => `<button class="${d.q === String(v) ? "on" : ""}" data-act="pq" data-id="${b.id}" data-v="${v}" data-l="${l}">${l}</button>`).join("")}
+        <button class="${d.q === "custom" ? "on" : ""}" data-act="pq" data-id="${b.id}" data-v="custom" data-l="">📅 Pick date & time</button></div>
+      ${d.q === "custom" ? `<input type="datetime-local" class="in" data-pat="${b.id}" value="${esc(d.at)}" min="${new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}">` : ""}
+      <textarea class="in" rows="2" data-pnote="${b.id}" placeholder="Note for the customer (optional) – e.g. Original display ordered from distributor">${esc(d.note)}</textarea>
+      <div class="row"><button class="btn sm" data-act="psave" data-id="${b.id}">💾 Save & show to customer</button><button class="btn link" data-act="pcancel" data-id="${b.id}">Cancel</button></div>
+    </div>`;
+  if (d.open) return form();
+  if (p?.state === "awaiting") {
+    const late = p.etaAt && Date.now() > p.etaAt;
+    return `<div class="parts ${late ? "late" : ""}">
+      <div class="t">📦 Waiting for parts – ${p.etaAt ? `expected by ${hhmm(p.etaAt)}` : esc(p.eta || "")}${p.etaAt ? ` <span class="muted" style="font-weight:600">(${late ? "time passed – update the customer" : "in " + untilTxt(p.etaAt)})</span>` : ""}</div>
+      ${p.note ? `<div class="note">Note to customer: ${esc(p.note)}</div>` : ""}
+      <div class="note">Set ${ago(p.at)}${p.by ? " by " + esc(p.by) : ""} · customer sees this on their tracking link${p.sentAt ? ` · WhatsApp sent ${ago(p.sentAt)}` : ""}</div>
+      <div class="row"><button class="btn sm" style="background:var(--green)" data-act="parrived" data-id="${b.id}">✅ Parts arrived</button><button class="btn sm o" data-act="pedit" data-id="${b.id}">⏱ Update time</button><button class="btn sm wa" data-act="psend" data-id="${b.id}">📲 ${p.sentAt ? "Resend" : "Inform customer"}</button></div>
+    </div>`;
+  }
+  if (p?.state === "arrived") return `<div class="parts ok"><div class="t">✅ Parts arrived ${ago(p.arrivedAt)}</div>
+      <div class="row"><button class="btn sm wa" data-act="psend" data-id="${b.id}">📲 Tell customer</button><button class="btn link" data-act="pedit" data-id="${b.id}">Out of stock again</button></div></div>`;
+  return `<div class="row" style="margin-top:8px"><button class="btn sm o" data-act="pedit" data-id="${b.id}">📦 Parts out of stock</button></div>`;
+}
+
 function card(b) {
   const s = stage(b);
   const open = !["done", "cancelled"].includes(s);
@@ -323,6 +376,7 @@ function card(b) {
       ${b.note ? `<div class="muted">Note: ${esc(b.note)}</div>` : ""}
       ${flags(b)}
       ${wBox(b)}
+      ${partsBox(b)}
       ${b.preQc || b.payment ? `<div class="row" style="margin-top:8px"><a class="btn sm o" href="${invoiceUrl(b.id)}" target="_blank" rel="noopener">🧾 ${b.payment ? "Invoice & QC report" : "QC report"}</a>${b.payment ? `<a class="btn sm wa" target="_blank" rel="noopener" href="${waLink(b.mobile, `Hi ${b.name}, your ZippHive invoice & quality check report for booking ${b.code}: ${invoiceUrl(b.id)}`)}">Send invoice</a>` : ""}</div>` : ""}
       ${b.preQc || b.postQc || b.payment || b.techRemarks || isWarranty(b) ? `<details class="js" data-sheet="${b.id}" ${S.sheets.has(b.id) ? "open" : ""}><summary>📋 Job sheet — checks, remarks, payment, timeline</summary>${jobSheetHtml(b)}</details>` : ""}
       ${open ? `<div class="foot">
@@ -357,6 +411,7 @@ function flags(b) {
   }
   if (isWarranty(b) && b.warranty?.photo && !b.preQc) f.push(`<a class="flag" href="${esc(b.warranty.photo)}" target="_blank" rel="noopener">📷 Customer photo</a>`);
   if (b.techRemarks) f.push(`<span class="flag">📝 Remarks</span>`);
+  if (awaitingParts(b)) f.unshift(`<span class="flag ${b.parts.etaAt && Date.now() > b.parts.etaAt ? "red" : ""}">📦 Waiting for parts${b.parts.etaAt ? " · by " + hhmm(b.parts.etaAt) : ""}</span>`);
   if (!b.confirmSentAt && !["new", "completed", "cancelled"].includes(b.status)) f.unshift(`<span class="flag red">📲 Confirmation not sent</span>`);
   return f.length ? `<div class="flags">${f.join("")}</div>` : "";
 }
@@ -472,7 +527,7 @@ function tableView(v) {
       <td>${esc(b.device ? b.device : b.service || "")}<span class="sub">${esc(b.item || "")}</span></td>
       <td>${esc(b.area || "")}</td>
       <td>${esc(b.techName || b.offerName || "—")}${st === "waiting" ? `<span class="sub">awaiting accept</span>` : ""}</td>
-      <td><span class="dot" style="background:${STAGE_DOT[st] || "#999"}"></span>${esc(STATUS[b.status] || b.status)}${needsAction(b) ? `<span class="sub" style="color:var(--red);font-weight:700">needs action</span>` : ["unassigned", "declined"].includes(st) && locked(b) ? `<span class="sub">🔒 assign from ${new Date(assignOpensAt(b)).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>` : ""}</td>
+      <td><span class="dot" style="background:${STAGE_DOT[st] || "#999"}"></span>${esc(STATUS[b.status] || b.status)}${awaitingParts(b) ? `<span class="sub" style="color:#8A4B00;font-weight:700">📦 parts by ${hhmm(b.parts.etaAt || Date.now())}</span>` : ""}${needsAction(b) ? `<span class="sub" style="color:var(--red);font-weight:700">needs action</span>` : ["unassigned", "declined"].includes(st) && locked(b) ? `<span class="sub">🔒 assign from ${new Date(assignOpensAt(b)).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>` : ""}</td>
       <td class="num"><b>${amt}</b><span class="sub">${pi.state === "paid" ? esc(pi.mode) : pi.state === "unpaid" ? `<span style="color:var(--red)">unpaid</span>` : pi.state === "free" ? "no charge" : b.status === "completed" ? "not recorded" : "quote"}</span></td>
     </tr>${open ? `<tr><td class="x" colspan="9">${card(b)}</td></tr>` : ""}`;
   }).join("");
@@ -508,7 +563,7 @@ function dashboard() {
   const n = (f) => (S.bookings || []).filter((b) => {
     if (!inRange(b)) return false;
     const s = stage(b);
-    return f === "action" ? needsAction(b) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : f === "done" ? s === "done" : f === "cancelled" ? s === "cancelled" : f === "warranty" ? isWarranty(b) && s !== "cancelled" : true;
+    return f === "action" ? needsAction(b) : f === "waiting" ? s === "waiting" : f === "active" ? s === "active" : f === "done" ? s === "done" : f === "cancelled" ? s === "cancelled" : f === "warranty" ? isWarranty(b) && s !== "cancelled" : f === "parts" ? awaitingParts(b) : true;
   }).length;
   const chip = (f, label) => `<button class="chip ${S.filter === f ? "on" : ""}" data-act="filter" data-f="${f}">${label}<em>${n(f)}</em></button>`;
   const kpi = (cls, f, num, label, sub = "") => `<button class="kpi ${cls} ${S.filter === f ? "sel" : ""}" data-act="filter" data-f="${f}"><b>${num}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
@@ -560,7 +615,7 @@ function dashboard() {
     <div class="layout ${S.view === "table" ? "wide" : ""}">
       <main>
         <div class="bar">
-          ${chip("action", "Needs action")}${chip("waiting", "Waiting")}${chip("active", "In progress")}${chip("done", "Completed")}${chip("warranty", "🛡️ Warranty")}${chip("cancelled", "Cancelled")}${chip("all", "All")}
+          ${chip("action", "Needs action")}${chip("waiting", "Waiting")}${chip("active", "In progress")}${chip("done", "Completed")}${chip("warranty", "🛡️ Warranty")}${chip("parts", "📦 Parts awaited")}${chip("cancelled", "Cancelled")}${chip("all", "All")}
         </div>
         <div class="bar">
           <input class="in" id="q" placeholder="Search name, mobile, code, technician…" value="${esc(S.q)}" aria-label="Search bookings" style="max-width:none;margin:0;flex:1;min-width:200px">
@@ -717,6 +772,22 @@ app.addEventListener("click", (e) => {
       return run(actions.reviewWarranty(S.be, b, null), "Decision re-opened");
     }
   }
+  if (act.startsWith("p") && ["pedit", "pq", "pcancel", "psave", "parrived", "psend"].includes(act)) {
+    const d = pDraft(b), by = S.managers.find((m) => m.email === S.user.email)?.name || S.user.displayName || S.user.email;
+    if (act === "pedit") { Object.assign(d, { open: true, q: "", at: "", note: b.parts?.state === "awaiting" ? b.parts.note || "" : "" }); return render(); }
+    if (act === "pcancel") { d.open = false; return render(); }
+    if (act === "pq") { d.q = el.dataset.v; d.label = el.dataset.l; return render(); }
+    if (act === "psave") {
+      let etaAt = null, eta = d.label || "";
+      if (d.q === "custom") { etaAt = d.at ? new Date(d.at).getTime() : NaN; if (!(etaAt > Date.now())) return toast("Pick a future date & time", true); const m = Math.round((etaAt - Date.now()) / 60000); eta = m < 60 ? `${m} min` : m < 1440 ? `${Math.round(m / 6) / 10} hours`.replace(".0 ", " ") : `about ${Math.round(m / 1440)} day${m >= 2880 ? "s" : ""}`; }
+      else if (d.q) etaAt = etaFromQuick(d.q === "tmr" ? "tmr" : d.q);
+      else return toast("Choose how long it will take", true);
+      d.open = false; pingSheet();
+      return run(S.be.updateBooking(b.id, { parts: { state: "awaiting", eta, etaAt, note: d.note.trim().slice(0, 300), at: Date.now(), by } }), "Saved – customer can see it. Tap “Inform customer” to send WhatsApp");
+    }
+    if (act === "parrived") { pingSheet(); return run(S.be.updateBooking(b.id, { parts: { ...b.parts, state: "arrived", arrivedAt: Date.now(), sentAt: null } }), "Marked parts arrived – customer can see it"); }
+    if (act === "psend") { window.open(waLink(b.mobile, partsMsg(b)), "_blank", "noopener"); return run(S.be.updateBooking(b.id, { parts: { ...b.parts, sentAt: Date.now() } }), "WhatsApp opened"); }
+  }
   if (act === "cancel") return confirm(`Cancel booking ${b.code} for ${b.name}?`) && run(actions.cancel(S.be, b), "Booking cancelled");
   if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
 });
@@ -734,6 +805,8 @@ app.addEventListener("change", (e) => {
 app.addEventListener("input", (e) => {
   if (e.target.id === "q") { S.q = e.target.value; render(); }
   else if (e.target.dataset.eta) S.draft.eta[e.target.dataset.eta] = e.target.value;
+  else if (e.target.dataset.pnote) pDraft(find(e.target.dataset.pnote)).note = e.target.value;
+  else if (e.target.dataset.pat) pDraft(find(e.target.dataset.pat)).at = e.target.value;
   else if (e.target.dataset.wr) { const b = find(e.target.dataset.id); if (b) wDraft(b)[e.target.dataset.wr] = e.target.value; }
 });
 setInterval(() => S.ok && softRender(), 30000);

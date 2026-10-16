@@ -184,7 +184,7 @@ function reqCard(j) {
     <h2>${j.device ? esc(j.device) + " – " : ""}${esc(j.item || j.service)}</h2>
     ${j.problem ? `<p class="muted" style="margin:0">${esc(j.problem)}</p>` : ""}
     <dl class="kv">
-      <dt>Area</dt><dd>${esc(j.area)}</dd>
+      <dt>Area</dt><dd>${esc(j.area)}</dd>${j.parts?.state === "awaiting" ? `<dt>Parts</dt><dd style="color:#8A4B00;font-weight:700">📦 Out of stock – store expects it ${j.parts.etaAt ? "by " + new Date(j.parts.etaAt).toLocaleString("en-IN", { hour: "numeric", minute: "2-digit", day: "numeric", month: "short" }) : esc(j.parts.eta || "")}</dd>` : j.parts?.state === "arrived" ? `<dt>Parts</dt><dd style="color:#1E8E3E;font-weight:700">✅ Parts arrived</dd>` : ""}
       <dt>Time</dt><dd>${esc(j.time)}</dd>
       ${j.price ? `<dt>Price</dt><dd>${rupees(j.price)}</dd>` : isWarranty(j) ? `<dt>Charge</dt><dd>Free if covered</dd>` : ""}
       ${isWarranty(j) && j.warranty?.repairDate ? `<dt>Repaired</dt><dd>${esc(j.warranty.repairDate)}${j.warranty.technician ? " by " + esc(j.warranty.technician) : ""}</dd>` : ""}

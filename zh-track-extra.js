@@ -33,8 +33,41 @@ const css = `
 .zhx .wsteps .on{color:#053E40}.zhx .wsteps .on i{background:#0B7F7D}
 .zhx .wsteps .now{color:#8A5A00}.zhx .wsteps .now i{background:#E8A317}
 .zhx .wbox{background:#fff;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px}
+body{display:flex;flex-direction:column}
+#root{display:contents}
+#root>.top{order:-2}
+.zhp{order:-1;width:100%;box-sizing:border-box;max-width:720px;margin:12px auto 0;padding:0 16px}
+.zhx{width:100%;box-sizing:border-box}
+.zhp .pc{border-radius:16px;padding:16px 18px;background:#FFF4E5;border:1px solid #F5D6A8;color:#3A2A00}
+.zhp .pc.ok{background:#E6F4EA;border-color:#BFE3C8;color:#0F3D1F}
+.zhp .pc h3{margin:0 0 6px;font-size:18px;color:#8A4B00;display:flex;gap:8px;align-items:center}
+.zhp .pc.ok h3{color:#1E8E3E}
+.zhp .pc p{margin:0;font-size:15px;line-height:1.5}
+.zhp .eta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#fff;border-radius:12px;padding:10px 14px}
+.zhp .eta b{font-size:22px;color:#053E40;font-family:Poppins,Inter,system-ui,sans-serif}
+.zhp .eta span{font-size:13px;color:#5B6F6F}
+.zhp .note{margin-top:10px;font-size:14px;background:rgba(255,255,255,.6);border-radius:10px;padding:8px 12px}
+.zhp a{color:#0B7F7D;font-weight:700}
 .zhx .alt{display:inline-block;margin-top:12px;color:#BFE6E3;font-size:13.5px}
 `;
+
+// "Parts out of stock" banner – set by the store manager with an expected time
+const at = (t) => new Date(t).toLocaleString("en-IN", { hour: "numeric", minute: "2-digit", ...(new Date(t).toDateString() !== new Date().toDateString() ? { weekday: "short", day: "numeric", month: "short" } : {}) });
+const left = (t) => { const m = Math.round((t - Date.now()) / 60000); return m >= 1440 ? `${Math.floor(m / 1440)} day${m >= 2880 ? "s" : ""} ${Math.floor((m % 1440) / 60)} hr` : m >= 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${Math.max(1, m)} min`; };
+function partsView(b) {
+  const p = b && b.parts;
+  if (!p || ["completed", "cancelled"].includes(b.status)) return "";
+  const what = b.device ? `your ${esc(b.device)}` : "your repair";
+  const wa = `https://wa.me/919220400950?text=${encodeURIComponent(`Hi ZippHive, about the parts for booking ${b.code}: `)}`;
+  if (p.state === "arrived") return `<div class="pc ok"><h3>✅ Parts arrived</h3><p>The part for ${what} has arrived – our technician is continuing the repair.</p></div>`;
+  if (p.state !== "awaiting") return "";
+  const late = p.etaAt && Date.now() > p.etaAt;
+  return `<div class="pc"><h3>📦 Sorry, the part is out of stock</h3>
+    <p>The part needed for ${what} is out of stock right now. We're arranging it for you${p.eta ? ` – it will take about <b>${esc(p.eta)}</b>` : ""}.</p>
+    ${p.etaAt ? `<div class="eta">${late ? `<span>⏳ It's taking a little longer than expected – our team will update you shortly.</span>` : `<b>⏱ ${left(p.etaAt)}</b><span>Expected by <b style="font-size:15px">${at(p.etaAt)}</b></span>`}</div>` : ""}
+    ${p.note ? `<div class="note">📝 ${esc(p.note)}</div>` : ""}
+    <p style="margin-top:10px;font-size:13.5px">Updated ${when(p.at)} · Questions? <a href="${wa}" target="_blank" rel="noopener">WhatsApp us</a></p></div>`;
+}
 
 function view(b) {
   const p = b.payment, pre = b.preQc, post = b.postQc;
@@ -114,5 +147,11 @@ if (id) {
   box.style.maxWidth = "720px";
   box.style.paddingTop = "0";
   document.getElementById("root").after(box);
-  backend().then((be) => be && be.watchBooking(id, (b) => { box.innerHTML = b ? view(b) : ""; }, () => {}));
+  const top = document.createElement("div");
+  top.className = "zhp";
+  document.getElementById("root").before(top);
+  let last = null;
+  const paint = () => { top.innerHTML = partsView(last); top.style.display = top.innerHTML ? "" : "none"; };
+  setInterval(paint, 30000);
+  backend().then((be) => be && be.watchBooking(id, (b) => { last = b; box.innerHTML = b ? view(b) : ""; paint(); }, () => {}));
 }

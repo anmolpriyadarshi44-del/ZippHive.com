@@ -182,7 +182,7 @@ picker.id = "zbSlot";
 let phoneP = null;
 function loadPhone() {
   return (phoneP ||= Promise.all([
-    fetch("/zipphive-catalog.json?v=20").then((r) => r.json()),
+    fetch("/zipphive-catalog.json?v=21").then((r) => r.json()),
     backend().then((be) => (be && be.getPriceOverrides ? be.getPriceOverrides() : {})).catch(() => ({})),
   ]).then(([c, ov]) => {
     const hidden = new Set();
