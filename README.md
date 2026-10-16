@@ -181,6 +181,7 @@ The website no longer lists localities. Bookings are accepted by **pincode** (or
 - **Serviceable pincodes** – exact 6-digit pincodes (paste many at once).
 - **Whole pincode ranges** – e.g. `800` serves every 800xxx pincode. Remove it to serve only the exact list.
 - **Blocked pincodes** – never served, even inside a range.
+- **Auto pincodes** – whenever a zone is added, moved, renamed or resized, the pincodes inside it are fetched automatically (from `zh-pincodes.json`, ~19k India Post pincodes with coordinates, loaded only on this admin page) and shown pre-ticked; one click adds them. Click anywhere on the map to see the nearest pincodes with “+ Add”.
 - **Map zones** – circles (centre + radius km) used when a customer taps “📍 Use my location”. Search any place or pincode (“Delhi”, “Saket”, “110017”) and add it as a zone or move a zone there; typing a place name in a zone row moves it automatically (📍 Find re-runs it); “My current location” adds a zone where you stand; drag the pin to fine-tune; slider for radius. Place search uses OpenStreetMap Nominatim (India only).
 - **Test a pincode** box to check any pincode before publishing.
 Saved to Firestore `content/serviceArea` (public read, admin write – existing rules). Used by the booking flow, the homepage/cleaning “Do we serve your area?” checker, the AI assistant (“800001 me aate ho?”) and the assistant's booking form (pincode field). Default until first save: all 800xxx + six nearby 801xxx pincodes + a 22 km zone around Patna (same as before). Shared code: `zh-area.js`.

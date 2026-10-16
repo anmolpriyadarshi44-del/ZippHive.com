@@ -39,6 +39,14 @@
 .gres .r .nm{flex:1;min-width:200px}
 .gres .r .nm b{display:block}
 .gres .r select{width:auto;min-height:34px}
+.found{border:2px solid var(--teal);border-radius:14px;padding:12px;margin:10px 0;background:#F6FBFA}
+.found h3{margin:0 0 4px;font-size:16px}
+.found .pl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;max-height:260px;overflow:auto}
+.found label{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 9px;font-size:13px;cursor:pointer}
+.found label.on{border-color:var(--teal);background:var(--tint)}
+.found label small{color:var(--muted)}
+.found label.have{opacity:.6;cursor:default}
+.found .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .zone .km{font-weight:800;color:var(--dark);white-space:nowrap}
 .test{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .res{font-weight:700;padding:6px 10px;border-radius:8px}
@@ -76,7 +84,7 @@ function zonesHtml() {
     <div><input class="in" data-zk="name" value="${esc(z.name)}" ${ro} aria-label="Zone name – type a place and press Enter to move the zone there" title="Type a place name (e.g. Delhi, Saket) and press Enter – the zone moves there"><span class="coord">${z.lat.toFixed(4)}, ${z.lng.toFixed(4)}</span></div>
     <input type="range" min="1" max="60" step="0.5" data-zk="km" value="${z.km}" ${ro} aria-label="Radius">
     <span class="km">${z.km} km</span>
-    <span class="zb">${isAdmin() ? `<button class="btn sm o" data-act="findzone" data-i="${i}" title="Find this name on the map and move the zone there">📍 Find</button>` : ""}<button class="btn sm g" data-act="showzone" data-i="${i}" title="Show on map">👁</button>${isAdmin() ? `<button class="btn sm r" data-act="rmzone" data-i="${i}">✕</button>` : ""}</span></div>`).join("");
+    <span class="zb">${isAdmin() ? `<button class="btn sm o" data-act="findzone" data-i="${i}" title="Find this name on the map and move the zone there">📍 Find</button><button class="btn sm o" data-act="zpins" data-i="${i}" title="Fetch the pincodes inside this zone">📮 Pincodes</button>` : ""}<button class="btn sm g" data-act="showzone" data-i="${i}" title="Show on map">👁</button>${isAdmin() ? `<button class="btn sm r" data-act="rmzone" data-i="${i}">✕</button>` : ""}</span></div>`).join("");
 }
 // ---- place search (OpenStreetMap Nominatim, India only; 6 digits = pincode)
 async function geocode(q) {
@@ -115,6 +123,7 @@ function focusZone(z) {
 function moveZone(z, g, toastMsg) {
   z.lat = g.lat; z.lng = g.lng; dirty(); render(); focusZone(z);
   toast(toastMsg || `${z.name} moved to ${g.short}`);
+  showFound(S.a.zones.indexOf(z));
 }
 async function findZone(i) {
   const z = S.a.zones[i];
@@ -124,6 +133,46 @@ async function findZone(i) {
     if (!r.length) return toast(`Couldn't find “${z.name}” – try “${z.name}, Delhi” or a pincode`, true);
     moveZone(z, r[0], `📍 ${z.name} → ${r[0].name.split(",").slice(0, 3).join(",")}`);
   } catch (x) { toast("Place search failed: " + (x.message || x), true); }
+}
+// ---- pincodes inside a zone (India Post office coordinates, /zh-pincodes.json – loaded only on this page)
+let PINDB = null;
+function loadPins() {
+  if (!PINDB) PINDB = fetch("/zh-pincodes.json?v=1").then((r) => r.json()).catch((e) => { PINDB = null; throw e; });
+  return PINDB;
+}
+const kmTo = (a, lat, lng) => { const R = 6371, r = (d) => (d * Math.PI) / 180; const x = Math.sin(r(lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(lat)) * Math.sin(r(lng - a.lng) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+async function pinsNear(c, km) {
+  const db = await loadPins(), out = [];
+  for (const [pin, v] of Object.entries(db.p)) {
+    const d = kmTo(c, v[2], v[3]);
+    if (d <= km) out.push({ pin, km: d, district: db.d[v[0]] || "", state: db.s[v[1]] || "" });
+  }
+  return out.sort((a, b) => a.km - b.km);
+}
+// fetch the pincodes inside zone i and show them, new ones pre-ticked
+async function showFound(i) {
+  const z = S.a.zones[i];
+  if (!z) return;
+  S.found = { zi: i, busy: true }; paintFound();
+  try {
+    const list = await pinsNear(z, z.km);
+    const have = (p) => checkPin(S.a, p).ok;
+    S.found = { zi: i, name: z.name, km: z.km, list, sel: new Set(list.filter((x) => !have(x.pin)).map((x) => x.pin)) };
+  } catch (x) { S.found = null; toast("Couldn't load the pincode list – check your internet", true); }
+  paintFound();
+}
+function paintFound() { const b = document.getElementById("foundBox"); if (b) b.innerHTML = foundHtml(); }
+function foundHtml() {
+  const f = S.found;
+  if (!f) return "";
+  if (f.busy) return `<div class="found"><p class="hint">📮 Fetching pincodes inside this zone…</p></div>`;
+  const have = (p) => checkPin(S.a, p).ok;
+  const fresh = f.list.filter((x) => !have(x.pin)).length;
+  return `<div class="found"><h3>📮 ${f.list.length} pincodes found inside “${esc(f.name)}” (${f.km} km)</h3>
+    <p class="hint" style="margin:0">${fresh ? `${fresh} not in your list yet – they're ticked. Untick any you don't want, then add.` : "All of them are already serviceable."} Locations come from India Post office records, so check pincodes near the edge.</p>
+    <div class="pl">${f.list.map((x) => have(x.pin) ? `<label class="have" title="Already serviceable">✅ <b>${x.pin}</b> <small>${esc(x.district)}</small></label>`
+      : `<label class="${f.sel.has(x.pin) ? "on" : ""}"><input type="checkbox" data-fpin="${x.pin}" ${f.sel.has(x.pin) ? "checked" : ""}><b>${x.pin}</b> <small>${esc(x.district)} · ${x.km.toFixed(1)} km</small></label>`).join("") || `<span class="hint">No pincodes found – try a bigger radius.</span>`}</div>
+    <div class="acts">${fresh ? `<button class="btn" data-act="faddsel" ${f.sel.size ? "" : "disabled"}>+ Add ${f.sel.size} pincode${f.sel.size === 1 ? "" : "s"} to serviceable list</button><button class="btn sm g" data-act="fall">Select all</button><button class="btn sm g" data-act="fnone">Select none</button>` : ""}<button class="btn link" data-act="fclose">Close</button></div></div>`;
 }
 function testHtml() {
   if (!S.test) return "";
@@ -166,6 +215,7 @@ function render() {
       <div id="geoRes">${geoResHtml()}</div>` : ""}
       <div id="map"></div>
       <div class="mapnote" id="mapFail" hidden>The map couldn't load (no internet?) – zones below can still be edited.</div>
+      <div id="foundBox">${foundHtml()}</div>
       <div id="zones">${zonesHtml()}</div></div>
     ${isAdmin() ? `<div class="row"><button class="btn link" data-act="reset">Reset to default (Patna 800xxx + 22 km zone)</button></div>` : ""}
   </div>
@@ -181,12 +231,22 @@ function drawMap() {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
   drawZones(true);
   map.on("click", (e) => {
-    if (!S.adding || !isAdmin()) return;
+    if (!S.adding || !isAdmin()) return pinPopup(e.latlng);
     S.a.zones.push({ name: "Zone " + (S.a.zones.length + 1), lat: +e.latlng.lat.toFixed(5), lng: +e.latlng.lng.toFixed(5), km: 5 });
-    S.adding = false; dirty(); render();
+    S.adding = false; dirty(); render(); showFound(S.a.zones.length - 1);
   });
 }
 const PIN = window.L ? L.divIcon({ className: "zpin", html: "<span></span>", iconSize: [28, 32], iconAnchor: [14, 30] }) : null;
+// click anywhere on the map → nearest pincode with an Add button
+async function pinPopup(ll) {
+  if (!map) return;
+  const pop = L.popup().setLatLng(ll).setContent("📮 Finding pincode…").openOn(map);
+  try {
+    const near = (await pinsNear({ lat: ll.lat, lng: ll.lng }, 6)).slice(0, 3);
+    if (!near.length) return pop.setContent("No pincode found near here");
+    pop.setContent(`<div style="font-size:13px"><b>Pincodes here</b>${near.map((x) => `<div style="display:flex;gap:6px;align-items:center;margin-top:6px"><b>${x.pin}</b><small>${esc(x.district)} · ${x.km.toFixed(1)} km</small><span style="flex:1"></span>${checkPin(S.a, x.pin).ok ? "✅" : isAdmin() ? `<button class="btn sm" data-act="addpin" data-pin="${x.pin}">+ Add</button>` : "❌"}</div>`).join("")}</div>`);
+  } catch (x) { pop.setContent("Couldn't load the pincode list"); }
+}
 function drawZones(fit) {
   if (!map) return;
   layers.forEach((l) => l.remove()); layers = [];
@@ -194,7 +254,7 @@ function drawZones(fit) {
     const c = L.circle([z.lat, z.lng], { radius: z.km * 1000, color: "#0B6E6E", weight: 2, fillColor: "#0B6E6E", fillOpacity: 0.12 }).addTo(map).bindTooltip(`${z.name} · ${z.km} km`);
     const m = L.marker([z.lat, z.lng], { draggable: !!isAdmin(), title: z.name, icon: PIN }).addTo(map);
     m.on("drag", (e) => c.setLatLng(e.latlng));
-    m.on("dragend", (e) => { const p = e.target.getLatLng(); z.lat = +p.lat.toFixed(5); z.lng = +p.lng.toFixed(5); dirty(); });
+    m.on("dragend", (e) => { const p = e.target.getLatLng(); z.lat = +p.lat.toFixed(5); z.lng = +p.lng.toFixed(5); dirty(); const co = app.querySelector(`[data-z="${i}"] .coord`); if (co) co.textContent = `${z.lat.toFixed(4)}, ${z.lng.toFixed(4)}`; showFound(i); });
     layers.push(c, m);
   });
   if (fit && S.a.zones.length) map.fitBounds(L.featureGroup(layers.filter((l) => l.getBounds)).getBounds().pad(0.1), { animate: false });
@@ -231,18 +291,27 @@ app.addEventListener("click", async (e) => {
     return;
   }
   if (a === "georshow") { const g = S.geoRes[+el.dataset.j]; if (map) { map.setView([g.lat, g.lng], 12, { animate: false }); L.popup().setLatLng([g.lat, g.lng]).setContent(esc(g.short)).openOn(map); } return; }
-  if (a === "georadd") { const g = S.geoRes[+el.dataset.j]; const z = { name: g.short, lat: g.lat, lng: g.lng, km: radiusFor(g) }; S.a.zones.push(z); S.geoRes = null; S.geoQ = ""; dirty(); render(); focusZone(z); return toast(`Zone “${z.name}” added – adjust the radius, then Save`); }
+  if (a === "georadd") { const g = S.geoRes[+el.dataset.j]; const z = { name: g.short, lat: g.lat, lng: g.lng, km: radiusFor(g) }; S.a.zones.push(z); S.geoRes = null; S.geoQ = ""; dirty(); render(); focusZone(z); showFound(S.a.zones.length - 1); return toast(`Zone “${z.name}” added – adjust the radius, then Save`); }
   if (a === "geormove") { const g = S.geoRes[+el.dataset.j], i = +app.querySelector(`[data-gsel="${el.dataset.j}"]`).value, z = S.a.zones[i]; S.geoRes = null; return moveZone(z, g); }
   if (a === "findzone") return findZone(+el.dataset.i);
+  if (a === "zpins") return showFound(+el.dataset.i);
+  if (a === "fclose") { S.found = null; return paintFound(); }
+  if (a === "fall" || a === "fnone") { const f = S.found; f.sel = new Set(a === "fall" ? f.list.filter((x) => !checkPin(S.a, x.pin).ok).map((x) => x.pin) : []); return paintFound(); }
+  if (a === "faddsel") {
+    const add = [...S.found.sel];
+    S.a.pins = [...new Set([...S.a.pins, ...add])].sort(); S.a.blocked = S.a.blocked.filter((p) => !add.includes(p));
+    S.found = null; dirty(); render(); return toast(`Added ${add.length} pincodes – press Save & publish`);
+  }
+  if (a === "addpin") { const p = el.dataset.pin; S.a.pins = [...new Set([...S.a.pins, p])].sort(); S.a.blocked = S.a.blocked.filter((x) => x !== p); dirty(); render(); return toast(`${p} added – press Save & publish`); }
   if (a === "mypos") {
     if (!navigator.geolocation) return toast("Location isn't available on this device", true);
     toast("Getting your location…");
-    navigator.geolocation.getCurrentPosition((p) => { const z = { name: "My area", lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), km: 5 }; S.a.zones.push(z); dirty(); render(); focusZone(z); toast("Zone added at your location – rename it and adjust the radius"); },
+    navigator.geolocation.getCurrentPosition((p) => { const z = { name: "My area", lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), km: 5 }; S.a.zones.push(z); dirty(); render(); focusZone(z); showFound(S.a.zones.length - 1); toast("Zone added at your location – rename it and adjust the radius"); },
       () => toast("Couldn't get your location – allow location access or search by name", true), { enableHighAccuracy: true, timeout: 12000 });
     return;
   }
   if (a === "fit") return drawZones(true);
-  if (a === "rmzone") { S.a.zones.splice(+el.dataset.i, 1); dirty(); return render(); }
+  if (a === "rmzone") { S.a.zones.splice(+el.dataset.i, 1); S.found = null; dirty(); return render(); }
   if (a === "reset") { if (!confirm("Replace the current service area with the default (all 800xxx pincodes + 22 km around Patna)?")) return; S.a = normalizeArea(null); dirty(); return render(); }
   if (a === "save") {
     if (!S.a.pins.length && !S.a.prefixes.length && !(S.a.allowGps && S.a.zones.length)) return toast("Add at least one pincode, range or map zone – otherwise nobody can book.", true);
@@ -254,6 +323,7 @@ app.addEventListener("click", async (e) => {
 });
 app.addEventListener("input", (e) => {
   const t = e.target;
+  if (t.dataset.fpin && S.found) { const p = t.dataset.fpin; t.checked ? S.found.sel.add(p) : S.found.sel.delete(p); return paintFound(); }
   if (t.id === "tPin") { S.test = t.value.replace(/\D/g, "").slice(0, 6); t.value = S.test; document.getElementById("tRes").innerHTML = testHtml(); return; }
   if (!isAdmin()) return;
   if (t.dataset.s === "city") { S.a.city = t.value; return dirty(); }
@@ -267,7 +337,10 @@ app.addEventListener("input", (e) => {
   }
 });
 app.addEventListener("change", (e) => {
+  if (e.target.dataset.fpin) return;
   if (e.target.type === "checkbox") return e.target.dispatchEvent(new Event("input", { bubbles: true }));
+  // radius released → refresh the pincodes inside
+  if (e.target.dataset.zk === "km") { const row = e.target.closest("[data-z]"); if (row) return showFound(+row.dataset.z); }
   // typing a new zone name auto-moves the zone to that place
   if (e.target.dataset.zk === "name" && isAdmin()) { const row = e.target.closest("[data-z]"); if (row && e.target.value.trim()) findZone(+row.dataset.z); }
 });
