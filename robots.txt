@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /manager.html
+Disallow: /tech.html
+Disallow: /pricing.html
+Disallow: /slots.html
+Disallow: /areas.html
+Disallow: /invoice.html
+Disallow: /track.html
+
+Sitemap: https://www.zipphive.com/sitemap.xml
