@@ -194,6 +194,12 @@ async function firebaseBackend(conf) {
       const d = await fs.getDoc(fs.doc(db, "prices", "overrides"));
       return d.exists() ? d.data() : {};
     },
+    // anonymous website funnel counters: stats/{yyyy-mm-dd} = { n: { visit: 120, step_slot: 30, booked: 9 } }
+    bumpStat: (day, key) => fs.setDoc(fs.doc(db, "stats", day), { n: { [key]: fs.increment(1) } }, { merge: true }),
+    getStats: async (from, to) => {
+      const q = fs.query(fs.collection(db, "stats"), fs.where(fs.documentId(), ">=", from), fs.where(fs.documentId(), "<=", to));
+      return Object.fromEntries((await fs.getDocs(q)).docs.map((d) => [d.id, d.data().n || {}]));
+    },
     getSlotUse: async (dates) => {
       const out = {};
       await Promise.all(dates.map(async (d) => {
@@ -284,6 +290,8 @@ function mockBackend() {
     saveServiceArea: async (c) => put("zhmock:serviceArea", { ...c, updatedAt: Date.now() }),
     getPriceOverrides: async () => get("zhmock:overrides", {}),
     saveSlotConfig: async (c) => put("zhmock:slots", { ...c, updatedAt: Date.now() }),
+    bumpStat: async (day, key) => { const st = get("zhmock:stats", {}); (st[day] ||= {}); st[day][key] = (st[day][key] || 0) + 1; put("zhmock:stats", st); },
+    getStats: async (from, to) => Object.fromEntries(Object.entries(get("zhmock:stats", {})).filter(([d]) => d >= from && d <= to)),
     getSlotUse: async (dates) => { const u = get("zhmock:slotUse", {}); return Object.fromEntries(dates.map((d) => [d, u[d] || {}])); },
     bumpSlot: async (key, by) => {
       const [date, k] = String(key).split("/"), u = get("zhmock:slotUse", {});

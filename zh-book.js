@@ -1,10 +1,11 @@
 // ZippHive step-by-step booking: service → choices → price → time slot → details → confirmed.
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
-import { backend, trackUrl } from "/zh-ops.js?v=18";
-import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=26";
+import { backend, trackUrl } from "/zh-ops.js?v=19";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=27";
 import "/zh-slots.js?v=15";
-import { checkPin, checkGeo } from "/zh-area.js?v=4";
+import { track } from "/zh-stats.js?v=1";
+import { checkPin, checkGeo } from "/zh-area.js?v=5";
 
 const root = document.getElementById("zhBook");
 // Service area comes from Admin → Service area (/areas.html, content/serviceArea) via zh-area.js:
@@ -217,7 +218,7 @@ function stepsFor(s) {
   if (s.mode === "duration") return ["svc", "item", "price", "slot", "details"];
   return ["svc", ...(s.variants ? ["variant"] : []), "price", "slot", "details"];
 }
-function go(step) { S.hist.push(S.step); S.step = step; S.err = ""; render(true); }
+function go(step) { S.hist.push(S.step); S.step = step; S.err = ""; track("step_" + step); if (step === "slot") track("step_slot_" + S.svc); render(true); }
 function back() { S.step = S.hist.pop() || "svc"; S.err = ""; render(true); }
 
 function cart() {
@@ -551,6 +552,7 @@ function afterSub() {
   return go("price");
 }
 async function startService(id, quiet) {
+  if (!quiet) { track("step_svc"); track("svc_" + id); }
   S.svc = id; S.hist = ["svc"]; S.err = ""; S.sel = {}; S.other = false; S.item = null; S.dur = null; S.sku = null; S.group = ""; S.variant = ""; S.remarks = "";
   const s = svc();
   if (s.mode === "phone") {
@@ -562,6 +564,7 @@ async function startService(id, quiet) {
     return;
   }
   S.step = s.mode === "duration" ? "item" : s.variants ? "variant" : "price";
+  if (!quiet && S.step === "price") track("step_price");
   render(!quiet);
 }
 function next() {
@@ -599,7 +602,7 @@ async function confirm() {
   if (!/^[6-9]\d{9}$/.test(S.mobile)) { S.err = "Please enter a valid 10-digit mobile number."; return render(); }
   if (S.area.length < 2) { S.err = "Please enter your area."; return render(); }
   const ls = locState();
-  if (ls === "out") { S.err = "Sorry, we don't serve this area yet – please check the pincode."; return render(); }
+  if (ls === "out") { if (S.pin.length === 6) track("pinout_" + S.pin); S.err = "Sorry, we don't serve this area yet – please check the pincode."; return render(); }
   if (ls !== "ok") { S.err = `Please enter your 6-digit pincode (or tap “Use my location”) so we can check we serve your area.`; return render(); }
   S.busy = true; S.err = ""; render();
   const c = cart();
@@ -635,7 +638,7 @@ async function confirm() {
     try { job = await be.createBooking(data); }
     catch (e1) { if (!data.slot) throw e1; const { slot, ...rest } = data; job = await be.createBooking(rest); }
     if (data.slot) Promise.resolve(window.ZHSlots?.reserve(data.slot)).then(() => picker.refresh?.());
-    S.done = { code: job.code, url: trackUrl(job.id) }; S.busy = false; S.step = "done"; render(true);
+    S.done = { code: job.code, url: trackUrl(job.id) }; S.busy = false; S.step = "done"; track("booked"); track("booked_" + S.svc); render(true);
   } catch (err) {
     console.warn(err);
     S.busy = false;

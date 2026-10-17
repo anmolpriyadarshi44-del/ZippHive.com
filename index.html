@@ -678,12 +678,14 @@ document.getElementById('yr').textContent = new Date().getFullYear();
     if(window.ZHArea&&window.ZHArea.ready) await window.ZHArea.ready;
     const ok=window.ZHArea&&window.ZHArea.okPin(p);
     out.className='pinres '+(ok?'ok':'no');
+    if(window.ZHTrack){window.ZHTrack('pin_check');window.ZHTrack(ok?'pin_check_ok':'pinout_'+p);}
     out.innerHTML=ok?'✅ Yes! We serve '+p+'. <a href="#book">Book now →</a>':'❌ Sorry, we don\'t serve '+p+' yet. <a href="https://wa.me/919220400950?text='+encodeURIComponent('Hi ZippHive, please tell me when you start serving pincode '+p)+'" target="_blank" rel="noopener">Get notified on WhatsApp</a>';
   });
 })();
 </script>
-<script type="module" src="/zh-area.js?v=4"></script>
-<script type="module" src="/zh-book.js?v=29"></script>
+<script type="module" src="/zh-stats.js?v=1"></script>
+<script type="module" src="/zh-area.js?v=5"></script>
+<script type="module" src="/zh-book.js?v=30"></script>
 <script src="/zh-assistant-kb.js?v=4" defer></script>
 <script src="/zipphive-widget.js?v=25" data-position="right" defer></script>
 <script>

@@ -209,3 +209,7 @@ On any open job card in `/manager.html`: **📦 Parts out of stock** → choose 
 Store managers can sign in on `/manager.html` with **any email** (Yahoo, Outlook…) using a one-time **email sign-in link** – no password and no access to the owner's Gmail.
 - One-time Firebase setup: Firebase console → Authentication → Sign-in method → **Email/Password** → enable **Email link (passwordless sign-in)**.
 - Admin adds the person in `/manager.html` → Store managers (name + email). Their role: see all bookings, assign technicians (3-hr window), ETA / parts delays, confirm, cancel, warranty decisions. They **cannot** change prices, services, time slots, service area, technicians or other managers (pages are view-only and Firestore rules allow those writes only for the admin).
+
+## Website analytics (`/analytics.html`, Admin → 📊 Website analytics, manager header → 📊 Analytics)
+Anonymous funnel counters written by `zh-stats.js` to Firestore `stats/{yyyy-mm-dd}` (`n.visit`, `n.step_svc`, `n.step_price`, `n.step_slot`, `n.step_details`, `n.booked`, per-service `svc_*` / `step_slot_*` / `booked_*`, phone `step_model` / `step_issue`, `src_*` traffic source, `click_whatsapp`, `click_call`, `ai_open`, `pin_check`, `pinout_<pincode>`). Each event counts once per browser per day; staff browsers (admin / manager sign-in) and bots are skipped; no personal data stored.
+**Needs the updated `firestore.rules` published** (new `match /stats/{day}` block: visitors may only add +1 to one counter; only admin/managers can read).

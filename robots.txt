@@ -8,5 +8,6 @@ Disallow: /slots.html
 Disallow: /areas.html
 Disallow: /invoice.html
 Disallow: /track.html
+Disallow: /analytics.html
 
 Sitemap: https://www.zipphive.com/sitemap.xml

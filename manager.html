@@ -136,7 +136,7 @@ details.repd summary{cursor:pointer;font-weight:800;color:var(--deep);margin-bot
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=18";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=19";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const LS = (k, d) => { try { const v = localStorage.getItem("zhm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
@@ -580,7 +580,7 @@ function dashboard() {
   const hid = hiddenOpen();
   return `
   <header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span><span class="live"><i></i>Live</span>
-    <span class="sp"></span><a class="btn sm ghost" href="/slots.html">📅 Time slots</a><a class="btn sm ghost" href="/pricing.html">💰 Prices</a><a class="btn sm ghost" href="/areas.html">🗺️ Service area</a><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
+    <span class="sp"></span><a class="btn sm ghost" href="/slots.html">📅 Time slots</a><a class="btn sm ghost" href="/pricing.html">💰 Prices</a><a class="btn sm ghost" href="/analytics.html">📊 Analytics</a><a class="btn sm ghost" href="/areas.html">🗺️ Service area</a><span class="who">${esc(S.user.email)}</span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
   <div class="wrap">
     <div class="sec"><h2>Right now</h2><span class="muted">live – all open jobs</span></div>
     <div class="kpis live" style="grid-template-columns:repeat(5,minmax(0,1fr))">
@@ -841,6 +841,7 @@ if (S.be) S.be.onUser(async (u) => {
   if (u) {
     S.ok = await S.be.isManager(u.email);
     if (S.ok) {
+      try { localStorage.setItem("zh-staff", "1"); } catch {} // staff visits are not counted in website analytics
       unsub = S.be.watchAllBookings((list) => { S.bookings = list; alertNew(list); softRender(); }, (err) => toast("Could not load bookings: " + (err.message || err), true));
       loadTechs(); loadMgrs();
     }
