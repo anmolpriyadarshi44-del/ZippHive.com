@@ -44,8 +44,8 @@ table.pt tr.off td{opacity:.5}
 <body>
 <div id="app"><div class="center muted" style="padding:40px">Loading…</div></div>
 <script type="module">
-import { backend, admins, esc, toast } from "/zh-ops.js?v=17";
-import { mergeCatalog, offPct, itemImg } from "/zh-services.js?v=25";
+import { backend, admins, esc, toast } from "/zh-ops.js?v=18";
+import { mergeCatalog, offPct, itemImg } from "/zh-services.js?v=26";
 
 const EMBED = new URLSearchParams(location.search).has("embed"); // shown inside the Admin portal tab
 if (EMBED) document.documentElement.classList.add("embed");
@@ -122,7 +122,7 @@ function render() {
     ${S.user ? `<a class="btn sm ghost" href="/manager.html">← Dashboard</a><button class="btn sm ghost" data-act="signout">Sign out</button>` : ""}</header>`;
   if (!S.be) { app.innerHTML = head + `<div class="card login"><h2>Not configured</h2></div>`; return; }
   if (S.user === undefined) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading…</div>`; return; }
-  if (!S.user) { app.innerHTML = head + `<div class="card login"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`; return; }
+  if (!S.user) { app.innerHTML = head + `<div class="card login"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button><p class="muted" style="margin-top:10px;font-size:13px">Not a Gmail account? <a href="/manager.html">Sign in on the store manager page</a> with an email link, then come back.</p></div>`; return; }
   if (!S.ok) { app.innerHTML = head + `<div class="card login"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive admin or store manager.</p></div>`; return; }
   if (!S.cat) { app.innerHTML = head + `<div class="center muted" style="padding:40px">Loading prices…</div>`; return; }
   app.innerHTML = head + `<div class="wrap">

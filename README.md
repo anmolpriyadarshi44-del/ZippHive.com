@@ -204,3 +204,8 @@ Customer-facing pages, the AI assistant, WhatsApp messages, tracking page, invoi
 On any open job card in `/manager.html`: **📦 Parts out of stock** → choose how long it will take (30 min · 1 hour · 2 hours · 4 hours · Tomorrow · or pick a date & time) + optional note → **Save & show to customer**. Stored on the booking as `parts {state:"awaiting", eta, etaAt, note, at, by}`.
 - Customer tracking link shows “📦 Sorry, the part is out of stock – we're arranging it, it will take about 30 min” with a live countdown and the expected time (and a softer message if the time passes).
 - Manager card: waiting box with countdown (red when overdue), **⏱ Update time**, **📲 Inform customer** (WhatsApp message), **✅ Parts arrived** (customer then sees “Parts arrived – repair continuing”). Filter chip **📦 Parts awaited**; table shows “📦 parts by …”. The technician app shows the parts status on the job.
+
+## Staff with non-Gmail emails (operations / store manager)
+Store managers can sign in on `/manager.html` with **any email** (Yahoo, Outlook…) using a one-time **email sign-in link** – no password and no access to the owner's Gmail.
+- One-time Firebase setup: Firebase console → Authentication → Sign-in method → **Email/Password** → enable **Email link (passwordless sign-in)**.
+- Admin adds the person in `/manager.html` → Store managers (name + email). Their role: see all bookings, assign technicians (3-hr window), ETA / parts delays, confirm, cancel, warranty decisions. They **cannot** change prices, services, time slots, service area, technicians or other managers (pages are view-only and Firestore rules allow those writes only for the admin).

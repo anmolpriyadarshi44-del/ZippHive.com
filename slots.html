@@ -52,7 +52,7 @@ table.g tr.all td{background:#FAFCFC}
 <body>
 <div id="app"><div class="card login muted" style="margin:60px auto;max-width:420px;text-align:center">Loading…</div></div>
 <script type="module">
-import { backend, admins, esc, toast } from "/zh-ops.js?v=17";
+import { backend, admins, esc, toast } from "/zh-ops.js?v=18";
 import { SLOT_CATS, mergeCfg, hours, hm, slotLabel, nextDays, fromYmd, dayLabel, isDayClosed, capFor } from "/zh-slots.js?v=15";
 
 const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -158,7 +158,7 @@ function render() {
     ${S.user ? `<a class="btn sm ghost" href="/manager.html">← Dashboard</a><button class="btn sm ghost" data-act="signout">Sign out</button>` : ""}</header>`;
   if (!S.be) app.innerHTML = head + `<div class="card login" style="margin:60px auto;max-width:420px;text-align:center"><h2>Not configured</h2><p class="muted">Firebase settings are missing.</p></div>`;
   else if (S.user === undefined) app.innerHTML = head + `<div class="center muted" style="padding:40px;text-align:center">Loading…</div>`;
-  else if (!S.user) app.innerHTML = head + `<div class="card" style="margin:60px auto;max-width:420px;text-align:center"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
+  else if (!S.user) app.innerHTML = head + `<div class="card" style="margin:60px auto;max-width:420px;text-align:center"><h2>Sign in</h2><p class="muted">Admin or store manager Google account.</p><button class="btn" data-act="signin">Sign in with Google</button><p class="muted" style="margin-top:10px;font-size:13px">Not a Gmail account? <a href="/manager.html">Sign in on the store manager page</a> with an email link, then come back.</p></div>`;
   else if (!S.ok) app.innerHTML = head + `<div class="card" style="margin:60px auto;max-width:420px;text-align:center"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive admin or store manager.</p></div>`;
   else if (!S.draft) app.innerHTML = head + `<div class="muted" style="padding:40px;text-align:center">Loading slots…</div>`;
   else app.innerHTML = head + `<div class="wrap">${normalCard()}${dayCard()}</div>`;

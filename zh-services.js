@@ -1,6 +1,6 @@
 // ZippHive service catalog for the booking flow (everything except mobile repair, which uses zipphive-catalog.json).
 // Prices are edited by the admin on /pricing.html and saved to Firestore content/services; these are the defaults.
-import { backend } from "/zh-ops.js?v=17";
+import { backend } from "/zh-ops.js?v=18";
 
 // mode "duration": pick one item, then 30 / 45 / 60 min (each its own price)
 // mode "items":     pick one or more items with a quantity; prices can depend on a variant (e.g. Split / Window AC)

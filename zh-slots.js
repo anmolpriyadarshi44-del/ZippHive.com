@@ -1,7 +1,7 @@
 // ZippHive time slots: calendar date + hourly slot picker for bookings, and the shared slot rules.
 // Settings live in Firestore content/slots (edited on /slots.html); usage counters in slotUse/{date}.
 // Used by the homepage booking form and the AI assistant's booking forms (<zh-slot-picker service="…">).
-import { backend } from "/zh-ops.js?v=17";
+import { backend } from "/zh-ops.js?v=18";
 
 export const SLOT_CATS = [
   { id: "phone", label: "Mobile repair", dur: 60 },

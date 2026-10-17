@@ -99,6 +99,19 @@ async function firebaseBackend(conf) {
   const db = fs.getFirestore(app);
   const withId = (d) => ({ ...d.data(), id: d.id });
   const bk = (id) => fs.doc(db, "bookings", id);
+  // Finish an email-link sign-in (staff with non-Google emails, e.g. Yahoo) when the page is opened from the link
+  if (auth.isSignInWithEmailLink(a, location.href)) {
+    let em = "";
+    try { em = localStorage.getItem("zh-signin-email") || ""; } catch {}
+    if (!em) em = (window.prompt("Confirm your email to finish signing in") || "").trim();
+    if (em) {
+      try {
+        await auth.signInWithEmailLink(a, em, location.href);
+        try { localStorage.removeItem("zh-signin-email"); } catch {}
+      } catch (e) { setTimeout(() => toast("Sign-in link expired or already used – request a new one", true), 300); }
+    }
+    history.replaceState(null, "", location.pathname);
+  }
 
   return {
     mode: "firebase",
@@ -114,6 +127,11 @@ async function firebaseBackend(conf) {
         if (c.includes("popup-blocked") || c.includes("operation-not-supported")) await auth.signInWithRedirect(a, p);
         else throw e;
       }
+    },
+    // Passwordless sign-in for any email (Yahoo, Outlook…): Firebase emails a one-time link
+    sendSignInLink: async (email) => {
+      await auth.sendSignInLinkToEmail(a, email, { url: location.origin + location.pathname, handleCodeInApp: true });
+      try { localStorage.setItem("zh-signin-email", email); } catch {}
     },
     signOut: () => auth.signOut(a),
     watchAllBookings: (cb, err) =>
@@ -226,6 +244,7 @@ function mockBackend() {
       const e = window.prompt("Test sign-in: enter email") || "";
       if (e) put(K.user, { email: e.toLowerCase() });
     },
+    sendSignInLink: async (email) => put(K.user, { email: email.toLowerCase() }),
     signOut: async () => put(K.user, null),
     watchAllBookings: (cb) => watch([K.bk], () => cb(all().sort((a, b) => b.createdAt - a.createdAt))),
     watchJobs: (email, cb) =>

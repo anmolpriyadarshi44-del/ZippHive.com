@@ -136,7 +136,7 @@ details.repd summary{cursor:pointer;font-weight:800;color:var(--deep);margin-bot
 <body>
 <div id="app"><div class="center muted">Loading…</div></div>
 <script type="module">
-import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=17";
+import { backend, STATUS, CLOSED, actions, stage, trackUrl, waLink, ago, when, esc, toast, admins, invoiceUrl, jobPhase, jobSheetHtml, qcSum, qcCompare, rupees, payInfo, isWarranty, pingSheet, warrantyInfo, W_REASONS, canAssignNow, assignOpensAt, slotStart, ASSIGN_WINDOW_H } from "/zh-ops.js?v=18";
 
 const FLOW = ["new", "confirmed", "assigned", "on_the_way", "arrived", "in_progress", "completed"];
 const LS = (k, d) => { try { const v = localStorage.getItem("zhm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
@@ -505,10 +505,11 @@ function managerPanel() {
   if (!isAdmin()) return "";
   const rows = S.managers.map((m) => `<div class="tech"><div class="av">🧑‍💼</div><div style="flex:1;min-width:0"><div class="nm">${esc(m.name || m.email)}</div><div class="muted" style="font-size:12px">${esc(m.email)}</div></div><button class="btn sm r" data-act="delmgr" data-email="${esc(m.email)}">Remove</button></div>`).join("");
   return `<div class="card side"><h2>Store managers</h2>
+    <p class="muted" style="margin:0 0 6px;font-size:12.5px">Can see all bookings, assign technicians, set ETA / delay & parts updates, confirm and cancel. Cannot change prices, services, time slots, service area, technicians or managers.</p>
     ${rows || `<p class="muted">Only admins so far.</p>`}
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
       <input class="in" id="mgr-name" placeholder="Name">
-      <input class="in" id="mgr-email" placeholder="Google email (Gmail)">
+      <input class="in" id="mgr-email" type="email" placeholder="Email – Gmail, Yahoo, Outlook…">
       <button class="btn sm" data-act="addmgr">Add store manager</button>
     </div></div>`;
 }
@@ -642,7 +643,14 @@ function render() {
   if (S.be === undefined || S.user === undefined) app.innerHTML = `<div class="center muted">Loading…</div>`;
   else if (S.be === null) app.innerHTML = `<div class="center"><div><h2>Not configured</h2><p class="muted">Firebase settings are missing in zipphive-config.js.</p></div></div>`;
   else if (!S.user) app.innerHTML = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="role">Store Manager</span></header>
-    <div class="card login"><h2>Store manager sign-in</h2><p class="muted">Use the Google account your admin added.</p><button class="btn" data-act="signin">Sign in with Google</button></div>`;
+    <div class="card login"><h2>Store manager sign-in</h2><p class="muted">Use the email your admin added.</p>
+      <button class="btn" data-act="signin" style="width:100%">Sign in with Google (Gmail)</button>
+      <div class="muted" style="text-align:center;margin:14px 0 8px;font-weight:700">— or any other email (Yahoo, Outlook…) —</div>
+      <form id="emailIn" style="display:flex;flex-direction:column;gap:8px">
+        <input class="in" type="email" id="signEmail" placeholder="your@email.com" autocomplete="email" required>
+        <button class="btn o" type="submit">📧 Email me a sign-in link</button>
+      </form>
+      <p class="muted" id="signMsg" style="margin:8px 0 0;font-size:13px">No password needed – open the link we email you on this device. Check Spam if you don't see it.</p></div>`;
   else if (!S.ok) app.innerHTML = `<header class="top"><span class="brand">Zipp<span>Hive</span></span><span class="sp"></span><button class="btn sm ghost" data-act="signout">Sign out</button></header>
     <div class="card login"><h2>Not authorised</h2><p class="muted">${esc(S.user.email)} is not a ZippHive store manager. Ask the admin to add you.</p></div>`;
   else app.innerHTML = dashboard();
@@ -721,7 +729,7 @@ app.addEventListener("click", (e) => {
   if (act === "addmgr") {
     const email = document.getElementById("mgr-email").value.trim().toLowerCase();
     const name = document.getElementById("mgr-name").value.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid Google email", true);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid email", true);
     return run(S.be.saveManager({ email, name, addedAt: Date.now() }), "Store manager added").then(loadMgrs);
   }
   if (act === "delmgr") return confirm(`Remove ${el.dataset.email}?`) && run(S.be.deleteManager(el.dataset.email), "Removed").then(loadMgrs);
@@ -790,6 +798,19 @@ app.addEventListener("click", (e) => {
   }
   if (act === "cancel") return confirm(`Cancel booking ${b.code} for ${b.name}?`) && run(actions.cancel(S.be, b), "Booking cancelled");
   if (act === "copy") return navigator.clipboard?.writeText(trackUrl(b.id)).then(() => toast("Tracking link copied"));
+});
+app.addEventListener("submit", async (e) => {
+  if (e.target.id !== "emailIn") return;
+  e.preventDefault();
+  const em = document.getElementById("signEmail").value.trim().toLowerCase(), msg = document.getElementById("signMsg");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return toast("Enter a valid email", true);
+  try {
+    await S.be.sendSignInLink(em);
+    msg.innerHTML = `✅ Sign-in link sent to <b>${esc(em)}</b>. Open it on this device (check Spam / Junk too).`;
+  } catch (x) {
+    const c = String(x.code || x.message || x);
+    toast(c.includes("operation-not-allowed") ? "Email sign-in isn't switched on yet – ask the admin to enable it in Firebase" : "Couldn't send the link: " + c, true);
+  }
 });
 app.addEventListener("toggle", (e) => { const d = e.target; if (d.dataset?.sheet) d.open ? S.sheets.add(d.dataset.sheet) : S.sheets.delete(d.dataset.sheet); }, true);
 app.addEventListener("change", (e) => {

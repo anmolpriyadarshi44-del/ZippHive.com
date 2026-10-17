@@ -1,10 +1,10 @@
 // ZippHive step-by-step booking: service → choices → price → time slot → details → confirmed.
 // Mounts into <div id="zhBook">. Mobile repair uses zipphive-catalog.json (+ admin price overrides);
 // all other services use zh-services.js (prices edited on /pricing.html).
-import { backend, trackUrl } from "/zh-ops.js?v=17";
-import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=25";
+import { backend, trackUrl } from "/zh-ops.js?v=18";
+import { loadServices, svcById, itemPrice, itemMrp, offPct, svcStats, SVC_TONE, itemImg, itemFrom, CLEAN_EMOJI, isStock, svcItemImg, variantImg, issueImg, SVC_COVER } from "/zh-services.js?v=26";
 import "/zh-slots.js?v=15";
-import { checkPin, checkGeo } from "/zh-area.js?v=3";
+import { checkPin, checkGeo } from "/zh-area.js?v=4";
 
 const root = document.getElementById("zhBook");
 // Service area comes from Admin → Service area (/areas.html, content/serviceArea) via zh-area.js:
